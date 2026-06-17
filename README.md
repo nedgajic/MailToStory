@@ -1,36 +1,130 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Gmail Digest
 
-## Getting Started
+Next.js app: sign in with Google (read-only Gmail), pick a thread, get an LLM-generated **digest** (story, timeline, actions) in a reader-style UI.
 
-First, run the development server:
+## Prerequisites
+
+- **Node 20.9+** (check with `node -v`; use [nodejs.org](https://nodejs.org/) or `nvm install 20`)
+- **Postgres:** either **Docker** (included—see below) or a hosted database
+- [Google Cloud](https://console.cloud.google.com/) project with **Gmail API** enabled and **OAuth consent** configured
+- [Gemini API](https://ai.google.dev/) key
+
+## Setup (minimum you must do yourself)
+
+Automated checks after cloning:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run doctor
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+1. **Install dependencies**
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+   ```bash
+   npm install
+   ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+   If install fails, try a clean install (fixes many lockfile/cache issues):
 
-## Learn More
+   ```bash
+   rm -rf node_modules package-lock.json
+   npm install
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+   Still failing? Copy the **full** terminal output (from the first `npm install` line through the last error) and share it—without that, fixes are guesswork.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+2. **Postgres (Docker — fixed username/password)**
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+   From the project root:
 
-## Deploy on Vercel
+   ```bash
+   docker compose up -d
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+   Wait until the DB is healthy (a few seconds). Default URL (already in `.env.example`):
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+   ```text
+   postgresql://gmaildigest:gmaildigest_dev@localhost:5434/gmaildigest?schema=public
+   ```
+
+   The app uses host port **5434** by default so it stays out of the way of Postgres on **5432** and other tools that often use **5433**. If Docker says the port is **already allocated**, edit `docker-compose.yml` (change `5434` to another free port, e.g. `15432`) and set the same port in `DATABASE_URL`.
+
+   If `npx prisma migrate deploy` fails with **P1010** / access denied, you are probably hitting the wrong server—confirm `DATABASE_URL` matches the **first** port number in `docker-compose.yml` and run `docker compose ps` to ensure the `db` service is up.
+
+   **Only for local dev.** Change the password in `docker-compose.yml` + `.env` if you expose this machine.
+
+   *No Docker?* Use [Neon](https://neon.tech/) or similar and put their URI in `DATABASE_URL` instead.
+
+3. **Environment**
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   Fill in / adjust:
+
+   - `DATABASE_URL` – use the Docker URL above, or your hosted DB URL
+   - `NEXTAUTH_URL` – e.g. `http://localhost:3000`
+   - `NEXTAUTH_SECRET` – `openssl rand -base64 32`
+   - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` – OAuth *Web application* client
+   - `GEMINI_API_KEY` – Google AI Studio key
+
+   OAuth redirect URI (Google Cloud Console):
+
+   - `http://localhost:3000/api/auth/callback/google`
+
+   Scopes are requested automatically (`gmail.readonly`, email, profile, openid).
+
+4. **Database schema**
+
+   ```bash
+   npx prisma migrate deploy
+   ```
+
+5. **Run**
+
+   ```bash
+   npm run dev
+   ```
+
+   Open [http://localhost:3000](http://localhost:3000), sign in, open **Threads**, then open a thread.
+
+## What only you can provide (secrets and cloud)
+
+Nobody else can create these for you on your machine:
+
+- Postgres **connection string** (`DATABASE_URL`)
+- Google Cloud **OAuth Client ID / Secret** and **Gmail API** enabled
+- **`NEXTAUTH_SECRET`** (random; e.g. `openssl rand -base64 32`)
+- **Gemini API key**
+
+Everything else is either in the repo or one command away (`npm install`, `npx prisma migrate deploy`, `npm run dev`).
+
+## Scripts
+
+| Command           | Purpose                |
+| ----------------- | ---------------------- |
+| `npm run doctor`  | Node version + quick file checks |
+| `npm run dev`     | Dev server             |
+| `npm run build`   | Production build       |
+| `npm run test`    | Vitest (unit tests)    |
+| `npm run lint`    | ESLint                 |
+
+## Roadmap
+
+Prioritized backlog and tiers: **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)**.
+
+### Deploy (sketch)
+
+- Use the same env vars as local; point `DATABASE_URL` at a hosted Postgres.
+- In Google Cloud Console, add your site origin and redirect URI `https://<host>/api/auth/callback/google`.
+- Run `npx prisma migrate deploy` against production before first traffic; then `npm run build` / start as usual.
+
+## Architecture (short)
+
+- **Auth:** [NextAuth.js](https://next-auth.js.org/) (database sessions) + Prisma + Google provider; refresh token stored for Gmail access.
+- **Gmail:** `googleapis` — list threads and load full thread for digest.
+- **LLM:** Gemini — tries several models (default starts with **gemini-2.5-flash**) because free-tier quota is **per model**; `gemini-2.0-flash` sometimes shows `limit: 0` even on the first request. Override with `GEMINI_MODEL` / `GEMINI_MODEL_FALLBACKS`, or enable billing for higher limits ([rate limits](https://ai.google.dev/gemini-api/docs/rate-limits)).
+
+## Privacy note
+
+Digest text is produced on demand and returned to your browser. This MVP does not persist email bodies in the app database—only auth/session/account tokens as required by NextAuth.
