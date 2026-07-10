@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { DM_Mono, Lora } from "next/font/google";
-import Script from "next/script";
+import "./theme-tokens.css";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 
@@ -18,8 +18,10 @@ const dmMono = DM_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Gmail Digest",
-  description: "Readable digests for Gmail threads",
+  metadataBase: new URL("https://gmailstory.com"),
+  title: "Gmail Story — Turn email threads into calm reading",
+  description:
+    "Sign in with Google and turn Gmail threads into structured stories: narrative, timeline, open actions, and exports.",
 };
 
 export default function RootLayout({
@@ -27,15 +29,21 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const themeBoot =
-    '(function(){document.documentElement.setAttribute("data-theme","light");})();';
-
   return (
-    <html lang="en" suppressHydrationWarning data-theme="light">
-      <body className={`${lora.variable} ${dmMono.variable}`}>
-        <Script id="theme-boot" strategy="beforeInteractive">
-          {themeBoot}
-        </Script>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      data-theme="light"
+      className={`${lora.variable} ${dmMono.variable}`}
+    >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{document.documentElement.setAttribute("data-theme","light");}catch(e){}})();`,
+          }}
+        />
+      </head>
+      <body>
         <Providers>{children}</Providers>
       </body>
     </html>

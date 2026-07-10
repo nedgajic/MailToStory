@@ -18,10 +18,6 @@ export function applyThemeToDocument(theme: Theme) {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  React.useLayoutEffect(() => {
-    applyThemeToDocument("light");
-  }, []);
-
   const value = React.useMemo(
     () => ({
       theme: "light" as Theme,

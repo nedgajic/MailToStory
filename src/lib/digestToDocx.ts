@@ -6,6 +6,7 @@ import {
   TextRun,
 } from "docx";
 import type { Digest } from "@/lib/digest-schema";
+import { BRAND_EXPORT_ATTRIBUTION, BRAND_NAME } from "@/lib/brand";
 import { proseMarkdownParts } from "@/lib/digestToMarkdown";
 import { stripTrackingNoiseFromProse } from "@/lib/stripTrackingNoiseFromProse";
 
@@ -180,7 +181,7 @@ export async function digestToDocxBuffer(digest: Digest): Promise<Buffer> {
     new Paragraph({
       children: [
         new TextRun({
-          text: "Exported from Gmail Digest (generated content; verify against originals).",
+          text: `${BRAND_EXPORT_ATTRIBUTION}`,
           italics: true,
         }),
       ],
@@ -188,7 +189,7 @@ export async function digestToDocxBuffer(digest: Digest): Promise<Buffer> {
   );
 
   const doc = new Document({
-    creator: "Gmail Digest",
+    creator: BRAND_NAME,
     title: digest.title,
     sections: [
       {

@@ -12,6 +12,7 @@ import {
 } from "@/lib/threadDigestCache";
 import { getServerSession } from "next-auth/next";
 import { NextResponse } from "next/server";
+import { formatUserFacingError } from "@/lib/user-facing-error";
 
 function sseChunk(data: unknown): Uint8Array {
   const encoder = new TextEncoder();
@@ -71,10 +72,14 @@ export async function POST(req: Request) {
       }
       return NextResponse.json({ digest, messageIdsInOrder });
     } catch (e) {
-      const message =
-        e instanceof Error ? e.message : "Failed to generate digest";
       console.error("digest error:", e);
-      return NextResponse.json({ error: message }, { status: 502 });
+      const friendly = formatUserFacingError(
+        e instanceof Error ? e.message : "Failed to generate story",
+      );
+      return NextResponse.json(
+        { error: friendly.message, ...friendly },
+        { status: 502 },
+      );
     }
   }
 
@@ -96,7 +101,7 @@ export async function POST(req: Request) {
         if (cached) {
           send({
             type: "step_done",
-            label: "Using saved digest for this thread",
+            label: "Using saved story for this thread",
           });
           send({
             type: "done",
@@ -124,7 +129,7 @@ export async function POST(req: Request) {
         send({
           type: "working",
           label:
-            "Generating digest (this can take a little while for long threads)…",
+            "Generating story (this can take a little while for long threads)…",
           chars: 0,
         });
 
@@ -154,10 +159,13 @@ export async function POST(req: Request) {
         }
         send({ type: "done", digest, messageIdsInOrder });
       } catch (e) {
-        const message =
-          e instanceof Error ? e.message : "Failed to generate digest";
         console.error("digest stream error:", e);
-        send({ type: "error", message });
+        send({
+          type: "error",
+          ...formatUserFacingError(
+            e instanceof Error ? e.message : "Failed to generate story",
+          ),
+        });
       } finally {
         try {
           controller.close();

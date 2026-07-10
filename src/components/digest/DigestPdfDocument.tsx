@@ -7,6 +7,7 @@ import {
   Link,
 } from "@react-pdf/renderer";
 import type { Digest, NarrativeBlock } from "@/lib/digest-schema";
+import { BRAND_NAME, BRAND_URL } from "@/lib/brand";
 import { displayUrlLabel, extractUrlsFromText, stripUrlsFromText } from "@/lib/extractUrlsFromText";
 import { stripTrackingNoiseFromProse } from "@/lib/stripTrackingNoiseFromProse";
 import { flattenNarrativeForStory, type StoryRenderItem } from "@/lib/flattenNarrativeForStory";
@@ -444,11 +445,11 @@ export function DigestPdfDocument({ digest }: Props) {
   return (
     <Document
       title={digest.title}
-      author="Gmail Digest"
+      author={BRAND_NAME}
       subject={stripTrackingNoiseFromProse(digest.resolution_summary).slice(0, 180)}
     >
       <Page size="A4" style={styles.page}>
-        <Text style={styles.kicker}>Thread digest</Text>
+        <Text style={styles.kicker}>Thread story</Text>
         <Text style={styles.title}>{digest.title}</Text>
         <Text style={styles.meta}>
           {digest.participants.length} participants
@@ -533,7 +534,8 @@ export function DigestPdfDocument({ digest }: Props) {
         ))}
 
         <Text style={styles.footer} fixed>
-          Gmail Digest · On-demand generation · Email remains in Google
+          {BRAND_NAME} · {BRAND_URL.replace("https://", "")} · On-demand generation ·
+          Email remains in Google
         </Text>
       </Page>
     </Document>

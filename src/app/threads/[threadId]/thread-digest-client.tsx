@@ -2,7 +2,13 @@
 
 import type { Digest } from "@/lib/digest-schema";
 import { AppTopBar, AppTopBarBackLink } from "@/components/app-top-bar";
+import { DigestErrorPanel } from "@/components/digest/DigestErrorPanel";
+import { DigestLoadingScreen } from "@/components/digest/DigestLoadingScreen";
 import DigestRenderer from "@/components/digest/DigestRenderer";
+import {
+  formatUserFacingError,
+  type UserFacingError,
+} from "@/lib/user-facing-error";
 import { useEffect, useMemo, useState } from "react";
 
 type StreamMsg =
@@ -14,7 +20,9 @@ type StreamMsg =
       digest: Digest;
       messageIdsInOrder?: string[];
     }
-  | { type: "error"; message: string };
+  | ({
+      type: "error";
+    } & UserFacingError);
 
 function parseSseBlocks(buffer: string): { messages: StreamMsg[]; rest: string } {
   const messages: StreamMsg[] = [];
@@ -53,8 +61,9 @@ function deriveProgressPct(
 export function ThreadDigestClient({ threadId }: { threadId: string }) {
   const [digest, setDigest] = useState<Digest | null>(null);
   const [messageIdsInOrder, setMessageIdsInOrder] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<UserFacingError | null>(null);
   const [loading, setLoading] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
   const [stepsDone, setStepsDone] = useState<string[]>([]);
   const [statusLine, setStatusLine] = useState("Starting…");
   const [working, setWorking] = useState<{
@@ -98,7 +107,23 @@ export function ThreadDigestClient({ threadId }: { threadId: string }) {
 
         if (!res.ok) {
           if (ct.includes("application/json")) {
-            const data: { error?: string } = await res.json();
+            const data: {
+              error?: string;
+              title?: string;
+              message?: string;
+              hint?: string;
+              canRetry?: boolean;
+            } = await res.json();
+            if (data.title && data.message) {
+              setError({
+                title: data.title,
+                message: data.message,
+                hint: data.hint,
+                canRetry: data.canRetry ?? true,
+              });
+              setLoading(false);
+              return;
+            }
             throw new Error(data.error || `Request failed (${res.status})`);
           }
           throw new Error(`Request failed (${res.status})`);
@@ -133,7 +158,7 @@ export function ThreadDigestClient({ threadId }: { threadId: string }) {
               setWorking((w) =>
                 w
                   ? { ...w, chars: msg.chars }
-                  : { label: "Generating digest…", chars: msg.chars },
+                  : { label: "Generating story…", chars: msg.chars },
               );
             } else if (msg.type === "done") {
               receivedDone = true;
@@ -144,17 +169,24 @@ export function ThreadDigestClient({ threadId }: { threadId: string }) {
               setStatusLine("Done");
               return;
             } else if (msg.type === "error") {
-              throw new Error(msg.message);
+              setError({
+                title: msg.title,
+                message: msg.message,
+                hint: msg.hint,
+                canRetry: msg.canRetry,
+              });
+              setLoading(false);
+              return;
             }
           }
         }
 
         if (!cancelled && !receivedDone) {
-          throw new Error("Stream ended without a digest.");
+          throw new Error("Stream ended without a story.");
         }
       } catch (e) {
         if (!cancelled) {
-          setError(e instanceof Error ? e.message : "Something went wrong");
+          setError(formatUserFacingError(e));
           setLoading(false);
         }
       }
@@ -163,7 +195,7 @@ export function ThreadDigestClient({ threadId }: { threadId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [threadId]);
+  }, [threadId, retryCount]);
 
   if (loading) {
     const indeterminate = stepsDone.length === 0 && !working;
@@ -179,110 +211,18 @@ export function ThreadDigestClient({ threadId }: { threadId: string }) {
         />
         <div
           style={{
-            padding: "1.5rem 1rem 2rem",
+            padding: "1.25rem 1rem 2.5rem",
             maxWidth: 680,
             margin: "0 auto",
           }}
         >
-          <h2
-            style={{
-              marginTop: 0,
-              fontFamily: "var(--font-lora), Georgia, serif",
-              fontSize: "1.15rem",
-              fontWeight: 500,
-              marginBottom: "1rem",
-              color: "var(--app-text)",
-            }}
-          >
-            Preparing your digest
-          </h2>
-
-        <div
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={indeterminate ? undefined : progressPct}
-          aria-label="Digest generation progress"
-          style={{
-            height: "8px",
-            background: "var(--digest-progress-track)",
-            borderRadius: "4px",
-            overflow: "hidden",
-            marginBottom: "1rem",
-          }}
-        >
-          {indeterminate ? (
-            <div className="digest-progress-indeterminate" />
-          ) : (
-            <div
-              style={{
-                height: "100%",
-                width: `${progressPct}%`,
-                background: "#1d3557",
-                borderRadius: "4px",
-                transition: "width 0.35s ease-out",
-              }}
-            />
-          )}
-        </div>
-
-        <p
-          style={{
-            fontFamily: "var(--font-dm-mono), ui-monospace, monospace",
-            fontSize: "0.82rem",
-            color: "var(--app-text-muted)",
-            lineHeight: 1.6,
-            margin: "0 0 1.25rem",
-          }}
-        >
-          {statusLine}
-        </p>
-
-        <ul
-          style={{
-            margin: 0,
-            padding: "0 0 0 1.1rem",
-            fontSize: "0.9rem",
-            lineHeight: 1.85,
-            color: "var(--digest-prose)",
-          }}
-        >
-          {stepsDone.map((label) => (
-            <li key={label} style={{ marginBottom: "0.25rem" }}>
-              <span style={{ color: "#2d6a4f", marginRight: "0.35rem" }}>
-                ✓
-              </span>
-              {label}
-            </li>
-          ))}
-        </ul>
-
-        {working && working.chars > 0 ? (
-          <p
-            style={{
-              margin: "1rem 0 0",
-              fontFamily: "var(--font-dm-mono), ui-monospace, monospace",
-              fontSize: "0.72rem",
-              color: "var(--digest-prose-softer)",
-            }}
-          >
-            {working.chars.toLocaleString()} characters from the model so far…
-          </p>
-        ) : null}
-
-        <style>{`
-          @keyframes digestProgressIndeterminate {
-            0% { transform: translateX(-100%); width: 40%; }
-            100% { transform: translateX(350%); width: 40%; }
-          }
-          .digest-progress-indeterminate {
-            height: 100%;
-            width: 40%;
-            background: #1d3557;
-            border-radius: 4px;
-            animation: digestProgressIndeterminate 1.2s ease-in-out infinite;
-          }
-        `}</style>
+          <DigestLoadingScreen
+            statusLine={statusLine}
+            stepsDone={stepsDone}
+            working={working}
+            progressPct={progressPct}
+            indeterminate={indeterminate}
+          />
         </div>
       </div>
     );
@@ -298,8 +238,18 @@ export function ThreadDigestClient({ threadId }: { threadId: string }) {
           contentMaxWidth="digest"
           startSlot={<AppTopBarBackLink />}
         />
-        <div style={{ padding: "1.5rem 1rem", maxWidth: 680, margin: "0 auto" }}>
-          <p style={{ color: "#b00020" }}>{error}</p>
+        <div style={{ padding: "1.5rem 1rem 2.5rem", maxWidth: 680, margin: "0 auto" }}>
+          <DigestErrorPanel
+            error={error}
+            onRetry={
+              error.canRetry
+                ? () => {
+                    setError(null);
+                    setRetryCount((n) => n + 1);
+                  }
+                : undefined
+            }
+          />
         </div>
       </div>
     );

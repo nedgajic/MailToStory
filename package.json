@@ -1,5 +1,5 @@
 {
-  "name": "gmaildigest",
+  "name": "gmail-story",
   "version": "0.1.0",
   "private": true,
   "engines": {
@@ -7,7 +7,7 @@
   },
   "scripts": {
     "doctor": "node scripts/preflight.mjs",
-    "dev": "NODE_OPTIONS='--disable-warning=DEP0108' next dev",
+    "dev": "NODE_OPTIONS='--disable-warning=DEP0108' next dev --webpack",
     "build": "NODE_OPTIONS='--disable-warning=DEP0108' next build",
     "start": "NODE_OPTIONS='--disable-warning=DEP0108' next start",
     "lint": "eslint",

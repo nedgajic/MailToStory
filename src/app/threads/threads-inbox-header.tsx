@@ -1,14 +1,33 @@
 "use client";
 
-export function ThreadsInboxHeader({ email }: { email: string | null | undefined }) {
+type ThreadsInboxHeaderProps = {
+  email: string | null | undefined;
+  threadsOnly: boolean;
+  onThreadsOnlyChange: (value: boolean) => void;
+};
+
+export function ThreadsInboxHeader({
+  email,
+  threadsOnly,
+  onThreadsOnlyChange,
+}: ThreadsInboxHeaderProps) {
   return (
-    <header className="threads-inbox-header">
-      <p className="threads-inbox-kicker">Inbox preview · {email}</p>
-      <h1 className="threads-inbox-title">Primary</h1>
-      <p className="threads-inbox-blurb">
-        Open a row for a digest. Single-message threads look lighter but work the
-        same. Page right for older mail.
-      </p>
+    <header className="threads-inbox-header threads-inbox-header--compact">
+      <div className="threads-inbox-header__main">
+        <h1 className="threads-inbox-title">Inbox</h1>
+        {email ? <p className="threads-inbox-email">{email}</p> : null}
+      </div>
+      <button
+        type="button"
+        className={`threads-filter-toggle${threadsOnly ? " threads-filter-toggle--on" : ""}`}
+        aria-pressed={threadsOnly}
+        onClick={() => onThreadsOnlyChange(!threadsOnly)}
+      >
+        <span className="threads-filter-toggle__track" aria-hidden>
+          <span className="threads-filter-toggle__thumb" />
+        </span>
+        <span className="threads-filter-toggle__label">Threads only</span>
+      </button>
     </header>
   );
 }

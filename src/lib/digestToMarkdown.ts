@@ -1,4 +1,5 @@
 import type { Digest } from "@/lib/digest-schema";
+import { BRAND_EXPORT_ATTRIBUTION } from "@/lib/brand";
 import { extractUrlsFromText, stripUrlsFromText } from "@/lib/extractUrlsFromText";
 import { stripTrackingNoiseFromProse } from "@/lib/stripTrackingNoiseFromProse";
 
@@ -115,7 +116,7 @@ export function digestToMarkdown(digest: Digest): string {
 
   lines.push(
     "---",
-    "_Exported from Gmail Digest (generated content; verify against originals)._",
+    `_${BRAND_EXPORT_ATTRIBUTION}_`,
   );
 
   return lines.join("\n");

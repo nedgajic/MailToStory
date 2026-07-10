@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Digest, NarrativeBlock } from "@/lib/digest-schema";
 import { AppTopBar, AppTopBarBackLink } from "@/components/app-top-bar";
 import { digestPdfBaseFilename } from "@/lib/digestPdfFilename";
+import { digestToMarkdown } from "@/lib/digestToMarkdown";
 import {
   DIGEST_URL_IN_TEXT_RE,
   displayUrlLabel,
@@ -763,29 +764,27 @@ function ResolutionBanner({
   const summaryTrim = stripTrackingNoiseFromProse(summary?.trim() ?? "");
   return (
     <div className="digest-recap-panel">
-      <div className="digest-recap-panel-inner">
-        <div className="digest-recap-meta-row">
-          <span className="digest-recap-kicker">Recap</span>
-          <span
-            className="digest-recap-status-pill"
-            style={{
-              color: cfg.color,
-              background: cfg.bg,
-            }}
-          >
-            {cfg.label}
-          </span>
-        </div>
-        <p
-          className={
-            summaryTrim
-              ? "digest-recap-summary"
-              : "digest-recap-summary digest-recap-summary-empty"
-          }
+      <div className="digest-recap-meta-row">
+        <span className="digest-recap-kicker">Recap</span>
+        <span
+          className="digest-recap-status-pill"
+          style={{
+            color: cfg.color,
+            background: cfg.bg,
+          }}
         >
-          {summaryTrim || "No recap summary was returned for this thread."}
-        </p>
+          {cfg.label}
+        </span>
       </div>
+      <p
+        className={
+          summaryTrim
+            ? "digest-recap-summary"
+            : "digest-recap-summary digest-recap-summary-empty"
+        }
+      >
+        {summaryTrim || "No recap summary was returned for this thread."}
+      </p>
     </div>
   );
 }
@@ -1546,6 +1545,7 @@ export default function DigestRenderer({
   } | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [wordLoading, setWordLoading] = useState(false);
+  const [markdownCopied, setMarkdownCopied] = useState(false);
 
   const tabs: { id: TabId; label: string }[] = [
     { id: "story", label: "Story" },
@@ -1555,6 +1555,31 @@ export default function DigestRenderer({
 
   const firstTimeline = digest.timeline[0];
   const lastTimeline = digest.timeline[digest.timeline.length - 1];
+
+  async function copyMarkdown() {
+    const md = digestToMarkdown(digest);
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(md);
+      } else {
+        const ta = document.createElement("textarea");
+        ta.value = md;
+        ta.setAttribute("readonly", "");
+        ta.style.position = "fixed";
+        ta.style.left = "-9999px";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        ta.remove();
+      }
+      setMarkdownCopied(true);
+      window.setTimeout(() => setMarkdownCopied(false), 2000);
+    } catch (e) {
+      window.alert(
+        e instanceof Error ? e.message : "Could not copy Markdown to clipboard.",
+      );
+    }
+  }
 
   async function exportPdf() {
     setPdfLoading(true);
@@ -1661,8 +1686,16 @@ export default function DigestRenderer({
             <AppTopBarBackLink />
             <nav
               className="app-top-bar__exports"
-              aria-label="Export digest"
+              aria-label="Export story"
             >
+              <button
+                type="button"
+                className="app-top-bar__btn app-top-bar__btn--secondary"
+                title="Copy the full story as Markdown"
+                onClick={() => void copyMarkdown()}
+              >
+                {markdownCopied ? "Copied!" : "Copy Markdown"}
+              </button>
               <button
                 type="button"
                 className="app-top-bar__btn"
@@ -1687,7 +1720,7 @@ export default function DigestRenderer({
       <div className="digest-wrap">
       <div className="digest-page-split digest-page-split--sticky-bar">
         <div className="digest-page-split__tabs">
-          <div className="digest-tab-strip" role="tablist" aria-label="Digest sections">
+          <div className="digest-tab-strip" role="tablist" aria-label="Story sections">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -1717,7 +1750,7 @@ export default function DigestRenderer({
             marginBottom: "0.75rem",
           }}
         >
-          Thread digest
+          Thread story
         </div>
         <h1
           style={{

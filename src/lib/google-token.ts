@@ -1,4 +1,9 @@
 import { OAuth2Client } from "google-auth-library";
+import {
+  GoogleReconnectRequiredError,
+  isInvalidGrantError,
+} from "@/lib/google-auth-errors";
+import { clearGoogleAccountLink } from "@/lib/google-account";
 import prisma from "@/lib/prisma";
 
 const clientId = process.env.GOOGLE_CLIENT_ID ?? "";
@@ -10,7 +15,9 @@ export async function getValidGoogleAccessToken(userId: string): Promise<string>
   });
 
   if (!account) {
-    throw new Error("No Google account linked. Sign in again.");
+    throw new GoogleReconnectRequiredError(
+      "No Google account linked. Reconnect Google to load your inbox.",
+    );
   }
 
   const nowSec = Math.floor(Date.now() / 1000);
@@ -21,8 +28,9 @@ export async function getValidGoogleAccessToken(userId: string): Promise<string>
   }
 
   if (!account.refresh_token) {
-    throw new Error(
-      "Missing Google refresh token. Sign out and sign in again (choose the same Google account and grant access).",
+    await clearGoogleAccountLink(userId);
+    throw new GoogleReconnectRequiredError(
+      "Missing Gmail refresh token. Reconnect Google to grant access again.",
     );
   }
 
@@ -32,7 +40,17 @@ export async function getValidGoogleAccessToken(userId: string): Promise<string>
 
   const client = new OAuth2Client(clientId, clientSecret);
   client.setCredentials({ refresh_token: account.refresh_token });
-  const { credentials } = await client.refreshAccessToken();
+
+  let credentials;
+  try {
+    ({ credentials } = await client.refreshAccessToken());
+  } catch (error) {
+    if (isInvalidGrantError(error)) {
+      await clearGoogleAccountLink(userId);
+      throw new GoogleReconnectRequiredError();
+    }
+    throw error;
+  }
 
   if (!credentials.access_token) {
     throw new Error("Failed to refresh Google access token.");

@@ -1,4 +1,4 @@
-# Gmail Digest — development plan
+# Gmail Story — development plan
 
 This is a living backlog: **done** reflects the current repo; **next** is ordered by impact vs. effort.
 

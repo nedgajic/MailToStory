@@ -9,6 +9,6 @@ describe("digestPdfBaseFilename", () => {
   });
 
   it("falls back when empty", () => {
-    expect(digestPdfBaseFilename("   /\\ ")).toBe("gmail-digest");
+    expect(digestPdfBaseFilename("   /\\ ")).toBe("gmail-story");
   });
 });

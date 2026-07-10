@@ -78,9 +78,11 @@ export async function generateDigestFromPrompt(prompt: string): Promise<Digest> 
 
     const errText = await res.text();
     lastErr = `Gemini error ${res.status} (model ${model}): ${errText}`;
+    console.error("[gemini]", lastErr);
 
     const retryable =
       res.status === 429 ||
+      res.status === 503 ||
       res.status === 404 ||
       (res.status === 400 && /not found|invalid/i.test(errText));
 
@@ -172,6 +174,7 @@ export async function streamGenerateDigestFromPrompt(
         return generateDigestFromPrompt(prompt);
       }
       if (!isRetryableGeminiError(e)) {
+        console.error("[gemini]", lastErr);
         throw new Error(lastErr);
       }
     }
@@ -189,7 +192,7 @@ function isRetryableGeminiError(e: unknown): boolean {
     return false;
   }
   return (
-    /429|404|not found|RESOURCE_EXHAUSTED|503|quota|limit:\s*0/i.test(msg)
+    /429|404|not found|RESOURCE_EXHAUSTED|503|UNAVAILABLE|quota|limit:\s*0/i.test(msg)
   );
 }
 
@@ -205,7 +208,7 @@ async function parseSuccessResponse(res: Response): Promise<Digest> {
   if (parsed === null) {
     if (finishReason === "MAX_TOKENS") {
       throw new Error(
-        "The digest was cut off (max output tokens). Try a shorter thread or set GEMINI_MAX_OUTPUT_TOKENS higher.",
+        "The story was cut off (max output tokens). Try a shorter thread or set GEMINI_MAX_OUTPUT_TOKENS higher.",
       );
     }
     throw new Error(
