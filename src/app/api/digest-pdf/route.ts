@@ -2,6 +2,7 @@ import { authOptions } from "@/auth";
 import { DigestPdfDocument } from "@/components/digest/DigestPdfDocument";
 import { digestPdfBaseFilename } from "@/lib/digestPdfFilename";
 import { digestSchema } from "@/lib/digest-schema";
+import { registerPdfFonts } from "@/lib/registerPdfFonts";
 import { getServerSession } from "next-auth/next";
 import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
@@ -36,6 +37,7 @@ export async function POST(req: Request) {
   }
 
   try {
+    registerPdfFonts();
     const buffer = await renderToBuffer(
       createElement(DigestPdfDocument, {
         digest: parsed.data,

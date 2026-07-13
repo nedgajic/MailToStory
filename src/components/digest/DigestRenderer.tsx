@@ -4,6 +4,7 @@ import * as React from "react";
 import { useEffect, useRef, useState } from "react";
 import type { Digest, NarrativeBlock } from "@/lib/digest-schema";
 import { AppTopBar, AppTopBarBackLink } from "@/components/app-top-bar";
+import { DigestExportPdfOverlay } from "@/components/digest/DigestExportPdfOverlay";
 import { digestPdfBaseFilename } from "@/lib/digestPdfFilename";
 import { digestToMarkdown } from "@/lib/digestToMarkdown";
 import {
@@ -21,6 +22,7 @@ import {
   gravatarAvatarUrl,
   resolveSpeakerToEmail,
 } from "@/lib/speakerAvatar";
+import { openPdfInNewTab } from "@/lib/openPdfInNewTab";
 
 function formatDate(iso: string) {
   const d = new Date(iso);
@@ -1550,6 +1552,24 @@ export default function DigestRenderer({
   const [pdfLoading, setPdfLoading] = useState(false);
   const [wordLoading, setWordLoading] = useState(false);
   const [markdownCopied, setMarkdownCopied] = useState(false);
+  const [pdfPreview, setPdfPreview] = useState<{
+    url: string;
+    title: string;
+    filename: string;
+  } | null>(null);
+
+  const closePdfPreview = React.useCallback(() => {
+    setPdfPreview((current) => {
+      if (current?.url) URL.revokeObjectURL(current.url);
+      return null;
+    });
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (pdfPreview?.url) URL.revokeObjectURL(pdfPreview.url);
+    };
+  }, [pdfPreview?.url]);
 
   const tabs: { id: TabId; label: string }[] = [
     { id: "story", label: "Story" },
@@ -1587,9 +1607,6 @@ export default function DigestRenderer({
 
   async function exportPdf() {
     setPdfLoading(true);
-    // Do not pass `noopener` here: Chromium returns `null` while still opening a tab,
-    // so we lose `preview` and incorrectly fall back to navigating this window.
-    const preview = window.open("about:blank", "_blank");
     let pdfObjectUrl: string | null = null;
     try {
       const res = await fetch("/api/digest-pdf", {
@@ -1606,38 +1623,23 @@ export default function DigestRenderer({
       }
       const blob = await res.blob();
       pdfObjectUrl = URL.createObjectURL(blob);
-      const releaseLater = () => {
-        const u = pdfObjectUrl;
+      const filename = `${digestPdfBaseFilename(digest.title)}.pdf`;
+
+      if (openPdfInNewTab(pdfObjectUrl)) {
         window.setTimeout(() => {
-          if (u) URL.revokeObjectURL(u);
+          if (pdfObjectUrl) URL.revokeObjectURL(pdfObjectUrl);
         }, 180_000);
-      };
-
-      if (preview && !preview.closed) {
-        preview.location.replace(pdfObjectUrl);
-        releaseLater();
         return;
       }
 
-      const w = window.open(pdfObjectUrl, "_blank");
-      if (w && !w.closed) {
-        releaseLater();
-        return;
-      }
-
-      const a = document.createElement("a");
-      a.href = pdfObjectUrl;
-      a.target = "_blank";
-      a.rel = "noopener";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      releaseLater();
+      setPdfPreview({
+        url: pdfObjectUrl,
+        title: digest.title,
+        filename,
+      });
+      pdfObjectUrl = null;
     } catch (e) {
       if (pdfObjectUrl) URL.revokeObjectURL(pdfObjectUrl);
-      if (preview && !preview.closed) {
-        preview.close();
-      }
       window.alert(
         e instanceof Error ? e.message : "Could not generate PDF.",
       );
@@ -1682,7 +1684,11 @@ export default function DigestRenderer({
   }
 
   const exportNav = (
-    <nav className="app-top-bar__exports" aria-label="Export story">
+    <nav
+      className="app-top-bar__exports"
+      aria-label="Export story"
+      aria-busy={pdfLoading || wordLoading}
+    >
       <button
         type="button"
         className="app-top-bar__btn app-top-bar__btn--secondary"
@@ -1693,20 +1699,36 @@ export default function DigestRenderer({
       </button>
       <button
         type="button"
-        className="app-top-bar__btn"
+        className={`app-top-bar__btn${pdfLoading ? " app-top-bar__btn--loading" : ""}`}
         disabled={pdfLoading}
+        aria-live="polite"
         onClick={() => void exportPdf()}
       >
-        {pdfLoading ? "Exporting PDF…" : "Export as PDF"}
+        {pdfLoading ? (
+          <>
+            <span className="app-top-bar__btn-spinner" aria-hidden />
+            Generating PDF…
+          </>
+        ) : (
+          "Export as PDF"
+        )}
       </button>
       <button
         type="button"
-        className="app-top-bar__btn app-top-bar__btn--secondary"
+        className={`app-top-bar__btn app-top-bar__btn--secondary${wordLoading ? " app-top-bar__btn--loading" : ""}`}
         disabled={wordLoading}
         title="Download as Microsoft Word (.docx)"
+        aria-live="polite"
         onClick={() => void exportWordDoc()}
       >
-        {wordLoading ? "Exporting Word…" : "Export as Word"}
+        {wordLoading ? (
+          <>
+            <span className="app-top-bar__btn-spinner" aria-hidden />
+            Generating Word…
+          </>
+        ) : (
+          "Export as Word"
+        )}
       </button>
     </nav>
   );
@@ -1901,6 +1923,14 @@ export default function DigestRenderer({
           threadId={threadId}
           messageId={originalMessageId}
           onClose={() => setOriginalMessageId(null)}
+        />
+      ) : null}
+      {pdfPreview ? (
+        <DigestExportPdfOverlay
+          url={pdfPreview.url}
+          title={pdfPreview.title}
+          filename={pdfPreview.filename}
+          onClose={closePdfPreview}
         />
       ) : null}
     </div>

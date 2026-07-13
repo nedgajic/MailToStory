@@ -1,0 +1,34 @@
+# Excluded from rsync deploy (see deploy.sh)
+
+node_modules/
+.git/
+.next/
+out/
+build/
+coverage/
+.vscode/
+.idea/
+*.swp
+*.swo
+
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+.env
+.env.*
+!.env.example
+
+.DS_Store
+._*
+Thumbs.db
+
+.vercel
+*.tsbuildinfo
+
+# Local Docker / dev DB — production uses hosted Postgres
+docker-compose.yml
+
+# Docs stay in git; optional on server
+docs/

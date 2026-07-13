@@ -3,6 +3,7 @@ import { DM_Mono, Lora } from "next/font/google";
 import { BRAND_NAME, BRAND_URL } from "@/lib/brand";
 import "./theme-tokens.css";
 import "./globals.css";
+import { GoogleAnalytics } from "@/components/google-analytics";
 import { Providers } from "@/components/providers";
 
 const lora = Lora({
@@ -45,6 +46,7 @@ export default function RootLayout({
         />
       </head>
       <body>
+        <GoogleAnalytics />
         <Providers>{children}</Providers>
       </body>
     </html>

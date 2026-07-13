@@ -10,6 +10,9 @@
     "dev": "NODE_OPTIONS='--disable-warning=DEP0108' next dev --webpack",
     "build": "NODE_OPTIONS='--disable-warning=DEP0108' next build",
     "start": "NODE_OPTIONS='--disable-warning=DEP0108' next start",
+    "deploy": "./deploy.sh",
+    "deploy:dry-run": "./deploy.sh --dry-run",
+    "deploy:bootstrap": "bash scripts/bootstrap-server.sh",
     "lint": "eslint",
     "test": "vitest run"
   },

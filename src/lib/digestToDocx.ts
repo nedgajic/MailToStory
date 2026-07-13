@@ -1,188 +1,403 @@
 import {
+  AlignmentType,
+  BorderStyle,
   Document,
-  HeadingLevel,
   Packer,
   Paragraph,
+  ShadingType,
+  Table,
+  TableCell,
+  TableRow,
   TextRun,
+  WidthType,
 } from "docx";
 import type { Digest } from "@/lib/digest-schema";
-import { BRAND_EXPORT_ATTRIBUTION, BRAND_NAME } from "@/lib/brand";
-import { proseMarkdownParts } from "@/lib/digestToMarkdown";
+import { BRAND_EXPORT_ATTRIBUTION, BRAND_NAME, BRAND_URL } from "@/lib/brand";
+import {
+  DIGEST_EXPORT_MONO,
+  DIGEST_EXPORT_SERIF,
+  DIGEST_STATUS_LABEL,
+  DIGEST_STATUS_STYLE,
+  formatActionItem,
+  formatParticipant,
+  formatSpeakerLabel,
+  formatStoryMeta,
+  formatTimelineMeta,
+  proseBlocksForExport,
+  proseExportParts,
+  speakerPanelIndex,
+} from "@/lib/digestExportContent";
+import { DIGEST_EXPORT_THEME as T } from "@/lib/digestExportTheme";
+import { displayUrlLabel } from "@/lib/extractUrlsFromText";
 import { stripTrackingNoiseFromProse } from "@/lib/stripTrackingNoiseFromProse";
+import { resolveSpeakerToEmail } from "@/lib/speakerAvatar";
 
-const STATUS_LABEL: Record<Digest["status"], string> = {
-  resolved: "Resolved",
-  ongoing: "Ongoing",
-  pending_action: "Pending action",
-  no_conclusion: "No conclusion",
-};
+function monoRun(
+  text: string,
+  opts: {
+    size?: number;
+    bold?: boolean;
+    color?: string;
+    italics?: boolean;
+    caps?: boolean;
+    spacing?: number;
+  } = {},
+): TextRun {
+  return new TextRun({
+    text,
+    font: DIGEST_EXPORT_MONO,
+    size: opts.size ?? 16,
+    bold: opts.bold,
+    italics: opts.italics,
+    color: opts.color ?? T.proseSoft.replace("#", ""),
+    allCaps: opts.caps,
+    characterSpacing: opts.spacing,
+  });
+}
+
+function serifRun(
+  text: string,
+  opts: {
+    size?: number;
+    bold?: boolean;
+    color?: string;
+    italics?: boolean;
+  } = {},
+): TextRun {
+  return new TextRun({
+    text,
+    font: DIGEST_EXPORT_SERIF,
+    size: opts.size ?? 22,
+    bold: opts.bold,
+    italics: opts.italics,
+    color: opts.color ?? T.prose.replace("#", ""),
+  });
+}
+
+function sectionTitle(text: string): Paragraph {
+  return new Paragraph({
+    spacing: { before: 260, after: 160 },
+    border: {
+      bottom: {
+        style: BorderStyle.SINGLE,
+        size: 6,
+        color: T.border.replace("#", ""),
+        space: 1,
+      },
+    },
+    children: [
+      monoRun(text, {
+        size: 13,
+        caps: true,
+        spacing: 28,
+        color: T.muted.replace("#", ""),
+      }),
+    ],
+  });
+}
+
+function spacer(): Paragraph {
+  return new Paragraph({ text: "" });
+}
+
+function speakerPanelTable(
+  digest: Digest,
+  speaker: string | undefined,
+  children: Paragraph[],
+): Table {
+  const email = speaker?.trim()
+    ? resolveSpeakerToEmail(speaker.trim(), digest.participants)
+    : null;
+  const idx = speakerPanelIndex(speaker, email);
+  const fill =
+    idx != null ? T.speakerBg[idx].replace("#", "") : T.pageBg.replace("#", "");
+  const accent =
+    idx != null ? T.speakerAccent[idx].replace("#", "") : T.border.replace("#", "");
+
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: [
+      new TableRow({
+        children: [
+          new TableCell({
+            width: { size: 1.5, type: WidthType.PERCENTAGE },
+            shading: { type: ShadingType.CLEAR, fill: accent },
+            borders: {
+              top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+              bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+              left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+              right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+            },
+            children: [new Paragraph({ text: "" })],
+          }),
+          new TableCell({
+            width: { size: 98.5, type: WidthType.PERCENTAGE },
+            shading: { type: ShadingType.CLEAR, fill },
+            margins: { top: 120, bottom: 120, left: 160, right: 160 },
+            borders: {
+              top: { style: BorderStyle.SINGLE, size: 4, color: T.border.replace("#", "") },
+              bottom: { style: BorderStyle.SINGLE, size: 4, color: T.border.replace("#", "") },
+              right: { style: BorderStyle.SINGLE, size: 4, color: T.border.replace("#", "") },
+              left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+            },
+            children,
+          }),
+        ],
+      }),
+    ],
+  });
+}
 
 export async function digestToDocxBuffer(digest: Digest): Promise<Buffer> {
-  const parts: Paragraph[] = [];
+  const parts: Array<Paragraph | Table> = [];
+  const statusStyle = DIGEST_STATUS_STYLE[digest.status];
 
   parts.push(
     new Paragraph({
-      text: digest.title,
-      heading: HeadingLevel.TITLE,
-    }),
-  );
-  parts.push(new Paragraph({ text: "" }));
-
-  parts.push(
-    new Paragraph({
+      spacing: { after: 100 },
       children: [
-        new TextRun({ text: "Status: ", bold: true }),
-        new TextRun(STATUS_LABEL[digest.status] ?? digest.status),
+        monoRun("Thread story", {
+          size: 12,
+          caps: true,
+          spacing: 30,
+          color: T.titleSub.replace("#", ""),
+        }),
       ],
     }),
   );
-  parts.push(new Paragraph({ text: "" }));
-
   parts.push(
     new Paragraph({
-      text: "Recap",
-      heading: HeadingLevel.HEADING_1,
+      spacing: { after: 100 },
+      children: [serifRun(digest.title, { size: 44, color: T.title.replace("#", "") })],
     }),
   );
-  parts.push(new Paragraph({ text: stripTrackingNoiseFromProse(digest.resolution_summary) }));
-  parts.push(new Paragraph({ text: "" }));
-
   parts.push(
     new Paragraph({
-      text: "Story",
-      heading: HeadingLevel.HEADING_1,
+      spacing: { after: 280 },
+      children: [monoRun(formatStoryMeta(digest), { size: 14, color: T.muted.replace("#", "") })],
     }),
   );
 
-  for (let i = 0; i < digest.narrative.length; i++) {
-    const block = digest.narrative[i];
-    if (!block) continue;
-    if (block.type === "prose") {
-      const who = block.speaker?.trim();
-      const idx =
-        block.message_index != null
-          ? ` (message ${block.message_index})`
-          : "";
-      if (who || idx) {
-        const runs: TextRun[] = [];
-        if (who) runs.push(new TextRun({ text: who, bold: true }));
-        if (idx) runs.push(new TextRun({ text: idx, italics: true }));
-        parts.push(new Paragraph({ children: runs }));
-      }
-      const { body, linkLines } = proseMarkdownParts(digest.narrative, i);
-      parts.push(new Paragraph({ text: body }));
-      for (const line of linkLines) {
-        const t = line.startsWith("- ") ? line.slice(2) : line;
-        parts.push(
+  parts.push(
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({
+              width: { size: 1.2, type: WidthType.PERCENTAGE },
+              shading: { type: ShadingType.CLEAR, fill: T.recapRuleStrong.replace("#", "") },
+              borders: {
+                top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+                bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+                left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+                right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+              },
+              children: [new Paragraph({ text: "" })],
+            }),
+            new TableCell({
+              width: { size: 98.8, type: WidthType.PERCENTAGE },
+              shading: { type: ShadingType.CLEAR, fill: T.recapTint.replace("#", "") },
+              margins: { top: 140, bottom: 140, left: 180, right: 120 },
+              borders: {
+                top: {
+                  style: BorderStyle.SINGLE,
+                  size: 6,
+                  color: T.recapRule.replace("#", ""),
+                },
+                bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+                left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+                right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+              },
+              children: [
+                new Paragraph({
+                  spacing: { after: 120 },
+                  children: [
+                    monoRun("Recap", {
+                      size: 12,
+                      bold: true,
+                      caps: true,
+                      spacing: 24,
+                      color: T.copyFg.replace("#", ""),
+                    }),
+                    new TextRun({ text: "  " }),
+                    new TextRun({
+                      text: DIGEST_STATUS_LABEL[digest.status],
+                      font: DIGEST_EXPORT_MONO,
+                      size: 12,
+                      bold: true,
+                      color: statusStyle.labelColor,
+                      shading: { type: ShadingType.CLEAR, fill: statusStyle.pillBg },
+                      allCaps: true,
+                    }),
+                  ],
+                }),
+                new Paragraph({
+                  children: [
+                    serifRun(stripTrackingNoiseFromProse(digest.resolution_summary), {
+                      size: 24,
+                      color: T.recapSummary.replace("#", ""),
+                    }),
+                  ],
+                }),
+              ],
+            }),
+          ],
+        }),
+      ],
+    }),
+  );
+  parts.push(spacer());
+
+  parts.push(sectionTitle("Story"));
+
+  for (const block of proseBlocksForExport(digest.narrative)) {
+    const speaker = formatSpeakerLabel(block.speaker, block.message_index);
+    const { body, urls } = proseExportParts(block.content);
+    const turnParts: Paragraph[] = [];
+
+    if (speaker) {
+      turnParts.push(
+        new Paragraph({
+          spacing: { after: 80 },
+          children: [monoRun(speaker, { size: 14, bold: true })],
+        }),
+      );
+    }
+
+    turnParts.push(
+      new Paragraph({
+        spacing: { after: urls.length > 0 ? 80 : 0 },
+        alignment: AlignmentType.JUSTIFIED,
+        children: [serifRun(body, { size: 23 })],
+      }),
+    );
+
+    if (urls.length > 0) {
+      turnParts.push(
+        new Paragraph({
+          spacing: { after: 60 },
+          shading: { type: ShadingType.CLEAR, fill: T.surface2.replace("#", "") },
+          border: {
+            top: { style: BorderStyle.SINGLE, size: 4, color: T.border.replace("#", "") },
+            bottom: { style: BorderStyle.SINGLE, size: 4, color: T.border.replace("#", "") },
+            left: { style: BorderStyle.SINGLE, size: 4, color: T.border.replace("#", "") },
+            right: { style: BorderStyle.SINGLE, size: 4, color: T.border.replace("#", "") },
+          },
+          children: [
+            monoRun("Links", {
+              size: 11,
+              bold: true,
+              caps: true,
+              spacing: 18,
+              color: T.proseSofter.replace("#", ""),
+            }),
+          ],
+        }),
+      );
+      for (const href of urls) {
+        turnParts.push(
           new Paragraph({
-            text: t,
-            bullet: { level: 0 },
+            spacing: { after: 40 },
+            children: [
+              monoRun(`↗ ${displayUrlLabel(href)}`, {
+                size: 14,
+                color: T.copyFg.replace("#", ""),
+              }),
+            ],
           }),
         );
       }
-      parts.push(new Paragraph({ text: "" }));
-    } else {
-      const who = block.speaker?.trim();
-      const idx =
-        block.message_index != null
-          ? ` (message ${block.message_index})`
-          : "";
-      parts.push(
-        new Paragraph({
-          children: [
-            new TextRun({ text: block.filename, bold: true }),
-            new TextRun({
-              text: `${who ? ` — ${who}` : ""}${idx}`,
-              italics: true,
-            }),
-          ],
-          bullet: { level: 0 },
-        }),
-      );
-      parts.push(new Paragraph({ text: block.context }));
-      parts.push(new Paragraph({ text: "" }));
     }
+
+    if (block.speaker?.trim()) {
+      parts.push(speakerPanelTable(digest, block.speaker, turnParts));
+    } else {
+      parts.push(...turnParts);
+    }
+    parts.push(spacer());
   }
 
-  parts.push(
-    new Paragraph({
-      text: "Timeline",
-      heading: HeadingLevel.HEADING_1,
-    }),
-  );
+  parts.push(sectionTitle("Timeline"));
   if (digest.timeline.length === 0) {
     parts.push(
       new Paragraph({
-        children: [
-          new TextRun({ text: "No timeline entries.", italics: true }),
-        ],
+        children: [serifRun("No timeline entries.", { italics: true, color: T.proseFaint.replace("#", "") })],
       }),
     );
-    parts.push(new Paragraph({ text: "" }));
   } else {
-    for (const ev of digest.timeline) {
-      const idx =
-        ev.message_index != null ? ` [msg ${ev.message_index}]` : "";
+    for (const event of digest.timeline) {
       parts.push(
         new Paragraph({
-          text: `${ev.date} — ${ev.actor}${idx}: ${ev.summary}`,
-          bullet: { level: 0 },
+          spacing: { before: 80, after: 40 },
+          border: {
+            left: {
+              style: BorderStyle.SINGLE,
+              size: 8,
+              color: T.timelineLine.replace("#", ""),
+              space: 4,
+            },
+          },
+          indent: { left: 220 },
+          children: [
+            monoRun(formatTimelineMeta(event), { size: 14, color: T.proseSofter.replace("#", "") }),
+            new TextRun({ text: "", break: 1 }),
+            serifRun(event.summary, { size: 21 }),
+          ],
         }),
       );
     }
-    parts.push(new Paragraph({ text: "" }));
   }
 
-  parts.push(
-    new Paragraph({
-      text: "Action items",
-      heading: HeadingLevel.HEADING_1,
-    }),
-  );
+  parts.push(sectionTitle("Action items"));
   if (digest.action_items.length === 0) {
     parts.push(
       new Paragraph({
-        children: [new TextRun({ text: "None.", italics: true })],
+        children: [serifRun("None.", { italics: true, color: T.proseFaint.replace("#", "") })],
       }),
     );
-    parts.push(new Paragraph({ text: "" }));
   } else {
     for (const item of digest.action_items) {
-      const owner = item.owner?.trim() || "Unassigned";
-      const due = item.due?.trim() ? ` (due ${item.due})` : "";
       parts.push(
         new Paragraph({
-          text: `${owner}${due}: ${item.action}`,
+          spacing: { after: 60 },
           bullet: { level: 0 },
+          children: [serifRun(formatActionItem(item), { size: 20 })],
         }),
       );
     }
-    parts.push(new Paragraph({ text: "" }));
   }
 
-  parts.push(
-    new Paragraph({
-      text: "Participants",
-      heading: HeadingLevel.HEADING_1,
-    }),
-  );
-  for (const p of digest.participants) {
-    const mail = p.email?.trim() ? ` <${p.email}>` : "";
+  parts.push(sectionTitle("Participants"));
+  for (const participant of digest.participants) {
     parts.push(
       new Paragraph({
-        text: `${p.name || p.email || "Unknown"}${mail} — ${p.role}`,
-        bullet: { level: 0 },
+        spacing: { after: 40 },
+        children: [serifRun(formatParticipant(participant), { size: 20 })],
       }),
     );
   }
-  parts.push(new Paragraph({ text: "" }));
 
+  parts.push(spacer());
   parts.push(
     new Paragraph({
+      alignment: AlignmentType.CENTER,
       children: [
-        new TextRun({
-          text: `${BRAND_EXPORT_ATTRIBUTION}`,
+        monoRun(
+          `${BRAND_NAME} · ${BRAND_URL.replace("https://", "")} · On-demand generation · Email remains in Google`,
+          { size: 13, color: T.proseFaint.replace("#", "") },
+        ),
+      ],
+    }),
+  );
+  parts.push(
+    new Paragraph({
+      spacing: { before: 120 },
+      children: [
+        serifRun(BRAND_EXPORT_ATTRIBUTION, {
           italics: true,
+          color: T.proseFaint.replace("#", ""),
+          size: 16,
         }),
       ],
     }),
@@ -191,11 +406,7 @@ export async function digestToDocxBuffer(digest: Digest): Promise<Buffer> {
   const doc = new Document({
     creator: BRAND_NAME,
     title: digest.title,
-    sections: [
-      {
-        children: parts,
-      },
-    ],
+    sections: [{ children: parts }],
   });
 
   return Packer.toBuffer(doc);

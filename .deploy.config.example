@@ -1,0 +1,15 @@
+# Hostinger VPS deployment configuration
+# Same VPS as dt-wellness — copy to .deploy.config and adjust if needed.
+# DO NOT commit .deploy.config
+
+HOST="31.97.77.179"
+USER="root"
+REMOTE_DIR="/var/www/mailtostory"
+PORT="22"
+
+PM2_APP_NAME="mailtostory"
+# Dedicated port on shared VPS (dt-wellness=5173, strapi=1337, medusa=9000)
+APP_PORT="3010"
+
+# Optional: explicit path to rsync (Homebrew rsync 3.x on macOS)
+# RSYNC="/opt/homebrew/bin/rsync"

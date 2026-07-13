@@ -49,32 +49,14 @@ export function InboxSplitLayout({
 }: InboxSplitLayoutProps) {
   const splitRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ startX: number; startWidth: number } | null>(null);
-  const prevPhaseRef = useRef<ThreadWorkspacePhase | null>(null);
 
   const [listWidth, setListWidth] = useState(LIST_DEFAULT);
   const [savedListWidth, setSavedListWidth] = useState(LIST_DEFAULT);
-  const listWidthRef = useRef(listWidth);
-  const savedListWidthRef = useRef(savedListWidth);
-
-  listWidthRef.current = listWidth;
-  savedListWidthRef.current = savedListWidth;
   const [listCollapsed, setListCollapsed] = useState(false);
   const [workspacePhase, setWorkspacePhase] = useState<ThreadWorkspacePhase>("idle");
   const [isDragging, setIsDragging] = useState(false);
 
   const storyFullscreen = workspacePhase === "story";
-
-  useEffect(() => {
-    const prev = prevPhaseRef.current;
-    if (workspacePhase === "story" && prev !== "story") {
-      setSavedListWidth(listWidthRef.current);
-      setListCollapsed(true);
-    } else if (workspacePhase !== "story" && prev === "story") {
-      setListCollapsed(false);
-      setListWidth(savedListWidthRef.current);
-    }
-    prevPhaseRef.current = workspacePhase;
-  }, [workspacePhase]);
 
   useEffect(() => {
     setWorkspacePhase("idle");
@@ -173,13 +155,19 @@ export function InboxSplitLayout({
           onPointerUp={endResize}
           onPointerCancel={endResize}
         >
-          {storyFullscreen ? (
+          {splitOpen ? (
             <button
               type="button"
               className="inbox-split__collapse-btn"
-              onClick={collapseList}
               aria-label="Collapse inbox list"
-              title="Collapse inbox"
+              title="Hide inbox"
+              onPointerDown={(event) => {
+                event.stopPropagation();
+              }}
+              onClick={(event) => {
+                event.stopPropagation();
+                collapseList();
+              }}
             >
               <IconPanelCollapse />
             </button>

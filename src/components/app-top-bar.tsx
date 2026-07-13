@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
-import { BRAND_NAME, BRAND_ICON_PATH } from "@/lib/brand";
+import { BRAND_NAME, BRAND_ICON_PATH, BRAND_PRIVACY_URL, BRAND_TERMS_URL } from "@/lib/brand";
 import { createPortal } from "react-dom";
 import {
   useEffect,
@@ -156,6 +156,22 @@ export function AppTopBar({ startSlot, contentMaxWidth = "digest" }: AppTopBarPr
               }}
               role="menu"
             >
+              <a
+                href={BRAND_PRIVACY_URL}
+                role="menuitem"
+                className="app-top-bar__user-item app-top-bar__user-item--link"
+                onClick={() => setUserMenuOpen(false)}
+              >
+                Privacy Policy
+              </a>
+              <a
+                href={BRAND_TERMS_URL}
+                role="menuitem"
+                className="app-top-bar__user-item app-top-bar__user-item--link"
+                onClick={() => setUserMenuOpen(false)}
+              >
+                Terms of Service
+              </a>
               <button
                 type="button"
                 role="menuitem"

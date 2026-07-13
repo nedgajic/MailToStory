@@ -116,12 +116,17 @@ Everything else is either in the repo or one command away (`npm install`, `npx p
 
 Prioritized backlog and tiers: **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)**.
 
-### Deploy (sketch)
+### Deploy (Hostinger VPS — shared with dt-wellness)
 
-- Host at **mailtostory.com** with the same env vars as local; point `DATABASE_URL` at a hosted Postgres.
-- Set `NEXTAUTH_URL=https://mailtostory.com`.
-- In Google Cloud Console, add your site origin and redirect URI `https://mailtostory.com/api/auth/callback/google`.
-- Run `npx prisma migrate deploy` against production before first traffic; then `npm run build` / start as usual.
+Pre-configured for the same VPS (`31.97.77.179`). See **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**.
+
+```bash
+npm run deploy:bootstrap   # one-time: verify remote dir + print DB/nginx hints
+npm run deploy:dry-run
+npm run deploy
+```
+
+MailToStory runs on **port 3010** (`mailtostory` PM2 app). dt-wellness (5173), Strapi (1337), and Medusa (9000) are unchanged.
 
 ## Architecture (short)
 

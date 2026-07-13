@@ -1,7 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { GoogleSignInButton } from "@/components/google-sign-in-button";
-import { BRAND_DOMAIN, BRAND_ICON_PATH, BRAND_NAME } from "@/lib/brand";
+import { MarketingFooter } from "@/components/landing/marketing-footer";
+import { BRAND_ICON_PATH, BRAND_NAME, BRAND_PRIVACY_URL } from "@/lib/brand";
 
 const features = [
   {
@@ -243,9 +244,12 @@ export function LandingPage() {
                   Your mail stays private
                 </h2>
                 <p className="home-section__lead">
-                  Stories are generated on demand and shown in your browser. We
-                  don&apos;t persist email bodies in our database—only the auth
-                  tokens required to connect your Gmail account.
+                  Stories are generated on demand. We don&apos;t store raw Gmail
+                  message bodies in our database—we cache generated summaries and
+                  the OAuth tokens needed to connect your account.{" "}
+                  <Link href={BRAND_PRIVACY_URL} className="home-inline-link">
+                    Privacy Policy
+                  </Link>
                 </p>
               </div>
               <ul className="home-privacy__list">
@@ -283,15 +287,7 @@ export function LandingPage() {
         </section>
       </main>
 
-      <footer className="home-footer">
-        <div className="home-footer__inner">
-          <span className="home-footer__brand">{BRAND_NAME}</span>
-          <p className="home-footer__copy">
-            Readable stories for Gmail threads · {BRAND_DOMAIN} · Not affiliated
-            with Google.
-          </p>
-        </div>
-      </footer>
+      <MarketingFooter />
     </div>
   );
 }
