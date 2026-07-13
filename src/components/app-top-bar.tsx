@@ -1,7 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
+import { BRAND_NAME, BRAND_ICON_PATH } from "@/lib/brand";
 import { createPortal } from "react-dom";
 import {
   useEffect,
@@ -106,16 +108,13 @@ export function AppTopBar({ startSlot, contentMaxWidth = "digest" }: AppTopBarPr
   return (
     <header className={headerClass} role="banner" data-app-top-bar="">
       <div className={innerMods}>
-        <div
-          className={
-            startSlot
-              ? "app-top-bar__row"
-              : "app-top-bar__row app-top-bar__row--end-only"
-          }
-        >
-          {startSlot ? (
-            <div className="app-top-bar__start">{startSlot}</div>
-          ) : null}
+        <div className="app-top-bar__row">
+          <div className="app-top-bar__lead">
+            <AppTopBarBrand />
+            {startSlot ? (
+              <div className="app-top-bar__start">{startSlot}</div>
+            ) : null}
+          </div>
           <div className="app-top-bar__end">
             <div className="app-top-bar__user-menu" ref={userMenuRef}>
               <button
@@ -173,6 +172,23 @@ export function AppTopBar({ startSlot, contentMaxWidth = "digest" }: AppTopBarPr
           )
         : null}
     </header>
+  );
+}
+
+/** Brand mark + title for the logged-in app shell. */
+export function AppTopBarBrand() {
+  return (
+    <Link href="/threads" className="app-top-bar__brand">
+      <Image
+        src={BRAND_ICON_PATH}
+        alt=""
+        width={28}
+        height={28}
+        className="app-top-bar__brand-icon"
+        priority
+      />
+      <span className="app-top-bar__brand-text">{BRAND_NAME}</span>
+    </Link>
   );
 }
 

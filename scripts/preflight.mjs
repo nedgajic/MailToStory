@@ -10,12 +10,12 @@ let failed = false;
 
 if (major < 20) {
   console.error(
-    `[gmailstory] Node 20+ is required. You have ${process.version}.`,
+    `[mailtostory] Node 20+ is required. You have ${process.version}.`,
   );
   console.error("  Install Node 20 LTS: https://nodejs.org/ or use nvm/fnm.");
   failed = true;
 } else {
-  console.log(`[gmailstory] Node OK: ${process.version}`);
+  console.log(`[mailtostory] Node OK: ${process.version}`);
 }
 
 try {
@@ -26,22 +26,22 @@ try {
   const envPath = path.join(root, ".env");
   if (!fs.existsSync(envPath)) {
     console.warn(
-      "[gmailstory] No .env file yet — copy .env.example to .env when ready.",
+      "[mailtostory] No .env file yet — copy .env.example to .env when ready.",
     );
   } else {
-    console.log("[gmailstory] .env exists.");
+    console.log("[mailtostory] .env exists.");
   }
 
   const nm = path.join(root, "node_modules");
   if (!fs.existsSync(nm)) {
     console.warn(
-      "[gmailstory] node_modules missing — run: npm install",
+      "[mailtostory] node_modules missing — run: npm install",
     );
   } else {
-    console.log("[gmailstory] node_modules present.");
+    console.log("[mailtostory] node_modules present.");
   }
 } catch (e) {
-  console.warn("[gmailstory] Could not check files:", e);
+  console.warn("[mailtostory] Could not check files:", e);
 }
 
 process.exit(failed ? 1 : 0);

@@ -1,3 +1,5 @@
+import { BRAND_NAME } from "@/lib/brand";
+
 export type UserFacingError = {
   title: string;
   message: string;
@@ -92,7 +94,7 @@ function mapKnownMessage(text: string): UserFacingError | null {
 
   if (/gemini_api_key is not set/.test(lower)) {
     return {
-      title: "Gmail Story isn't configured",
+      title: `${BRAND_NAME} isn't configured`,
       message:
         "This app isn't connected to an AI provider yet. Contact whoever runs it to finish setup.",
       canRetry: false,

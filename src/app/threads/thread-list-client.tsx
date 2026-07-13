@@ -3,7 +3,6 @@
 import type { ThreadListItem } from "@/lib/gmail";
 import { THREAD_LIST_PAGE_SIZE, minMessagesForThreadsOnly } from "@/lib/thread-list-constants";
 import { formatGmailListDate } from "@/lib/formatGmailListDate";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -93,10 +92,14 @@ export function ThreadListClient({
   initialThreads,
   initialNextPageToken,
   threadsOnly,
+  selectedThreadId,
+  onSelectThread,
 }: {
   initialThreads: ThreadListItem[];
   initialNextPageToken: string | null;
   threadsOnly: boolean;
+  selectedThreadId: string | null;
+  onSelectThread: (threadId: string) => void;
 }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -286,9 +289,15 @@ export function ThreadListClient({
                 key={t.id}
                 className={multi ? "gmail-inbox-li gmail-inbox-li--multi" : "gmail-inbox-li"}
               >
-                <Link
-                  href={`/threads/${encodeURIComponent(t.id)}`}
-                  className="gmail-inbox-row gmail-inbox-row--simple"
+                <button
+                  type="button"
+                  className={
+                    selectedThreadId === t.id
+                      ? "gmail-inbox-row gmail-inbox-row--simple gmail-inbox-row--selected"
+                      : "gmail-inbox-row gmail-inbox-row--simple"
+                  }
+                  aria-current={selectedThreadId === t.id ? "true" : undefined}
+                  onClick={() => onSelectThread(t.id)}
                 >
                   <span className="gmail-inbox-from">{t.from || "Unknown"}</span>
                   <span className="gmail-inbox-middle">
@@ -308,7 +317,7 @@ export function ThreadListClient({
                   <span className="gmail-inbox-date">
                     {formatGmailListDate(t.date)}
                   </span>
-                </Link>
+                </button>
               </li>
             );
           })}

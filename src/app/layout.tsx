@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { DM_Mono, Lora } from "next/font/google";
+import { BRAND_NAME, BRAND_URL } from "@/lib/brand";
 import "./theme-tokens.css";
 import "./globals.css";
 import { Providers } from "@/components/providers";
@@ -18,8 +19,8 @@ const dmMono = DM_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://gmailstory.com"),
-  title: "Gmail Story — Turn email threads into calm reading",
+  metadataBase: new URL(BRAND_URL),
+  title: `${BRAND_NAME} — Turn email threads into calm reading`,
   description:
     "Sign in with Google and turn Gmail threads into structured stories: narrative, timeline, open actions, and exports.",
 };

@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { GoogleSignInButton } from "@/components/google-sign-in-button";
-import { BRAND_DOMAIN, BRAND_NAME } from "@/lib/brand";
+import { BRAND_DOMAIN, BRAND_ICON_PATH, BRAND_NAME } from "@/lib/brand";
 
 const features = [
   {
@@ -92,7 +92,7 @@ export function LandingPage() {
           <div className="home-brand__inner">
             <Link href="/" className="home-logo home-logo--prominent">
               <Image
-                src="/gmail-story-icon.png"
+                src={BRAND_ICON_PATH}
                 alt=""
                 width={96}
                 height={96}

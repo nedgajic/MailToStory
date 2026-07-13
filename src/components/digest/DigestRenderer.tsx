@@ -1530,10 +1530,14 @@ export default function DigestRenderer({
   digest,
   threadId,
   messageIdsInOrder = [],
+  embedded = false,
+  onClose,
 }: {
   digest: Digest;
   threadId: string;
   messageIdsInOrder?: string[];
+  embedded?: boolean;
+  onClose?: () => void;
 }) {
   const [activeTab, setActiveTab] = useState<TabId>("story");
   const [originalMessageId, setOriginalMessageId] = useState<string | null>(
@@ -1677,47 +1681,59 @@ export default function DigestRenderer({
     }
   }
 
+  const exportNav = (
+    <nav className="app-top-bar__exports" aria-label="Export story">
+      <button
+        type="button"
+        className="app-top-bar__btn app-top-bar__btn--secondary"
+        title="Copy the full story as Markdown"
+        onClick={() => void copyMarkdown()}
+      >
+        {markdownCopied ? "Copied!" : "Copy Markdown"}
+      </button>
+      <button
+        type="button"
+        className="app-top-bar__btn"
+        disabled={pdfLoading}
+        onClick={() => void exportPdf()}
+      >
+        {pdfLoading ? "Exporting PDF…" : "Export as PDF"}
+      </button>
+      <button
+        type="button"
+        className="app-top-bar__btn app-top-bar__btn--secondary"
+        disabled={wordLoading}
+        title="Download as Microsoft Word (.docx)"
+        onClick={() => void exportWordDoc()}
+      >
+        {wordLoading ? "Exporting Word…" : "Export as Word"}
+      </button>
+    </nav>
+  );
+
   return (
     <>
-      <AppTopBar
-        contentMaxWidth="digest"
-        startSlot={
-          <>
-            <AppTopBarBackLink />
-            <nav
-              className="app-top-bar__exports"
-              aria-label="Export story"
-            >
-              <button
-                type="button"
-                className="app-top-bar__btn app-top-bar__btn--secondary"
-                title="Copy the full story as Markdown"
-                onClick={() => void copyMarkdown()}
-              >
-                {markdownCopied ? "Copied!" : "Copy Markdown"}
-              </button>
-              <button
-                type="button"
-                className="app-top-bar__btn"
-                disabled={pdfLoading}
-                onClick={() => void exportPdf()}
-              >
-                {pdfLoading ? "Exporting PDF…" : "Export as PDF"}
-              </button>
-              <button
-                type="button"
-                className="app-top-bar__btn app-top-bar__btn--secondary"
-                disabled={wordLoading}
-                title="Download as Microsoft Word (.docx)"
-                onClick={() => void exportWordDoc()}
-              >
-                {wordLoading ? "Exporting Word…" : "Export as Word"}
-              </button>
-            </nav>
-          </>
-        }
-      />
-      <div className="digest-wrap">
+      {embedded ? (
+        <div className="digest-embedded-toolbar">
+          {onClose ? (
+            <button type="button" className="inbox-detail-back" onClick={onClose}>
+              ← Back to inbox
+            </button>
+          ) : null}
+          {exportNav}
+        </div>
+      ) : (
+        <AppTopBar
+          contentMaxWidth="digest"
+          startSlot={
+            <>
+              <AppTopBarBackLink />
+              {exportNav}
+            </>
+          }
+        />
+      )}
+      <div className={`digest-wrap${embedded ? " digest-wrap--embedded" : ""}`}>
       <div className="digest-page-split digest-page-split--sticky-bar">
         <div className="digest-page-split__tabs">
           <div className="digest-tab-strip" role="tablist" aria-label="Story sections">

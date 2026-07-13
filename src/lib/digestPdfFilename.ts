@@ -7,5 +7,5 @@ export function digestPdfBaseFilename(title: string): string {
     .replace(/-+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 72);
-  return ascii || "gmail-story";
+  return ascii || "mailtostory";
 }

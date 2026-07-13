@@ -8,12 +8,19 @@ import { THREAD_LIST_PAGE_SIZE, DEFAULT_THREADS_ONLY, minMessagesForThreadsOnly 
 import { AppTopBar } from "@/components/app-top-bar";
 import { InboxClient } from "./inbox-client";
 
-export default async function ThreadsPage() {
+export default async function ThreadsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ thread?: string }>;
+}) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
     redirect("/");
   }
+
+  const { thread: threadParam } = await searchParams;
+  const initialSelectedThreadId = threadParam?.trim() || null;
 
   let threadsResult: Awaited<ReturnType<typeof listThreads>> | null = null;
   let loadError: string | null = null;
@@ -53,6 +60,7 @@ export default async function ThreadsPage() {
             email={session.user.email}
             initialThreads={threads}
             initialNextPageToken={initialNextPageToken}
+            initialSelectedThreadId={initialSelectedThreadId}
           />
         ) : null}
 
