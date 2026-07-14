@@ -6,12 +6,20 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 
 const LIST_DEFAULT = 380;
 const LIST_MIN = 240;
-const LIST_MAX_RATIO = 0.58;
+const LIST_MIN_RATIO = 0.28;
+const LIST_MAX_RATIO = 0.72;
 const LIST_COLLAPSED = 52;
+const DESKTOP_SPLIT_MQ = "(min-width: 901px)";
 
 function clampListWidth(width: number, containerWidth: number): number {
-  const max = Math.max(LIST_MIN, Math.floor(containerWidth * LIST_MAX_RATIO));
-  return Math.min(max, Math.max(LIST_MIN, width));
+  const min = Math.max(LIST_MIN, Math.floor(containerWidth * LIST_MIN_RATIO));
+  const max = Math.max(min, Math.floor(containerWidth * LIST_MAX_RATIO));
+  return Math.min(max, Math.max(min, width));
+}
+
+function readListPaneWidth(splitEl: HTMLDivElement): number {
+  const pane = splitEl.querySelector<HTMLElement>(".inbox-split__list-pane");
+  return pane?.getBoundingClientRect().width ?? LIST_DEFAULT;
 }
 
 function IconPanelExpand() {
@@ -55,8 +63,17 @@ export function InboxSplitLayout({
   const [listCollapsed, setListCollapsed] = useState(false);
   const [workspacePhase, setWorkspacePhase] = useState<ThreadWorkspacePhase>("idle");
   const [isDragging, setIsDragging] = useState(false);
+  const [desktopSplit, setDesktopSplit] = useState(false);
 
   const storyFullscreen = workspacePhase === "story";
+
+  useEffect(() => {
+    const mq = window.matchMedia(DESKTOP_SPLIT_MQ);
+    const sync = () => setDesktopSplit(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
 
   useEffect(() => {
     setWorkspacePhase("idle");
@@ -65,23 +82,34 @@ export function InboxSplitLayout({
 
   const expandList = useCallback(() => {
     setListCollapsed(false);
-    setListWidth(savedListWidth);
-  }, [savedListWidth]);
+    if (!desktopSplit) {
+      setListWidth(savedListWidth);
+    }
+  }, [desktopSplit, savedListWidth]);
 
   const collapseList = useCallback(() => {
-    setSavedListWidth(listWidth);
+    if (splitRef.current && desktopSplit) {
+      setSavedListWidth(readListPaneWidth(splitRef.current));
+    } else {
+      setSavedListWidth(listWidth);
+    }
     setListCollapsed(true);
-  }, [listWidth]);
+  }, [desktopSplit, listWidth]);
 
   const onResizePointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       if (listCollapsed) return;
       e.preventDefault();
-      dragRef.current = { startX: e.clientX, startWidth: listWidth };
+      const startWidth =
+        splitRef.current && desktopSplit
+          ? readListPaneWidth(splitRef.current)
+          : listWidth;
+      setListWidth(startWidth);
+      dragRef.current = { startX: e.clientX, startWidth };
       setIsDragging(true);
       e.currentTarget.setPointerCapture(e.pointerId);
     },
-    [listCollapsed, listWidth],
+    [desktopSplit, listCollapsed, listWidth],
   );
 
   const onResizePointerMove = useCallback(
@@ -110,12 +138,15 @@ export function InboxSplitLayout({
 
   const splitOpen = Boolean(selectedThreadId);
   const paneWidth = listCollapsed ? LIST_COLLAPSED : listWidth;
+  const useEqualDesktopSplit =
+    desktopSplit && !listCollapsed && !isDragging;
 
   return (
     <div
       ref={splitRef}
       className={[
         "inbox-split",
+        desktopSplit ? "inbox-split--desktop" : "",
         splitOpen ? "inbox-split--detail-open" : "",
         storyFullscreen ? "inbox-split--story" : "",
         listCollapsed ? "inbox-split--list-collapsed" : "",
@@ -126,7 +157,7 @@ export function InboxSplitLayout({
     >
       <div
         className="inbox-split__list-pane"
-        style={{ width: paneWidth }}
+        style={useEqualDesktopSplit ? undefined : { width: paneWidth }}
       >
         {listCollapsed ? (
           <button
@@ -155,23 +186,21 @@ export function InboxSplitLayout({
           onPointerUp={endResize}
           onPointerCancel={endResize}
         >
-          {splitOpen ? (
-            <button
-              type="button"
-              className="inbox-split__collapse-btn"
-              aria-label="Collapse inbox list"
-              title="Hide inbox"
-              onPointerDown={(event) => {
-                event.stopPropagation();
-              }}
-              onClick={(event) => {
-                event.stopPropagation();
-                collapseList();
-              }}
-            >
-              <IconPanelCollapse />
-            </button>
-          ) : null}
+          <button
+            type="button"
+            className="inbox-split__collapse-btn"
+            aria-label="Collapse inbox list"
+            title="Hide inbox"
+            onPointerDown={(event) => {
+              event.stopPropagation();
+            }}
+            onClick={(event) => {
+              event.stopPropagation();
+              collapseList();
+            }}
+          >
+            <IconPanelCollapse />
+          </button>
         </div>
       ) : null}
 

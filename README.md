@@ -132,7 +132,7 @@ MailToStory runs on **port 3010** (`mailtostory` PM2 app). dt-wellness (5173), S
 
 - **Auth:** [NextAuth.js](https://next-auth.js.org/) (database sessions) + Prisma + Google provider; refresh token stored for Gmail access.
 - **Gmail:** `googleapis` — list threads and load full thread for story generation.
-- **LLM:** Gemini — tries several models (default starts with **gemini-2.5-flash**) because free-tier quota is **per model**; `gemini-2.0-flash` sometimes shows `limit: 0` even on the first request. Override with `GEMINI_MODEL` / `GEMINI_MODEL_FALLBACKS`, or enable billing for higher limits ([rate limits](https://ai.google.dev/gemini-api/docs/rate-limits)).
+- **LLM:** Gemini — tries each API key (`GEMINI_API_KEY`, optional `GEMINI_API_KEY_FALLBACKS`), then similar Flash models per key (default **gemini-2.5-flash** → **gemini-2.5-flash-lite** → **gemini-2.0-flash-lite**) because free-tier quota is **per model** and **per project**. Override with `GEMINI_MODEL` / `GEMINI_MODEL_FALLBACKS`, or enable billing for higher limits ([rate limits](https://ai.google.dev/gemini-api/docs/rate-limits)).
 
 ## Privacy note
 

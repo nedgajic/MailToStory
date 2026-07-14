@@ -1,99 +1,87 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { tryParseModelJsonObject } from "@/lib/extract-json";
 import { digestSchema, type Digest } from "@/lib/digest-schema";
-
-/** Free-tier quotas are per model; Google sometimes reports limit: 0 for a model with no free allocation. */
-const DEFAULT_MODEL_TRY_ORDER = [
-  "gemini-2.5-flash",
-  "gemini-2.5-flash-lite",
-  "gemini-2.0-flash-lite",
-  "gemini-flash-latest",
-] as const;
+import {
+  isInvalidApiKeyErrorMessage,
+  isInvalidApiKeyHttpError,
+  isRetryableGeminiErrorMessage,
+  isRetryableModelHttpError,
+  parseApiKeyTryOrder,
+  parseMaxOutputTokens,
+  parseModelTryOrder,
+} from "@/lib/geminiConfig";
 
 const SYSTEM_INSTRUCTION = `You are a digest engine that transforms email threads into calm, readable narratives.
 Return ONLY valid JSON matching the user's requested shape. No markdown, no code fences, no preamble.
 
 LANGUAGE: Every human-readable string value in the JSON must be written in the same language as the majority of the email thread content the user provides (title, summaries, narrative, timeline lines, actions, roles). If languages are mixed, use the dominant one. JSON keys stay as specified.`;
 
-function modelTryOrder(): string[] {
-  const primary = process.env.GEMINI_MODEL?.trim();
-  const fromEnv =
-    process.env.GEMINI_MODEL_FALLBACKS?.split(",")
-      .map((s) => s.trim())
-      .filter(Boolean) ?? [];
-  const seen = new Set<string>();
-  const order: string[] = [];
-  for (const m of [
-    ...(primary ? [primary] : []),
-    ...fromEnv,
-    ...DEFAULT_MODEL_TRY_ORDER,
-  ]) {
-    if (m && !seen.has(m)) {
-      seen.add(m);
-      order.push(m);
-    }
-  }
-  return order;
-}
-
-const rawMax = process.env.GEMINI_MAX_OUTPUT_TOKENS?.trim();
-const parsedMax = rawMax ? Number(rawMax) : NaN;
-const MAX_OUTPUT_TOKENS = Math.min(
-  65536,
-  Math.max(2048, Number.isFinite(parsedMax) ? parsedMax : 16384),
-);
-
-/** Non-streaming (REST). */
-export async function generateDigestFromPrompt(prompt: string): Promise<Digest> {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) {
+function requireApiKeys(): string[] {
+  const keys = parseApiKeyTryOrder();
+  if (keys.length === 0) {
     throw new Error("GEMINI_API_KEY is not set.");
   }
+  return keys;
+}
 
-  const models = modelTryOrder();
+function formatAttemptLabel(keyIndex: number, model: string): string {
+  return `key ${keyIndex + 1}, model ${model}`;
+}
+
+/** Non-streaming (REST). Tries each API key, then each model per key. */
+export async function generateDigestFromPrompt(prompt: string): Promise<Digest> {
+  const keys = requireApiKeys();
+  const models = parseModelTryOrder();
+  const maxOutputTokens = parseMaxOutputTokens();
   let lastErr = "";
 
-  for (const model of models) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
+  for (let keyIndex = 0; keyIndex < keys.length; keyIndex++) {
+    const apiKey = keys[keyIndex];
 
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        systemInstruction: {
-          parts: [{ text: SYSTEM_INSTRUCTION }],
-        },
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.3,
-          maxOutputTokens: MAX_OUTPUT_TOKENS,
-          responseMimeType: "application/json",
-        },
-      }),
-    });
+    for (const model of models) {
+      const label = formatAttemptLabel(keyIndex, model);
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
-    if (res.ok) {
-      return await parseSuccessResponse(res);
-    }
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: {
+            parts: [{ text: SYSTEM_INSTRUCTION }],
+          },
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens,
+            responseMimeType: "application/json",
+          },
+        }),
+      });
 
-    const errText = await res.text();
-    lastErr = `Gemini error ${res.status} (model ${model}): ${errText}`;
-    console.error("[gemini]", lastErr);
+      if (res.ok) {
+        if (keyIndex > 0 || model !== models[0]) {
+          console.info(`[gemini] digest generated via ${label}`);
+        }
+        return await parseSuccessResponse(res);
+      }
 
-    const retryable =
-      res.status === 429 ||
-      res.status === 503 ||
-      res.status === 404 ||
-      (res.status === 400 && /not found|invalid/i.test(errText));
+      const errText = await res.text();
+      lastErr = `Gemini error ${res.status} (${label}): ${errText}`;
+      console.error("[gemini]", lastErr);
 
-    if (!retryable) {
-      throw new Error(lastErr);
+      if (isInvalidApiKeyHttpError(res.status, errText)) {
+        break;
+      }
+
+      if (!isRetryableModelHttpError(res.status, errText)) {
+        throw new Error(lastErr);
+      }
     }
   }
 
   throw new Error(
     lastErr ||
-      "All Gemini model attempts failed. Set GEMINI_MODEL to a model listed in https://ai.google.dev/gemini-api/docs/models or enable billing.",
+      "All Gemini API keys and models failed. Add GEMINI_API_KEY_FALLBACKS, set GEMINI_MODEL_FALLBACKS, or enable billing.",
   );
 }
 
@@ -106,93 +94,97 @@ export async function streamGenerateDigestFromPrompt(
   prompt: string,
   onDelta: (accumulated: string) => void,
 ): Promise<Digest> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error("GEMINI_API_KEY is not set.");
-  }
-
-  const models = modelTryOrder();
+  const keys = requireApiKeys();
+  const models = parseModelTryOrder();
+  const maxOutputTokens = parseMaxOutputTokens();
   let lastErr = "";
 
-  for (const modelName of models) {
-    try {
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({
-        model: modelName,
-        systemInstruction: SYSTEM_INSTRUCTION,
-      });
+  for (let keyIndex = 0; keyIndex < keys.length; keyIndex++) {
+    const apiKey = keys[keyIndex];
 
-      const result = await model.generateContentStream({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.3,
-          maxOutputTokens: MAX_OUTPUT_TOKENS,
-        },
-      });
+    for (const modelName of models) {
+      const label = formatAttemptLabel(keyIndex, modelName);
 
-      let accumulated = "";
       try {
-        for await (const chunk of result.stream) {
-          let t = "";
-          try {
-            t = chunk.text();
-          } catch {
-            continue;
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({
+          model: modelName,
+          systemInstruction: SYSTEM_INSTRUCTION,
+        });
+
+        const result = await model.generateContentStream({
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens,
+          },
+        });
+
+        let accumulated = "";
+        try {
+          for await (const chunk of result.stream) {
+            let t = "";
+            try {
+              t = chunk.text();
+            } catch {
+              continue;
+            }
+            if (t) {
+              accumulated += t;
+              onDelta(accumulated);
+            }
           }
-          if (t) {
-            accumulated += t;
-            onDelta(accumulated);
+        } catch (streamErr) {
+          const msg =
+            streamErr instanceof Error ? streamErr.message : String(streamErr);
+          if (/Failed to parse stream|parse stream/i.test(msg)) {
+            return generateDigestFromPrompt(prompt);
           }
+          throw streamErr;
         }
-      } catch (streamErr) {
-        const msg =
-          streamErr instanceof Error ? streamErr.message : String(streamErr);
-        if (/Failed to parse stream|parse stream/i.test(msg)) {
+
+        if (!accumulated.trim()) {
+          throw new Error(`Empty response from Gemini stream (${label}).`);
+        }
+
+        const parsed = tryParseModelJsonObject(accumulated);
+        if (parsed === null) {
           return generateDigestFromPrompt(prompt);
         }
-        throw streamErr;
-      }
 
-      if (!accumulated.trim()) {
-        throw new Error("Empty response from Gemini stream.");
-      }
+        const checked = digestSchema.safeParse(parsed);
+        if (checked.success) {
+          if (keyIndex > 0 || modelName !== models[0]) {
+            console.info(`[gemini] stream digest generated via ${label}`);
+          }
+          return checked.data;
+        }
 
-      const parsed = tryParseModelJsonObject(accumulated);
-      if (parsed === null) {
         return generateDigestFromPrompt(prompt);
-      }
+      } catch (e) {
+        lastErr = e instanceof Error ? e.message : String(e);
+        if (/Failed to parse stream|parse stream/i.test(lastErr)) {
+          return generateDigestFromPrompt(prompt);
+        }
 
-      const checked = digestSchema.safeParse(parsed);
-      if (checked.success) {
-        return checked.data;
-      }
+        if (isInvalidApiKeyErrorMessage(lastErr)) {
+          console.error("[gemini]", lastErr);
+          break;
+        }
 
-      return generateDigestFromPrompt(prompt);
-    } catch (e) {
-      lastErr = e instanceof Error ? e.message : String(e);
-      if (/Failed to parse stream|parse stream/i.test(lastErr)) {
-        return generateDigestFromPrompt(prompt);
-      }
-      if (!isRetryableGeminiError(e)) {
+        if (!isRetryableGeminiErrorMessage(lastErr)) {
+          console.error("[gemini]", lastErr);
+          throw new Error(lastErr);
+        }
+
         console.error("[gemini]", lastErr);
-        throw new Error(lastErr);
       }
     }
   }
 
   throw new Error(
     lastErr ||
-      "All Gemini stream attempts failed. Set GEMINI_MODEL or enable billing.",
-  );
-}
-
-function isRetryableGeminiError(e: unknown): boolean {
-  const msg = e instanceof Error ? e.message : String(e);
-  if (/Failed to parse stream|parse stream/i.test(msg)) {
-    return false;
-  }
-  return (
-    /429|404|not found|RESOURCE_EXHAUSTED|503|UNAVAILABLE|quota|limit:\s*0/i.test(msg)
+      "All Gemini API keys and models failed. Add GEMINI_API_KEY_FALLBACKS, set GEMINI_MODEL_FALLBACKS, or enable billing.",
   );
 }
 

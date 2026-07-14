@@ -1,4 +1,5 @@
 import type { gmail_v1 } from "googleapis";
+import { parseFromHeader } from "@/lib/parseFromHeader";
 
 export type AttachmentInfo = {
   filename: string;
@@ -338,13 +339,3 @@ export function collectAttachments(
   }
 }
 
-export function parseFromHeader(from: string): { name: string; email: string } {
-  const match = from.match(/^"?([^"<]*)"?\s*<?([^>]+)>?$/);
-  if (match) {
-    return { name: match[1].trim(), email: match[2].trim() };
-  }
-  const bare = from.match(/<([^>]+)>/);
-  if (bare) return { name: "", email: bare[1].trim() };
-  if (from.includes("@")) return { name: "", email: from.trim() };
-  return { name: "", email: "" };
-}

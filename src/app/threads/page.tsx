@@ -30,6 +30,7 @@ export default async function ThreadsPage({
     threadsResult = await listThreads(session.user.id, {
       maxResults: THREAD_LIST_PAGE_SIZE,
       minMessages: minMessagesForThreadsOnly(DEFAULT_THREADS_ONLY),
+      ownerEmail: session.user.email ?? undefined,
     });
   } catch (e) {
     if (e instanceof GoogleReconnectRequiredError) {

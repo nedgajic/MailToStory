@@ -26,6 +26,7 @@ export async function GET(req: Request) {
       pageToken,
       maxResults: THREAD_LIST_PAGE_SIZE,
       minMessages,
+      ownerEmail: session.user.email ?? undefined,
     });
     return NextResponse.json({
       threads,

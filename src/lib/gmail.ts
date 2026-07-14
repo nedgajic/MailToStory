@@ -1,6 +1,6 @@
 import { google } from "googleapis";
 import { getValidGoogleAccessToken } from "@/lib/google-token";
-import { parseFromDisplayName } from "@/lib/parseFromHeader";
+import { formatThreadCorrespondents } from "@/lib/parseFromHeader";
 import {
   decodeThreadListCursor,
   encodeThreadListCursor,
@@ -28,7 +28,7 @@ export type ThreadListItem = {
   date: string;
   /** Gmail messages in this thread (1 = standalone email, still digestible). */
   messageCount: number;
-  /** Display name from the latest message’s `From` header. */
+  /** Display names of other thread participants (never the mailbox owner). */
   from: string;
   /** True if any message in the thread still has the UNREAD label. */
   unread: boolean;
@@ -58,6 +58,7 @@ function threadRefToItem(
       payload?: { headers?: { name?: string | null; value?: string | null }[] | null } | null;
     }[] | null;
   },
+  ownerEmail?: string,
 ): ThreadListItem {
   const messages = data.messages ?? [];
   const last = messages[messages.length - 1];
@@ -69,7 +70,7 @@ function threadRefToItem(
     snippet: data.snippet ?? "",
     date: headerValue(headers, "Date"),
     messageCount: messages.length,
-    from: parseFromDisplayName(headerValue(headers, "From")),
+    from: formatThreadCorrespondents(messages, ownerEmail),
     unread: messages.some((m) => Boolean(m.labelIds?.includes("UNREAD"))),
   };
 }
@@ -77,21 +78,23 @@ function threadRefToItem(
 async function fetchThreadMetadata(
   gmail: ReturnType<typeof gmailClient>,
   threadId: string,
+  ownerEmail?: string,
 ): Promise<ThreadListItem> {
   const thread = await gmail.users.threads.get({
     userId: "me",
     id: threadId,
     format: "metadata",
-    metadataHeaders: ["Subject", "Date", "From"],
+    metadataHeaders: ["Subject", "Date", "From", "To", "Cc"],
     fields: THREAD_META_FIELDS,
   });
-  return threadRefToItem(threadId, thread.data);
+  return threadRefToItem(threadId, thread.data, ownerEmail);
 }
 
 async function listThreadsSimple(
   gmail: ReturnType<typeof gmailClient>,
   pageSize: number,
   pageToken?: string,
+  ownerEmail?: string,
 ): Promise<ListThreadsResult> {
   const listed = await gmail.users.threads.list({
     userId: "me",
@@ -102,7 +105,7 @@ async function listThreadsSimple(
 
   const refs = (listed.data.threads ?? []).filter((r) => r.id);
   const items = await Promise.all(
-    refs.map((ref) => fetchThreadMetadata(gmail, ref.id!)),
+    refs.map((ref) => fetchThreadMetadata(gmail, ref.id!, ownerEmail)),
   );
 
   return {
@@ -116,6 +119,7 @@ async function listThreadsMinMessages(
   pageSize: number,
   minMessages: number,
   pageToken?: string | null,
+  ownerEmail?: string,
 ): Promise<ListThreadsResult> {
   const cursor = decodeThreadListCursor(pageToken);
   let gmailToken = cursor.gmailPageToken;
@@ -137,7 +141,7 @@ async function listThreadsMinMessages(
     }
 
     const items = await Promise.all(
-      refs.map((ref) => fetchThreadMetadata(gmail, ref.id!)),
+      refs.map((ref) => fetchThreadMetadata(gmail, ref.id!, ownerEmail)),
     );
     const matching = items.filter((t) => t.messageCount >= minMessages);
     const skipAtBatchStart = pendingSkip;
@@ -182,6 +186,8 @@ export async function listThreads(
     pageToken?: string | null;
     /** When &gt; 1, skip threads with fewer messages and fill each page. */
     minMessages?: number;
+    /** Signed-in user's email — used to omit them from inbox row labels. */
+    ownerEmail?: string;
   },
 ): Promise<ListThreadsResult> {
   const pageSize = Math.min(
@@ -189,12 +195,13 @@ export async function listThreads(
     Math.max(1, options?.maxResults ?? THREAD_LIST_PAGE_SIZE),
   );
   const minMessages = Math.max(1, options?.minMessages ?? 1);
+  const ownerEmail = options?.ownerEmail;
   const accessToken = await getValidGoogleAccessToken(userId);
   const gmail = gmailClient(accessToken);
 
   if (minMessages <= 1) {
     const cursor = decodeThreadListCursor(options?.pageToken);
-    return listThreadsSimple(gmail, pageSize, cursor.gmailPageToken);
+    return listThreadsSimple(gmail, pageSize, cursor.gmailPageToken, ownerEmail);
   }
 
   return listThreadsMinMessages(
@@ -202,6 +209,7 @@ export async function listThreads(
     pageSize,
     minMessages,
     options?.pageToken,
+    ownerEmail,
   );
 }
 
