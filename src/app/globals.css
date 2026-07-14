@@ -1897,13 +1897,7 @@ html[data-theme="dark"] .digest-export-pdf-preview__btn:hover {
   margin: 0 auto;
   padding: calc(var(--digest-export-bar-height) + 0.5rem) 0.75rem 2.5rem;
   min-height: 100vh;
-  background:
-    radial-gradient(
-      ellipse 120% 80% at 10% -20%,
-      color-mix(in srgb, var(--inbox-search-focus) 7%, transparent),
-      transparent 55%
-    ),
-    var(--inbox-shell-bg);
+  background: var(--inbox-shell-bg);
   color: var(--inbox-text);
 }
 
@@ -1936,7 +1930,7 @@ html[data-theme="dark"] .digest-export-pdf-preview__btn:hover {
     flex-shrink: 0;
     margin-bottom: 0;
     padding: 0.5rem 0.85rem;
-    border-bottom: 1px solid var(--inbox-list-border);
+    border-bottom: 1px solid color-mix(in srgb, var(--inbox-search-focus) 16%, var(--inbox-list-border));
     background: var(--inbox-list-bg);
   }
 
@@ -1974,13 +1968,7 @@ html[data-theme="dark"] .digest-export-pdf-preview__btn:hover {
     border-right: 1px solid var(--inbox-list-border);
     box-shadow: none;
     padding: 0.55rem 0.6rem 0.45rem;
-    background:
-      radial-gradient(
-        ellipse 90% 55% at 0% 0%,
-        color-mix(in srgb, var(--inbox-search-focus) 5%, transparent),
-        transparent 58%
-      ),
-      var(--inbox-list-bg);
+    background: var(--inbox-list-bg);
   }
 
   .inbox-split--desktop .inbox-split__detail {
@@ -2284,19 +2272,12 @@ html[data-theme="dark"] .inbox-split__detail {
   padding: 2.5rem 1.5rem;
   text-align: center;
   color: var(--inbox-text-secondary);
-  background:
-    radial-gradient(
-      ellipse 90% 70% at 50% 0%,
-      color-mix(in srgb, var(--inbox-search-focus) 6%, transparent),
-      transparent 70%
-    ),
-    var(--inbox-list-bg);
+  background: var(--inbox-list-bg);
 }
 
 .inbox-split__empty-title {
   margin: 0;
-  font-family: var(--font-lora), Georgia, serif;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 500;
   color: var(--inbox-subject);
 }
@@ -2322,12 +2303,12 @@ button.gmail-inbox-row--simple {
 }
 
 .gmail-inbox-row--selected {
-  background: color-mix(in srgb, var(--inbox-search-focus) 11%, var(--inbox-row-bg)) !important;
+  background: color-mix(in srgb, var(--inbox-search-focus) 10%, var(--inbox-row-bg)) !important;
   box-shadow: inset 3px 0 0 var(--inbox-search-focus);
 }
 
 .gmail-inbox-li--multi .gmail-inbox-row--selected {
-  background: color-mix(in srgb, var(--inbox-search-focus) 14%, var(--inbox-g-multi-0)) !important;
+  background: color-mix(in srgb, var(--inbox-search-focus) 12%, var(--inbox-g-multi-0)) !important;
 }
 
 .thread-workspace {
@@ -2454,6 +2435,8 @@ button.gmail-inbox-row--simple {
   flex-wrap: wrap;
   gap: 0.45rem 0.75rem;
   min-width: 0;
+  padding-left: 0.55rem;
+  border-left: 3px solid var(--inbox-accent-blue);
 }
 
 .threads-filter-toggle {
@@ -2461,7 +2444,7 @@ button.gmail-inbox-row--simple {
   align-items: center;
   gap: 0.55rem;
   flex-shrink: 0;
-  padding: 0.35rem 0.65rem 0.35rem 0.45rem;
+  padding: 0.35rem 0.5rem 0.35rem 0.4rem;
   border: 1px solid var(--inbox-filter-border);
   border-radius: 999px;
   background: var(--inbox-filter-bg);
@@ -2469,16 +2452,14 @@ button.gmail-inbox-row--simple {
   cursor: pointer;
   font-size: 0.78rem;
   font-weight: 500;
-  box-shadow: 0 1px 2px rgba(29, 53, 87, 0.04);
   transition:
     border-color 0.15s ease,
-    background 0.15s ease,
-    box-shadow 0.15s ease;
+    background 0.15s ease;
 }
 
 .threads-filter-toggle--on {
-  border-color: color-mix(in srgb, var(--inbox-search-focus) 35%, var(--inbox-filter-border));
-  background: color-mix(in srgb, var(--inbox-search-focus) 7%, var(--inbox-filter-bg));
+  border-color: color-mix(in srgb, var(--inbox-search-focus) 45%, var(--inbox-filter-border));
+  background: color-mix(in srgb, var(--inbox-search-focus) 8%, var(--inbox-filter-bg));
 }
 
 .threads-filter-toggle:hover {
@@ -2540,12 +2521,12 @@ button.gmail-inbox-row--simple {
 }
 
 .threads-inbox-title {
-  font-family: var(--font-lora), Georgia, serif;
+  font-family:
+    "Google Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   font-size: 1.35rem;
-  font-weight: 500;
+  font-weight: 400;
   margin: 0;
   color: var(--inbox-title);
-  letter-spacing: -0.01em;
 }
 
 .threads-inbox-header--compact .threads-inbox-title {
@@ -2690,7 +2671,7 @@ button.gmail-inbox-row--simple {
 }
 
 .gmail-inbox-list--simple .gmail-inbox-li {
-  border-bottom: 1px solid color-mix(in srgb, var(--inbox-border-row) 75%, transparent);
+  border-bottom: 1px solid var(--inbox-border-row);
 }
 
 .gmail-inbox-list--simple .gmail-inbox-li:last-child {
@@ -2872,14 +2853,13 @@ button.gmail-inbox-row--simple {
 .thread-search-input-inbox {
   width: 100%;
   box-sizing: border-box;
-  padding: 0.58rem 0.9rem;
+  padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
   border: 1px solid var(--inbox-search-border);
-  border-radius: 999px;
+  border-radius: 8px;
   background: var(--inbox-search-bg);
   font-family: inherit;
   color: var(--inbox-text);
-  box-shadow: 0 1px 2px rgba(29, 53, 87, 0.05);
   transition:
     border-color 0.15s ease,
     box-shadow 0.15s ease;
@@ -2891,10 +2871,8 @@ button.gmail-inbox-row--simple {
 
 .thread-search-input-inbox:focus {
   outline: none;
-  border-color: color-mix(in srgb, var(--inbox-search-focus) 55%, var(--inbox-search-border));
-  box-shadow:
-    0 1px 3px rgba(29, 53, 87, 0.08),
-    0 0 0 3px color-mix(in srgb, var(--inbox-search-focus) 14%, transparent);
+  border-color: var(--inbox-search-focus);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--inbox-search-focus) 18%, transparent);
 }
 
 .thread-search-meta-inbox {
@@ -2909,7 +2887,7 @@ button.gmail-inbox-row--simple {
   border-radius: 12px;
   overflow: hidden;
   background: var(--inbox-list-bg);
-  box-shadow: 0 2px 10px rgba(29, 53, 87, 0.06);
+  box-shadow: 0 2px 12px rgba(26, 115, 232, 0.07);
 }
 
 html[data-theme="dark"] .gmail-inbox-list-wrap {
@@ -3122,7 +3100,12 @@ html[data-theme="dark"] .gmail-inbox-list-wrap {
 .gmail-inbox-count-col--multi {
   color: var(--inbox-count-multi-fg);
   font-weight: 700;
-  background: var(--inbox-count-multi-bg);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--inbox-accent-blue) 16%, var(--inbox-list-bg)),
+    color-mix(in srgb, var(--inbox-accent-violet) 12%, var(--inbox-list-bg))
+  );
+  border: 1px solid color-mix(in srgb, var(--inbox-accent-blue) 22%, transparent);
   border-radius: 999px;
   padding: 0.18rem 0.48rem;
   min-width: 1.35rem;
