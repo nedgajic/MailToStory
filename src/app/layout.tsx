@@ -5,6 +5,7 @@ import "./theme-tokens.css";
 import "./globals.css";
 import { GoogleAnalytics } from "@/components/google-analytics";
 import { Providers } from "@/components/providers";
+import { THEME_INIT_SCRIPT } from "@/lib/theme";
 
 const lora = Lora({
   subsets: ["latin"],
@@ -41,7 +42,7 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{document.documentElement.setAttribute("data-theme","light");}catch(e){}})();`,
+            __html: THEME_INIT_SCRIPT,
           }}
         />
       </head>

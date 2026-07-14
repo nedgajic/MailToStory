@@ -1,8 +1,15 @@
 "use client";
 
 import * as React from "react";
+import {
+  applyThemeToDocument,
+  readStoredTheme,
+  resolveTheme,
+  THEME_STORAGE_KEY,
+  type Theme,
+} from "@/lib/theme";
 
-export type Theme = "light" | "dark";
+export type { Theme } from "@/lib/theme";
 
 type ThemeContextValue = {
   theme: Theme;
@@ -12,23 +19,43 @@ type ThemeContextValue = {
 
 const ThemeContext = React.createContext<ThemeContextValue | null>(null);
 
-export function applyThemeToDocument(theme: Theme) {
-  if (typeof document === "undefined") return;
-  document.documentElement.setAttribute("data-theme", theme);
-}
+export { applyThemeToDocument } from "@/lib/theme";
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [theme, setThemeState] = React.useState<Theme>(() =>
+    resolveTheme(readStoredTheme()),
+  );
+
+  const setTheme = React.useCallback((next: Theme) => {
+    setThemeState(next);
+    applyThemeToDocument(next);
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, next);
+    } catch {
+      /* ignore quota / private mode */
+    }
+  }, []);
+
+  const toggleTheme = React.useCallback(() => {
+    setThemeState((current) => {
+      const next = current === "light" ? "dark" : "light";
+      applyThemeToDocument(next);
+      try {
+        localStorage.setItem(THEME_STORAGE_KEY, next);
+      } catch {
+        /* ignore quota / private mode */
+      }
+      return next;
+    });
+  }, []);
+
   const value = React.useMemo(
     () => ({
-      theme: "light" as Theme,
-      setTheme: () => {
-        applyThemeToDocument("light");
-      },
-      toggleTheme: () => {
-        applyThemeToDocument("light");
-      },
+      theme,
+      setTheme,
+      toggleTheme,
     }),
-    [],
+    [theme, setTheme, toggleTheme],
   );
 
   return (

@@ -1300,7 +1300,44 @@ html[data-theme="dark"] .app-top-bar__brand:hover {
 .app-top-bar__end {
   display: flex;
   align-items: center;
+  gap: 0.5rem;
   justify-self: end;
+}
+
+.app-top-bar__theme-toggle {
+  width: 2.125rem;
+  height: 2.125rem;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid var(--digest-border-strong);
+  background: var(--digest-surface-card);
+  color: var(--digest-prose);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition:
+    border-color 0.12s ease,
+    box-shadow 0.12s ease,
+    color 0.12s ease,
+    background 0.12s ease;
+}
+
+.app-top-bar__theme-toggle:hover {
+  border-color: var(--digest-copy-fg);
+  box-shadow: 0 0 0 2px rgba(29, 53, 87, 0.12);
+}
+
+html[data-theme="dark"] .app-top-bar__theme-toggle {
+  background: var(--digest-surface-2);
+  border-color: var(--digest-border-strong);
+  color: #e8eaed;
+}
+
+html[data-theme="dark"] .app-top-bar__theme-toggle:hover {
+  border-color: #8ab4f8;
+  box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.2);
 }
 
 .app-top-bar__back {

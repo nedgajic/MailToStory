@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { BRAND_NAME, BRAND_ICON_PATH, BRAND_PRIVACY_URL, BRAND_TERMS_URL } from "@/lib/brand";
 import { createPortal } from "react-dom";
 import {
@@ -116,6 +117,7 @@ export function AppTopBar({ startSlot, contentMaxWidth = "digest" }: AppTopBarPr
             ) : null}
           </div>
           <div className="app-top-bar__end">
+            <ThemeToggle />
             <div className="app-top-bar__user-menu" ref={userMenuRef}>
               <button
                 type="button"
