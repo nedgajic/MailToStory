@@ -1,11 +1,12 @@
-import type { gmail_v1 } from "googleapis";
 import { describe, expect, it } from "vitest";
 import {
-  isLikelySignatureOrInlineImage,
-  preprocessThread,
-  resolveThreadAttachment,
+  parseForwardedThread,
+  preprocessMessages,
   stripQuotedReplies,
+  stripSubjectPrefix,
 } from "@/lib/preprocessThread";
+import { extractLocalParts } from "@/lib/inbound/postmark";
+import { monthlyAmountUsd, storyLimitForPlan } from "@/lib/billing/plans";
 
 describe("stripQuotedReplies", () => {
   it("removes Apple Mail style On … wrote: tail", () => {
@@ -32,206 +33,55 @@ describe("stripQuotedReplies", () => {
   });
 });
 
-describe("preprocessThread", () => {
+describe("preprocessMessages", () => {
   it("extracts subject and participants", () => {
-    const thread: gmail_v1.Schema$Thread = {
-      messages: [
-        {
-          id: "m1",
-          payload: {
-            headers: [
-              { name: "Subject", value: "Re: Project" },
-              { name: "From", value: "Ada Lovelace <ada@example.com>" },
-              { name: "Date", value: "Mon, 1 Jan 2024 10:00:00 +0000" },
-            ],
-            body: {
-              data: Buffer.from("Starting the thread.\n> old", "utf-8").toString(
-                "base64",
-              ),
-            },
-          },
-        },
-        {
-          id: "m2",
-          payload: {
-            headers: [
-              { name: "Subject", value: "Re: Project" },
-              { name: "From", value: "Bob <bob@example.com>" },
-              { name: "Date", value: "Mon, 1 Jan 2024 11:00:00 +0000" },
-            ],
-            body: {
-              data: Buffer.from("Reply without quotes.", "utf-8").toString(
-                "base64",
-              ),
-            },
-          },
-        },
-      ],
-    };
-
-    const result = preprocessThread(thread);
-    expect(result.metadata.subject).toBe("Project");
-    expect(result.metadata.messageCount).toBe(2);
-    expect(result.metadata.participants.length).toBe(2);
-    expect(result.cleanedThread).toContain("Ada Lovelace");
-    expect(result.cleanedThread).toContain("Bob");
-  });
-
-  it("omits inline/signature images from attachment manifest but keeps real files", () => {
-    const thread: gmail_v1.Schema$Thread = {
-      messages: [
-        {
-          id: "m1",
-          payload: {
-            headers: [
-              { name: "Subject", value: "Files" },
-              { name: "From", value: "Ada <ada@example.com>" },
-              { name: "Date", value: "Mon, 1 Jan 2024 10:00:00 +0000" },
-            ],
-            body: {},
-            parts: [
-              {
-                mimeType: "application/pdf",
-                filename: "report.pdf",
-                headers: [
-                  {
-                    name: "Content-Disposition",
-                    value: 'attachment; filename="report.pdf"',
-                  },
-                ],
-                body: { attachmentId: "att-pdf" },
-              },
-              {
-                mimeType: "image/png",
-                filename: "image001.png",
-                headers: [
-                  {
-                    name: "Content-Disposition",
-                    value: 'inline; filename="image001.png"',
-                  },
-                ],
-                body: { attachmentId: "att-sig" },
-              },
-              {
-                mimeType: "image/png",
-                filename: "logo.png",
-                headers: [{ name: "Content-ID", value: "<abc123>" }],
-                body: { attachmentId: "att-cid" },
-              },
-              {
-                mimeType: "image/jpeg",
-                filename: "vacation.jpg",
-                headers: [
-                  {
-                    name: "Content-Disposition",
-                    value: 'attachment; filename="vacation.jpg"',
-                  },
-                ],
-                body: { attachmentId: "att-real-img" },
-              },
-            ],
-          },
-        },
-      ],
-    };
-
-    const { attachmentManifest } = preprocessThread(thread);
-    expect(attachmentManifest.map((a) => a.filename).sort()).toEqual([
-      "report.pdf",
-      "vacation.jpg",
+    const result = preprocessMessages([
+      {
+        id: "m1",
+        from: "Ada Lovelace <ada@example.com>",
+        date: "Mon, 1 Jan 2024 10:00:00 +0000",
+        subject: "Re: Project",
+        text: "Starting the thread.",
+      },
     ]);
+    expect(result.metadata.subject).toBe("Project");
+    expect(result.metadata.participants[0]?.email).toBe("ada@example.com");
+    expect(result.cleanedThread).toContain("Starting the thread");
   });
 });
 
-describe("resolveThreadAttachment", () => {
-  it("matches filename case-insensitively", () => {
-    const message: gmail_v1.Schema$Message = {
-      id: "m1",
-      payload: {
-        parts: [
-          {
-            mimeType: "application/pdf",
-            filename: "Report.PDF",
-            headers: [
-              { name: "Content-Disposition", value: "attachment" },
-            ],
-            body: { attachmentId: "aid-1", size: 1024 },
-          },
-        ],
-      },
-    };
-    expect(resolveThreadAttachment(message, "report.pdf")).toEqual({
-      attachmentId: "aid-1",
-      mimeType: "application/pdf",
-      filename: "Report.PDF",
-      size: 1024,
-    });
-  });
-
-  it("returns null for inline signature image", () => {
-    const message: gmail_v1.Schema$Message = {
-      id: "m1",
-      payload: {
-        parts: [
-          {
-            mimeType: "image/png",
-            filename: "sig.png",
-            headers: [{ name: "Content-Disposition", value: "inline" }],
-            body: { attachmentId: "x" },
-          },
-        ],
-      },
-    };
-    expect(resolveThreadAttachment(message, "sig.png")).toBeNull();
+describe("parseForwardedThread", () => {
+  it("splits original message markers", () => {
+    const parts = parseForwardedThread(
+      "Please see below.\n\n-----Original Message-----\nFrom: Bob <bob@x.com>\nHello team",
+      "Ada <ada@x.com>",
+      "2026-01-01",
+      "Fwd: Hello",
+    );
+    expect(parts.length).toBeGreaterThan(1);
   });
 });
 
-describe("isLikelySignatureOrInlineImage", () => {
-  it("detects inline disposition", () => {
-    expect(
-      isLikelySignatureOrInlineImage({
-        mimeType: "image/png",
-        filename: "x.png",
-        headers: [{ name: "Content-Disposition", value: "inline" }],
-        body: {},
-      }),
-    ).toBe(true);
+describe("stripSubjectPrefix", () => {
+  it("strips fwd", () => {
+    expect(stripSubjectPrefix("Fwd: Hello")).toBe("Hello");
   });
+});
 
-  it("keeps explicit attachment images", () => {
-    expect(
-      isLikelySignatureOrInlineImage({
-        mimeType: "image/png",
-        filename: "diagram.png",
-        headers: [
-          {
-            name: "Content-Disposition",
-            value: 'attachment; filename="diagram.png"',
-          },
-        ],
-        body: {},
-      }),
-    ).toBe(false);
+describe("extractLocalParts", () => {
+  it("finds inbox domain addresses", () => {
+    const parts = extractLocalParts(
+      { To: "k7f2n9@inbox.mailtostory.com" },
+      "inbox.mailtostory.com",
+    );
+    expect(parts).toEqual(["k7f2n9"]);
   });
+});
 
-  it("detects Content-ID embeds", () => {
-    expect(
-      isLikelySignatureOrInlineImage({
-        mimeType: "image/gif",
-        filename: "spacer.gif",
-        headers: [{ name: "Content-ID", value: "<cid>" }],
-        body: {},
-      }),
-    ).toBe(true);
-  });
-
-  it("ignores non-images", () => {
-    expect(
-      isLikelySignatureOrInlineImage({
-        mimeType: "application/pdf",
-        filename: "a.pdf",
-        body: {},
-      }),
-    ).toBe(false);
+describe("plans", () => {
+  it("limits free stories", () => {
+    expect(storyLimitForPlan("free")).toBe(5);
+    expect(storyLimitForPlan("pro")).toBeNull();
+    expect(monthlyAmountUsd("team", 3)).toBe(87);
   });
 });

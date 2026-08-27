@@ -1905,7 +1905,7 @@ export default function DigestRenderer({
           textAlign: "center",
         }}
       >
-        Generated live · not stored on disk · your email stays in Google
+        Generated live · mail stays in your workspace until you delete the story
       </div>
 
       {attachmentPreview ? (

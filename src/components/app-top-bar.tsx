@@ -5,6 +5,7 @@ import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { BRAND_NAME, BRAND_ICON_PATH, BRAND_PRIVACY_URL, BRAND_TERMS_URL } from "@/lib/brand";
+import { isAdminEmail } from "@/lib/admin";
 import { createPortal } from "react-dom";
 import {
   useEffect,
@@ -24,13 +25,20 @@ function getInitials(name: string) {
 }
 
 export type AppTopBarProps = {
-  /** Left / center cluster (e.g. Back link + export actions). Omit on inbox for profile-only bar. */
   startSlot?: ReactNode;
-  /** Match content width to the page shell. */
-  contentMaxWidth?: "digest" | "inbox";
+  contentMaxWidth?: "digest" | "inbox" | "app";
+  showNav?: boolean;
+  canManageTeam?: boolean;
+  billingLabel?: string | null;
 };
 
-export function AppTopBar({ startSlot, contentMaxWidth = "digest" }: AppTopBarProps) {
+export function AppTopBar({
+  startSlot,
+  contentMaxWidth = "digest",
+  showNav = false,
+  canManageTeam = false,
+  billingLabel = null,
+}: AppTopBarProps) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [userDropdownPos, setUserDropdownPos] = useState<{ top: number; right: number } | null>(
     null,
@@ -95,11 +103,14 @@ export function AppTopBar({ startSlot, contentMaxWidth = "digest" }: AppTopBarPr
   const accountInitials = getInitials(
     accountUser?.name?.trim() || accountUser?.email || "?",
   );
+  const showAdminLink = isAdminEmail(accountUser?.email);
 
   const innerMods =
     contentMaxWidth === "inbox"
       ? "app-top-bar__inner app-top-bar__inner--inbox"
-      : "app-top-bar__inner app-top-bar__inner--digest";
+      : contentMaxWidth === "app"
+        ? "app-top-bar__inner app-top-bar__inner--app"
+        : "app-top-bar__inner app-top-bar__inner--digest";
 
   const headerClass =
     contentMaxWidth === "inbox"
@@ -115,8 +126,26 @@ export function AppTopBar({ startSlot, contentMaxWidth = "digest" }: AppTopBarPr
             {startSlot ? (
               <div className="app-top-bar__start">{startSlot}</div>
             ) : null}
+            {showNav ? (
+              <nav className="app-top-bar__nav" aria-label="App">
+                <Link href="/dashboard" className="app-top-bar__nav-link">
+                  Dashboard
+                </Link>
+                <Link href="/stories" className="app-top-bar__nav-link">
+                  Stories
+                </Link>
+                {canManageTeam ? (
+                  <Link href="/settings/team" className="app-top-bar__nav-link">
+                    Team
+                  </Link>
+                ) : null}
+              </nav>
+            ) : null}
           </div>
           <div className="app-top-bar__end">
+            {billingLabel ? (
+              <p className="app-top-bar__bill">{billingLabel}</p>
+            ) : null}
             <ThemeToggle />
             <div className="app-top-bar__user-menu" ref={userMenuRef}>
               <button
@@ -174,6 +203,24 @@ export function AppTopBar({ startSlot, contentMaxWidth = "digest" }: AppTopBarPr
               >
                 Terms of Service
               </a>
+              <Link
+                href="/settings/account"
+                role="menuitem"
+                className="app-top-bar__user-item app-top-bar__user-item--link"
+                onClick={() => setUserMenuOpen(false)}
+              >
+                Account
+              </Link>
+              {showAdminLink ? (
+                <Link
+                  href="/admin"
+                  role="menuitem"
+                  className="app-top-bar__user-item app-top-bar__user-item--link"
+                  onClick={() => setUserMenuOpen(false)}
+                >
+                  Admin dashboard
+                </Link>
+              ) : null}
               <button
                 type="button"
                 role="menuitem"
@@ -196,7 +243,7 @@ export function AppTopBar({ startSlot, contentMaxWidth = "digest" }: AppTopBarPr
 /** Brand mark + title for the logged-in app shell. */
 export function AppTopBarBrand() {
   return (
-    <Link href="/threads" className="app-top-bar__brand">
+    <Link href="/dashboard" className="app-top-bar__brand">
       <Image
         src={BRAND_ICON_PATH}
         alt=""
@@ -213,7 +260,7 @@ export function AppTopBarBrand() {
 /** Convenience: Back link styled for the top bar. */
 export function AppTopBarBackLink() {
   return (
-    <Link href="/threads" className="app-top-bar__back">
+    <Link href="/dashboard" className="app-top-bar__back">
       Back
     </Link>
   );

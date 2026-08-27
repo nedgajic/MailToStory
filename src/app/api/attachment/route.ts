@@ -1,107 +1,43 @@
-import { authOptions } from "@/auth";
-import { fetchGmailAttachment, getThreadFull } from "@/lib/gmail";
-import { resolveThreadAttachment } from "@/lib/preprocessThread";
+import { NextRequest, NextResponse } from "next/server";
+import { readFile } from "node:fs/promises";
 import { getServerSession } from "next-auth/next";
-import { NextResponse } from "next/server";
+import { authOptions } from "@/auth";
+import { getWorkspaceContext } from "@/lib/session";
+import prisma from "@/lib/prisma";
 
-const MAX_BYTES = 24 * 1024 * 1024;
-
-function assertSafeQueryFilename(name: string | null): string | null {
-  if (!name?.trim()) return null;
-  const t = name.trim();
-  if (t.length > 512) return null;
-  if (t.includes("/") || t.includes("\\") || t.includes("..")) {
-    return null;
-  }
-  return t;
-}
-
-/**
- * `Content-Disposition` must be a ByteString (Latin-1). Use ASCII `filename` plus
- * RFC 5987 / RFC 8187 `filename*=UTF-8''…` for the real Unicode name.
- */
-function contentDispositionInline(filename: string): string {
-  const ascii =
-    filename
-      .replace(/[^\x20-\x7E]/g, "_")
-      .replace(/\\/g, "_")
-      .replace(/"/g, "_")
-      .replace(/[/]+/g, "_") || "attachment";
-  const starValue = encodeURIComponent(filename).replace(
-    /[!'*()]/g,
-    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")}`,
-  );
-  return `inline; filename="${ascii}"; filename*=UTF-8''${starValue}`;
-}
-
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const ctx = await getWorkspaceContext(session.user.id);
+  if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { searchParams } = new URL(req.url);
-  const threadId = searchParams.get("threadId")?.trim() ?? "";
-  const messageId = searchParams.get("messageId")?.trim() ?? "";
-  const filename = assertSafeQueryFilename(searchParams.get("filename"));
-
-  if (!threadId || !messageId || !filename) {
-    return NextResponse.json(
-      { error: "threadId, messageId, and filename are required" },
-      { status: 400 },
-    );
+  const threadId = req.nextUrl.searchParams.get("threadId");
+  const filename = req.nextUrl.searchParams.get("filename");
+  if (!threadId || !filename) {
+    return NextResponse.json({ error: "Missing params" }, { status: 400 });
   }
 
-  try {
-    const thread = await getThreadFull(session.user.id, threadId);
-    const inThread = (thread.messages ?? []).some((m) => m.id === messageId);
-    if (!inThread) {
-      return NextResponse.json({ error: "Message not in thread" }, { status: 404 });
-    }
-
-    const message = (thread.messages ?? []).find((m) => m.id === messageId);
-    if (!message) {
-      return NextResponse.json({ error: "Message not found" }, { status: 404 });
-    }
-
-    const resolved = resolveThreadAttachment(message, filename);
-    if (!resolved) {
-      return NextResponse.json(
-        { error: "Attachment not found on message" },
-        { status: 404 },
-      );
-    }
-
-    if (resolved.size != null && resolved.size > MAX_BYTES) {
-      return NextResponse.json(
-        { error: "Attachment too large to load in the browser" },
-        { status: 413 },
-      );
-    }
-
-    const buf = await fetchGmailAttachment(
-      session.user.id,
-      messageId,
-      resolved.attachmentId,
-    );
-    if (buf.length > MAX_BYTES) {
-      return NextResponse.json(
-        { error: "Attachment too large to load in the browser" },
-        { status: 413 },
-      );
-    }
-
-    return new NextResponse(new Uint8Array(buf), {
-      status: 200,
-      headers: {
-        "Content-Type": resolved.mimeType,
-        "Content-Disposition": contentDispositionInline(resolved.filename),
-        "Cache-Control": "private, max-age=120",
-      },
-    });
-  } catch (e) {
-    const message = e instanceof Error ? e.message : "Failed to load attachment";
-    console.error("attachment route error:", e);
-    return NextResponse.json({ error: message }, { status: 502 });
+  const conversation = await prisma.conversation.findFirst({
+    where: { id: threadId, workspaceId: ctx.workspace.id },
+    include: { attachments: true },
+  });
+  if (!conversation) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+  const want = filename.trim().toLowerCase();
+  const att = conversation.attachments.find(
+    (a) => a.filename.toLowerCase() === want,
+  );
+  if (!att?.storagePath) {
+    return NextResponse.json({ error: "Attachment not found" }, { status: 404 });
+  }
+  const buf = await readFile(att.storagePath);
+  return new NextResponse(new Uint8Array(buf), {
+    headers: {
+      "Content-Type": att.mimeType || "application/octet-stream",
+      "Content-Disposition": `inline; filename="${att.filename.replace(/"/g, "")}"`,
+    },
+  });
 }

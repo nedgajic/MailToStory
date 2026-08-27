@@ -1,186 +1,69 @@
-import { authOptions } from "@/auth";
-import { buildDigestPrompt } from "@/lib/buildDigestPrompt";
-import {
-  generateDigestFromPrompt,
-  streamGenerateDigestFromPrompt,
-} from "@/lib/gemini";
-import { getThreadFull } from "@/lib/gmail";
-import { preprocessThread } from "@/lib/preprocessThread";
-import {
-  getCachedThreadDigest,
-  saveThreadDigest,
-} from "@/lib/threadDigestCache";
-import { getServerSession } from "next-auth/next";
 import { NextResponse } from "next/server";
-import { formatUserFacingError } from "@/lib/user-facing-error";
-
-function sseChunk(data: unknown): Uint8Array {
-  const encoder = new TextEncoder();
-  return encoder.encode(`data: ${JSON.stringify(data)}\n\n`);
-}
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/auth";
+import { getWorkspaceContext } from "@/lib/session";
+import prisma from "@/lib/prisma";
+import { generateAndSaveStory } from "@/lib/inbound/ingest";
+import { canGenerateStory } from "@/lib/billing/entitlements";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const ctx = await getWorkspaceContext(session.user.id);
+  if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  let body: { threadId?: string; stream?: boolean };
+  let body: { conversationId?: string };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
-
-  const threadId = body.threadId;
-  if (!threadId || typeof threadId !== "string") {
-    return NextResponse.json({ error: "threadId required" }, { status: 400 });
+  const conversationId = body.conversationId;
+  if (!conversationId) {
+    return NextResponse.json({ error: "conversationId required" }, { status: 400 });
   }
 
-  const useStream = body.stream !== false;
+  const conversation = await prisma.conversation.findFirst({
+    where: { id: conversationId, workspaceId: ctx.workspace.id },
+    include: { story: true },
+  });
+  if (!conversation) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
 
-  if (!useStream) {
-    const cached = await getCachedThreadDigest(session.user.id, threadId);
-    if (cached) {
-      return NextResponse.json({
-        digest: cached.digest,
-        messageIdsInOrder: cached.messageIdsInOrder,
-      });
-    }
-    try {
-      const thread = await getThreadFull(session.user.id, threadId);
-      const { cleanedThread, attachmentManifest, metadata } =
-        preprocessThread(thread);
-      const prompt = buildDigestPrompt(
-        cleanedThread,
-        attachmentManifest,
-        metadata,
-      );
-      const digest = await generateDigestFromPrompt(prompt);
-      const messageIdsInOrder = (thread.messages ?? []).map(
-        (m) => m.id ?? "",
-      );
-      try {
-        await saveThreadDigest(
-          session.user.id,
-          threadId,
-          digest,
-          messageIdsInOrder,
-        );
-      } catch (saveErr) {
-        console.error("thread digest cache save failed:", saveErr);
-      }
-      return NextResponse.json({ digest, messageIdsInOrder });
-    } catch (e) {
-      console.error("digest error:", e);
-      const friendly = formatUserFacingError(
-        e instanceof Error ? e.message : "Failed to generate story",
-      );
+  if (!conversation.story) {
+    const quota = await canGenerateStory(ctx.workspace.plan, ctx.workspace.id);
+    if (!quota.allowed) {
       return NextResponse.json(
-        { error: friendly.message, ...friendly },
-        { status: 502 },
+        {
+          error: `Free plan includes ${quota.limit} stories this month. Upgrade to generate more.`,
+        },
+        { status: 402 },
       );
     }
   }
 
-  const stream = new ReadableStream<Uint8Array>({
-    async start(controller) {
-      const send = (data: unknown) => {
-        try {
-          controller.enqueue(sseChunk(data));
-        } catch {
-          /* stream may be closed */
-        }
-      };
-
-      try {
-        const cached = await getCachedThreadDigest(
-          session.user.id,
-          threadId,
-        );
-        if (cached) {
-          send({
-            type: "step_done",
-            label: "Using saved story for this thread",
-          });
-          send({
-            type: "done",
-            digest: cached.digest,
-            messageIdsInOrder: cached.messageIdsInOrder,
-          });
-          return;
-        }
-
-        const thread = await getThreadFull(session.user.id, threadId);
-        send({
-          type: "step_done",
-          label: "Loaded conversation from Gmail",
-        });
-
-        const { cleanedThread, attachmentManifest, metadata } =
-          preprocessThread(thread);
-        const prompt = buildDigestPrompt(
-          cleanedThread,
-          attachmentManifest,
-          metadata,
-        );
-        send({ type: "step_done", label: "Prepared prompt for the model" });
-
-        send({
-          type: "working",
-          label:
-            "Generating story (this can take a little while for long threads)…",
-          chars: 0,
-        });
-
-        let lastEmit = 0;
-        const digest = await streamGenerateDigestFromPrompt(
-          prompt,
-          (accumulated) => {
-            const now = Date.now();
-            if (now - lastEmit < 350 && accumulated.length >= 200) return;
-            lastEmit = now;
-            send({ type: "progress", chars: accumulated.length });
-          },
-        );
-
-        const messageIdsInOrder = (thread.messages ?? []).map(
-          (m) => m.id ?? "",
-        );
-        try {
-          await saveThreadDigest(
-            session.user.id,
-            threadId,
-            digest,
-            messageIdsInOrder,
-          );
-        } catch (saveErr) {
-          console.error("thread digest cache save failed:", saveErr);
-        }
-        send({ type: "done", digest, messageIdsInOrder });
-      } catch (e) {
-        console.error("digest stream error:", e);
-        send({
-          type: "error",
-          ...formatUserFacingError(
-            e instanceof Error ? e.message : "Failed to generate story",
-          ),
-        });
-      } finally {
-        try {
-          controller.close();
-        } catch {
-          /* already closed */
-        }
-      }
-    },
-  });
-
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream; charset=utf-8",
-      "Cache-Control": "no-cache, no-transform",
-      Connection: "keep-alive",
-    },
-  });
+  try {
+    const digest = await generateAndSaveStory(conversationId);
+    const story = await prisma.story.findUnique({
+      where: { conversationId },
+      select: { id: true, messageIdsInOrder: true },
+    });
+    const messageIdsInOrder = Array.isArray(story?.messageIdsInOrder)
+      ? story.messageIdsInOrder.filter((x): x is string => typeof x === "string")
+      : [];
+    return NextResponse.json({
+      digest,
+      storyId: story?.id,
+      messageIdsInOrder,
+    });
+  } catch (error) {
+    console.error("digest", error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to generate story" },
+      { status: 502 },
+    );
+  }
 }

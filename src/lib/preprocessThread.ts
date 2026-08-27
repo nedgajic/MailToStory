@@ -1,5 +1,18 @@
-import type { gmail_v1 } from "googleapis";
 import { parseFromHeader } from "@/lib/parseFromHeader";
+
+export type GenericMessage = {
+  id: string;
+  from: string;
+  date: string;
+  subject: string;
+  text: string;
+  html?: string | null;
+  attachments?: Array<{
+    filename: string;
+    mimeType: string;
+    id: string;
+  }>;
+};
 
 export type AttachmentInfo = {
   filename: string;
@@ -23,140 +36,19 @@ export type PreprocessResult = {
   metadata: ThreadMetadata;
 };
 
-export function preprocessThread(
-  thread: gmail_v1.Schema$Thread,
-): PreprocessResult {
-  const messages = thread.messages ?? [];
-  const attachmentManifest: AttachmentInfo[] = [];
-  const participantMap = new Map<string, string>();
-  const cleanedMessages: string[] = [];
-
-  let subject = "";
-  let firstDate = "";
-  let lastDate = "";
-
-  messages.forEach((message, index) => {
-    const headers = message.payload?.headers ?? [];
-    const subjectHeader =
-      headers.find((h) => h.name?.toLowerCase() === "subject")?.value ?? "";
-    const fromHeader =
-      headers.find((h) => h.name?.toLowerCase() === "from")?.value ?? "";
-    const dateHeader =
-      headers.find((h) => h.name?.toLowerCase() === "date")?.value ?? "";
-
-    if (index === 0) {
-      subject = subjectHeader.replace(/^(Re:|Fwd:)\s*/gi, "").trim();
-      firstDate = dateHeader;
-    }
-    lastDate = dateHeader || lastDate;
-
-    const { name, email } = parseFromHeader(fromHeader);
-    if (email) participantMap.set(email, name);
-
-    const bodyText = extractBody(message.payload);
-    const cleaned = stripQuotedReplies(bodyText);
-
-    if (cleaned.trim().length > 10) {
-      cleanedMessages.push(
-        `[Message ${index + 1} | From: ${name || email} | Date: ${dateHeader}]\n${cleaned.trim()}`,
-      );
-    }
-
-    const parts = message.payload?.parts ?? [];
-    collectAttachments(
-      parts,
-      index,
-      message.id ?? "",
-      attachmentManifest,
-    );
-  });
-
-  const metadata: ThreadMetadata = {
-    subject,
-    participants: Array.from(participantMap.entries()).map(([email, name]) => ({
-      name,
-      email,
-    })),
-    firstDate,
-    lastDate,
-    messageCount: messages.length,
-  };
-
-  return {
-    cleanedThread: cleanedMessages.join("\n\n---\n\n"),
-    attachmentManifest,
-    metadata,
-  };
-}
-
-export function extractBody(
-  payload: gmail_v1.Schema$MessagePart | undefined,
-): string {
-  if (!payload) return "";
-
-  if (payload.body?.data) {
-    return Buffer.from(payload.body.data, "base64").toString("utf-8");
-  }
-
-  if (payload.parts) {
-    const textPart = payload.parts.find((p) => p.mimeType === "text/plain");
-    if (textPart?.body?.data) {
-      return Buffer.from(textPart.body.data, "base64").toString("utf-8");
-    }
-    for (const part of payload.parts) {
-      const nested = extractBody(part);
-      if (nested) return nested;
-    }
-  }
-
-  return "";
-}
-
-/**
- * Prefer text/html from multipart messages (multipart/alternative).
- */
-export function extractHtmlBody(
-  payload: gmail_v1.Schema$MessagePart | undefined,
-): string {
-  if (!payload) return "";
-
-  if (payload.mimeType === "text/html" && payload.body?.data) {
-    return Buffer.from(payload.body.data, "base64").toString("utf-8");
-  }
-
-  if (payload.body?.data && payload.mimeType?.includes("html")) {
-    return Buffer.from(payload.body.data, "base64").toString("utf-8");
-  }
-
-  if (payload.parts) {
-    const htmlPart = payload.parts.find(
-      (p) => p.mimeType === "text/html" && p.body?.data,
-    );
-    if (htmlPart?.body?.data) {
-      return Buffer.from(htmlPart.body.data, "base64").toString("utf-8");
-    }
-    for (const part of payload.parts) {
-      const nested = extractHtmlBody(part);
-      if (nested) return nested;
-    }
-  }
-
-  return "";
-}
-
-const MIN_CUT_BEFORE_REPLY_HEADER = 28;
-
 export function stripQuotedReplies(text: string): string {
-  const lines = text.split("\n");
-  const cleaned = lines.filter((line) => !line.trim().startsWith(">"));
+  const MIN_CUT_BEFORE_REPLY_HEADER = 40;
+  let joined = text.replace(/\r\n/g, "\n");
 
-  let joined = cleaned.join("\n");
+  const lines = joined.split("\n");
+  const kept: string[] = [];
+  for (const line of lines) {
+    if (/^\s*>/.test(line)) continue;
+    kept.push(line);
+  }
+  joined = kept.join("\n");
 
-  const headerPatterns: RegExp[] = [
-    /\n-{2,9}\s*Original Message\s*-{2,9}\s*\r?\n/im,
-    /-----Original Message-----/im,
-    /\r?\n\r?\n\s*On\s+(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\b[\s\S]{3,900}?\bwrote\s*:\s*/im,
-    /\r?\n\r?\n\s*On\s+\d{1,2}\s+[\s\S]{3,900}?\bwrote\s*:\s*/im,
+  const headerPatterns = [
     /\r?\n\s*On\s+(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\b[\s\S]{3,900}?\bwrote\s*:\s*/im,
     /\r?\n\s*On\s+\d{1,2}\s+[\s\S]{3,900}?\bwrote\s*:\s*/im,
   ];
@@ -184,158 +76,138 @@ export function stripQuotedReplies(text: string): string {
     .trim();
 }
 
-function getPartHeader(
-  part: gmail_v1.Schema$MessagePart,
-  headerName: string,
-): string | null {
-  const raw = part.headers?.find(
-    (h) => h.name?.toLowerCase() === headerName.toLowerCase(),
-  )?.value;
-  const t = raw?.trim();
-  return t ? t : null;
+export function stripSubjectPrefix(subject: string): string {
+  return subject.replace(/^(re|fwd|fw):\s*/gi, "").trim();
 }
 
 /**
- * Inline / CID images (signatures, HTML embeds) — not user-chosen attachments.
- * Keeps parts with explicit Content-Disposition: attachment (incl. images).
+ * Split a single forwarded blob into message-like chunks.
+ * Prefer this over stripQuotedReplies for inbound forwards.
  */
-export function isLikelySignatureOrInlineImage(
-  part: gmail_v1.Schema$MessagePart,
-): boolean {
-  const mime = (part.mimeType ?? "").toLowerCase();
-  if (!mime.startsWith("image/")) return false;
-
-  const cdRaw = getPartHeader(part, "Content-Disposition") ?? "";
-  const cdLower = cdRaw.toLowerCase();
-
-  if (/^\s*attachment\b/i.test(cdRaw)) {
-    return false;
+export function parseForwardedThread(
+  text: string,
+  fallbackFrom: string,
+  fallbackDate: string,
+  fallbackSubject: string,
+): GenericMessage[] {
+  const normalized = text.replace(/\r\n/g, "\n").trim();
+  if (!normalized) {
+    return [
+      {
+        id: "m1",
+        from: fallbackFrom,
+        date: fallbackDate,
+        subject: fallbackSubject,
+        text: "",
+      },
+    ];
   }
 
-  if (cdLower.startsWith("inline")) {
-    return true;
+  const splitRe =
+    /\n(?=----+ ?Original Message ?----|From:\s+\S|On\s+(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun|\d{1,2})\b[\s\S]{0,200}?\bwrote\s*:)/i;
+
+  const parts = normalized.split(splitRe).map((p) => p.trim()).filter(Boolean);
+  if (parts.length <= 1) {
+    return [
+      {
+        id: "m1",
+        from: fallbackFrom,
+        date: fallbackDate,
+        subject: fallbackSubject,
+        text: normalized,
+      },
+    ];
   }
 
-  if (getPartHeader(part, "Content-ID")) {
-    return true;
-  }
-
-  const fn = (part.filename ?? "").trim();
-  if (
-    /^image\d*\.(png|jpe?g|gif|webp|bmp)$/i.test(fn) ||
-    /^outlook-[-\w]+\.(png|jpe?g|gif|webp)$/i.test(fn)
-  ) {
-    return true;
-  }
-
-  const size = part.body?.size;
-  if (
-    size != null &&
-    size <= 6144 &&
-    /\.(png|jpe?g|gif|webp|bmp)$/i.test(fn)
-  ) {
-    return true;
-  }
-
-  return false;
-}
-
-export type ResolvedThreadAttachment = {
-  attachmentId: string;
-  mimeType: string;
-  filename: string;
-  /** Gmail-reported size before download; may be undefined for some payloads. */
-  size?: number;
-};
-
-function normalizeAttachmentFilename(name: string): string {
-  return name
-    .trim()
-    .normalize("NFC")
-    .toLowerCase()
-    .replace(/^.*[/\\]/, "");
-}
-
-/**
- * Find a real (non-inline-signature) attachment part on a message whose filename
- * matches, case-insensitively on the basename.
- */
-export function resolveThreadAttachment(
-  message: gmail_v1.Schema$Message,
-  filename: string,
-): ResolvedThreadAttachment | null {
-  const want = normalizeAttachmentFilename(filename);
-  if (!want) return null;
-  const payload = message.payload;
-  if (!payload) return null;
-
-  const tryMatch = (
-    part: gmail_v1.Schema$MessagePart,
-  ): ResolvedThreadAttachment | null => {
-    const fn = part.filename?.trim();
-    if (
-      !fn ||
-      !part.body?.attachmentId ||
-      isLikelySignatureOrInlineImage(part)
-    ) {
-      return null;
+  return parts.map((part, index) => {
+    const fromMatch = part.match(/^From:\s*(.+)$/im);
+    const dateMatch = part.match(/^Date:\s*(.+)$/im);
+    const subjectMatch = part.match(/^Subject:\s*(.+)$/im);
+    const wroteMatch = part.match(
+      /^On\s+(.+?)\s+(.+?)\s+wrote:\s*/im,
+    );
+    let body = part;
+    if (fromMatch) {
+      body = part.replace(/^[\s\S]*?\n\n/, "\n").trim();
+    } else if (wroteMatch) {
+      body = part.replace(/^On[\s\S]*?wrote:\s*/im, "").trim();
     }
-    if (normalizeAttachmentFilename(fn) !== want) {
-      return null;
-    }
+    const from = fromMatch?.[1]?.trim() || wroteMatch?.[2]?.trim() || fallbackFrom;
+    const date =
+      dateMatch?.[1]?.trim() || wroteMatch?.[1]?.trim() || fallbackDate;
     return {
-      attachmentId: part.body.attachmentId,
-      mimeType: part.mimeType ?? "application/octet-stream",
-      filename: fn,
-      size: part.body.size ?? undefined,
+      id: `m${index + 1}`,
+      from,
+      date,
+      subject: subjectMatch?.[1]?.trim() || fallbackSubject,
+      text: body || part,
     };
-  };
-
-  const rootHit = tryMatch(payload);
-  if (rootHit) {
-    return rootHit;
-  }
-
-  function walk(
-    parts: gmail_v1.Schema$MessagePart[] | undefined,
-  ): ResolvedThreadAttachment | null {
-    for (const part of parts ?? []) {
-      const hit = tryMatch(part);
-      if (hit) return hit;
-      const nested = walk(part.parts);
-      if (nested) return nested;
-    }
-    return null;
-  }
-
-  return walk(payload.parts);
+  });
 }
 
-export function collectAttachments(
-  parts: gmail_v1.Schema$MessagePart[],
-  messageIndex: number,
-  messageId: string,
-  manifest: AttachmentInfo[],
-): void {
-  for (const part of parts) {
-    if (
-      part.filename &&
-      part.filename.length > 0 &&
-      part.body?.attachmentId &&
-      messageId &&
-      !isLikelySignatureOrInlineImage(part)
-    ) {
-      manifest.push({
-        filename: part.filename,
-        mimeType: part.mimeType ?? "application/octet-stream",
-        messageIndex,
-        attachmentId: part.body.attachmentId,
-        messageId,
+export function preprocessMessages(messages: GenericMessage[]): PreprocessResult {
+  const attachmentManifest: AttachmentInfo[] = [];
+  const participantMap = new Map<string, string>();
+  const cleanedMessages: string[] = [];
+
+  let subject = "";
+  let firstDate = "";
+  let lastDate = "";
+
+  messages.forEach((message, index) => {
+    if (index === 0) {
+      subject = stripSubjectPrefix(message.subject || "");
+      firstDate = message.date;
+    }
+    lastDate = message.date || lastDate;
+
+    const { name, email } = parseFromHeader(message.from);
+    if (email) participantMap.set(email, name || email);
+
+    const body = message.text?.trim() || htmlToText(message.html ?? "");
+    if (body.trim().length > 2) {
+      cleanedMessages.push(
+        `[Message ${index + 1} | From: ${name || email || message.from} | Date: ${message.date}]\n${body.trim()}`,
+      );
+    }
+
+    for (const att of message.attachments ?? []) {
+      attachmentManifest.push({
+        filename: att.filename,
+        mimeType: att.mimeType,
+        messageIndex: index,
+        attachmentId: att.id,
+        messageId: message.id,
       });
     }
-    if (part.parts) {
-      collectAttachments(part.parts, messageIndex, messageId, manifest);
-    }
-  }
+  });
+
+  return {
+    cleanedThread: cleanedMessages.join("\n\n---\n\n"),
+    attachmentManifest,
+    metadata: {
+      subject: subject || "(no subject)",
+      participants: Array.from(participantMap.entries()).map(([email, name]) => ({
+        name,
+        email,
+      })),
+      firstDate,
+      lastDate,
+      messageCount: messages.length,
+    },
+  };
 }
 
+function htmlToText(html: string): string {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .trim();
+}

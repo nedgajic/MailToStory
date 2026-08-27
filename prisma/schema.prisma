@@ -8,27 +8,29 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  accounts      Account[]
-  sessions      Session[]
-  threadDigests ThreadDigest[]
+  id                 String    @id @default(cuid())
+  name               String?
+  email              String?   @unique
+  emailVerified      DateTime?
+  image              String?
+  passwordHash       String?
+  activeWorkspaceId  String?
+  accounts           Account[]
+  sessions           Session[]
+  memberships        WorkspaceMember[]
 }
 
 model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
+  id                        String  @id @default(cuid())
+  userId                    String
+  type                      String
+  provider                  String
+  providerAccountId         String
+  refresh_token             String? @db.Text
+  access_token              String? @db.Text
+  expires_at                Int?
+  token_type                String?
+  scope                     String?
   id_token                  String? @db.Text
   session_state             String?
   refresh_token_expires_in  Int?
@@ -54,17 +56,125 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-model ThreadDigest {
-  id                 String   @id @default(cuid())
-  userId             String
-  threadId           String
-  digest             Json
-  messageIdsInOrder  Json
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+model Workspace {
+  id                    String    @id @default(cuid())
+  name                  String
+  plan                  String    @default("free")
+  inboundLocalPart      String    @unique
+  seatQuantity          Int       @default(1)
+  stripeCustomerId      String?
+  stripeSubscriptionId  String?
+  stripePriceId         String?
+  cancelAtPeriodEnd     Boolean   @default(false)
+  currentPeriodEnd      DateTime?
+  currentPeriodStart    DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  members       WorkspaceMember[]
+  invites       WorkspaceInvite[]
+  conversations Conversation[]
 
-  @@unique([userId, threadId])
+  @@index([stripeCustomerId])
+  @@index([stripeSubscriptionId])
+}
+
+model WorkspaceMember {
+  id          String   @id @default(cuid())
+  workspaceId String
+  userId      String
+  role        String
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
   @@index([userId])
+}
+
+model WorkspaceInvite {
+  id          String   @id @default(cuid())
+  workspaceId String
+  email       String
+  role        String   @default("member")
+  token       String   @unique
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, email])
+}
+
+model Conversation {
+  id             String   @id @default(cuid())
+  workspaceId    String
+  subject        String   @default("(no subject)")
+  snippet        String   @default("")
+  lastMessageAt  DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  workspace    Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  messages     ConversationMessage[]
+  attachments  ConversationAttachment[]
+  story        Story?
+
+  @@index([workspaceId, lastMessageAt])
+}
+
+model ConversationMessage {
+  id                 String   @id @default(cuid())
+  conversationId     String
+  sequence           Int
+  fromName           String   @default("")
+  fromEmail          String   @default("")
+  toAddresses        String   @default("")
+  subject            String   @default("")
+  date               DateTime
+  textBody           String   @db.Text
+  htmlBody           String?  @db.Text
+  headersJson        Json?
+  postmarkMessageId  String?  @unique
+  inReplyTo          String?
+  createdAt          DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, sequence])
+}
+
+model ConversationAttachment {
+  id             String @id @default(cuid())
+  conversationId String
+  messageId      String
+  filename       String
+  mimeType       String
+  size           Int
+  storagePath    String
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, messageId])
+}
+
+model Story {
+  id                String   @id @default(cuid())
+  conversationId    String   @unique
+  workspaceId       String
+  title             String
+  subject           String   @default("")
+  status            String
+  resolutionSummary String   @db.Text
+  searchText        String   @db.Text
+  digest            Json
+  messageIdsInOrder Json
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
 }

@@ -92,3 +92,19 @@ pm2 logs mailtostory --lines 50
 - **502 from nginx** — `pm2 status` → is `mailtostory` online? Is `PORT=3010` in `/var/www/mailtostory/.env`?
 - **OAuth redirect mismatch** — `NEXTAUTH_URL` must be `https://mailtostory.com` (not localhost).
 - **DB connection** — use `localhost:5432` on VPS; database name `mailtostory` (separate from `dt_wellness`).
+
+## Thread Drop (Postmark + Stripe)
+
+Add to production `.env` (see `.env.example`):
+
+- `POSTMARK_INBOUND_DOMAIN=inbox.mailtostory.com`
+- `POSTMARK_INBOUND_BASIC_USER` / `POSTMARK_INBOUND_BASIC_PASSWORD` — match Postmark inbound webhook Basic auth
+- `POSTMARK_SERVER_TOKEN` / `POSTMARK_FROM_EMAIL` — outbound verify/reset/invite
+- `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_PRO`, `STRIPE_PRICE_TEAM`
+
+DNS: MX for **`inbox.mailtostory.com` only** → Postmark Inbound. Keep `mailtostory.com` A record for the site.
+
+Webhooks:
+
+- Postmark inbound: `https://mailtostory.com/api/inbound/postmark`
+- Stripe: `https://mailtostory.com/api/stripe/webhook`

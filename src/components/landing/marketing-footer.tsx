@@ -1,6 +1,5 @@
 import Link from "next/link";
 import {
-  BRAND_DOMAIN,
   BRAND_NAME,
   BRAND_PRIVACY_URL,
   BRAND_TERMS_URL,
@@ -15,10 +14,6 @@ export function MarketingFooter() {
           <Link href={BRAND_PRIVACY_URL}>Privacy Policy</Link>
           <Link href={BRAND_TERMS_URL}>Terms of Service</Link>
         </nav>
-        <p className="home-footer__copy">
-          Readable stories for Gmail threads · {BRAND_DOMAIN} · Not affiliated
-          with Google.
-        </p>
       </div>
     </footer>
   );

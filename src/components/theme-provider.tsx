@@ -3,8 +3,7 @@
 import * as React from "react";
 import {
   applyThemeToDocument,
-  readStoredTheme,
-  resolveTheme,
+  readThemeFromDocument,
   THEME_STORAGE_KEY,
   type Theme,
 } from "@/lib/theme";
@@ -13,6 +12,7 @@ export type { Theme } from "@/lib/theme";
 
 type ThemeContextValue = {
   theme: Theme;
+  mounted: boolean;
   setTheme: (t: Theme) => void;
   toggleTheme: () => void;
 };
@@ -22,12 +22,10 @@ const ThemeContext = React.createContext<ThemeContextValue | null>(null);
 export { applyThemeToDocument } from "@/lib/theme";
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = React.useState<Theme>(() =>
-    resolveTheme(readStoredTheme()),
-  );
+  const [theme, setThemeState] = React.useState<Theme>("light");
+  const [mounted, setMounted] = React.useState(false);
 
-  const setTheme = React.useCallback((next: Theme) => {
-    setThemeState(next);
+  const persistTheme = React.useCallback((next: Theme) => {
     applyThemeToDocument(next);
     try {
       localStorage.setItem(THEME_STORAGE_KEY, next);
@@ -36,26 +34,35 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const setTheme = React.useCallback(
+    (next: Theme) => {
+      setThemeState(next);
+      persistTheme(next);
+    },
+    [persistTheme],
+  );
+
+  React.useLayoutEffect(() => {
+    setThemeState(readThemeFromDocument());
+    setMounted(true);
+  }, []);
+
   const toggleTheme = React.useCallback(() => {
     setThemeState((current) => {
       const next = current === "light" ? "dark" : "light";
-      applyThemeToDocument(next);
-      try {
-        localStorage.setItem(THEME_STORAGE_KEY, next);
-      } catch {
-        /* ignore quota / private mode */
-      }
+      persistTheme(next);
       return next;
     });
-  }, []);
+  }, [persistTheme]);
 
   const value = React.useMemo(
     () => ({
       theme,
+      mounted,
       setTheme,
       toggleTheme,
     }),
-    [theme, setTheme, toggleTheme],
+    [theme, mounted, setTheme, toggleTheme],
   );
 
   return (

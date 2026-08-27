@@ -1,10 +1,5 @@
 import { redirect } from "next/navigation";
 
-export default async function ThreadPage({
-  params,
-}: {
-  params: Promise<{ threadId: string }>;
-}) {
-  const { threadId } = await params;
-  redirect(`/threads?thread=${encodeURIComponent(threadId)}`);
+export default function ThreadPage() {
+  redirect("/stories");
 }

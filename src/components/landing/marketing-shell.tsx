@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { GoogleSignInButton } from "@/components/google-sign-in-button";
+import { MarketingNavActions } from "@/components/landing/marketing-nav-actions";
 import { MarketingFooter } from "@/components/landing/marketing-footer";
 import { BRAND_ICON_PATH, BRAND_NAME } from "@/lib/brand";
 
@@ -40,11 +40,7 @@ export function MarketingShell({
             />
             <span className="home-logo__text">{BRAND_NAME}</span>
           </Link>
-          {showSignIn ? (
-            <GoogleSignInButton className="home-nav__signin">
-              Sign in
-            </GoogleSignInButton>
-          ) : null}
+          <MarketingNavActions showSignIn={showSignIn} />
         </div>
       </header>
 

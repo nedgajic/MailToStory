@@ -22,9 +22,9 @@ const dmMono = DM_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(BRAND_URL),
-  title: `${BRAND_NAME} — Turn email threads into calm reading`,
+  title: `${BRAND_NAME} — Forward a thread, read the story`,
   description:
-    "Sign in with Google and turn Gmail threads into structured stories: narrative, timeline, open actions, and exports.",
+    "Sign up with any email. Forward threads to a private address and get structured stories, timelines, and action lists.",
 };
 
 export default function RootLayout({
