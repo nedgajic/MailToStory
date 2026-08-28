@@ -5,6 +5,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import prisma from "@/lib/prisma";
 import { normalizeEmail, verifyPassword } from "@/lib/password";
 import { ensureWorkspaceForUser } from "@/lib/workspace";
+import { verifyLoginTotp } from "@/lib/auth/totp";
 
 const googleId = process.env.GOOGLE_CLIENT_ID?.trim();
 const googleSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
@@ -17,10 +18,12 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        totpCode: { label: "Authentication code", type: "text" },
       },
       async authorize(credentials) {
         const email = normalizeEmail(credentials?.email ?? "");
         const password = credentials?.password ?? "";
+        const totpCode = credentials?.totpCode?.trim() ?? "";
         if (!email || !password) return null;
         const user = await prisma.user.findUnique({
           where: { email },
@@ -31,11 +34,34 @@ export const authOptions: NextAuthOptions = {
             image: true,
             passwordHash: true,
             credentialsChangedAt: true,
+            twoFactorEnabled: true,
+            twoFactorSecret: true,
+            twoFactorBackupCodes: true,
           },
         });
         if (!user?.passwordHash) return null;
         const ok = await verifyPassword(password, user.passwordHash);
         if (!ok) return null;
+
+        if (user.twoFactorEnabled && user.twoFactorSecret) {
+          if (!totpCode) {
+            throw new Error("TwoFactorRequired");
+          }
+          const verification = await verifyLoginTotp({
+            email,
+            encryptedSecret: user.twoFactorSecret,
+            backupCodesJson: user.twoFactorBackupCodes,
+            code: totpCode,
+          });
+          if (!verification.ok) return null;
+          if (verification.nextBackupCodesJson !== undefined) {
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { twoFactorBackupCodes: verification.nextBackupCodesJson },
+            });
+          }
+        }
+
         return {
           id: user.id,
           email: user.email,

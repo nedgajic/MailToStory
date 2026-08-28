@@ -15,6 +15,10 @@ model User {
   image              String?
   passwordHash       String?
   credentialsChangedAt DateTime?
+  twoFactorEnabled   Boolean   @default(false)
+  twoFactorSecret    String?
+  twoFactorConfirmedAt DateTime?
+  twoFactorBackupCodes String? @db.Text
   activeWorkspaceId  String?
   accounts           Account[]
   sessions           Session[]
@@ -159,6 +163,7 @@ model ConversationAttachment {
   mimeType       String
   size           Int
   storagePath    String
+  storageBackend String   @default("local")
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 

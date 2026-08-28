@@ -1,27 +1,20 @@
-import { unlink } from "node:fs/promises";
-import path from "node:path";
 import prisma from "@/lib/prisma";
+import { deleteAttachmentFile } from "@/lib/inbound/attachment-storage";
 
-export function uploadRoot(): string {
-  const configured = process.env.INBOUND_UPLOAD_DIR?.trim();
-  if (configured) return configured;
-  return path.join(process.cwd(), "uploads");
-}
+export { uploadRoot, attachmentStorageMode, isR2Configured } from "@/lib/inbound/attachment-storage";
 
 export async function deleteConversationFiles(conversationId: string): Promise<void> {
   const rows = await prisma.conversationAttachment.findMany({
     where: { conversationId },
-    select: { storagePath: true },
+    select: { storagePath: true, storageBackend: true },
   });
   await Promise.all(
-    rows.map(async (row) => {
-      if (!row.storagePath) return;
-      try {
-        await unlink(row.storagePath);
-      } catch {
-        /* already gone */
-      }
-    }),
+    rows.map((row) =>
+      deleteAttachmentFile({
+        storagePath: row.storagePath,
+        storageBackend: row.storageBackend,
+      }),
+    ),
   );
 }
 

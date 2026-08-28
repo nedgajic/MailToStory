@@ -3,6 +3,7 @@ import {
   BRAND_COOKIE_URL,
   BRAND_DATA_REQUEST_URL,
   BRAND_DPA_URL,
+  BRAND_HELP_URL,
   BRAND_IMPRINT_URL,
   BRAND_PRIVACY_URL,
   BRAND_REFUNDS_URL,
@@ -10,6 +11,7 @@ import {
   BRAND_TERMS_URL,
   BRAND_URL,
 } from "@/lib/brand";
+import { HELP_ARTICLES } from "@/lib/help/articles";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const lastModified = new Date();
@@ -34,5 +36,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "yearly",
       priority: 0.4,
     },
+    {
+      url: BRAND_HELP_URL,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    ...HELP_ARTICLES.map((article) => ({
+      url: `${BRAND_HELP_URL}/${article.slug}`,
+      lastModified,
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    })),
   ];
 }

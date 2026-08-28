@@ -24,6 +24,7 @@ export const BRAND_IMPRINT_PATH = "/imprint";
 export const BRAND_REFUNDS_PATH = "/refunds";
 export const BRAND_DPA_PATH = "/dpa";
 export const BRAND_SUBPROCESSORS_PATH = "/subprocessors";
+export const BRAND_HELP_PATH = "/help";
 
 export const BRAND_PRIVACY_URL = `${BRAND_URL}/privacy`;
 export const BRAND_TERMS_URL = `${BRAND_URL}/terms`;
@@ -33,6 +34,7 @@ export const BRAND_IMPRINT_URL = `${BRAND_URL}/imprint`;
 export const BRAND_REFUNDS_URL = `${BRAND_URL}/refunds`;
 export const BRAND_DPA_URL = `${BRAND_URL}/dpa`;
 export const BRAND_SUBPROCESSORS_URL = `${BRAND_URL}/subprocessors`;
+export const BRAND_HELP_URL = `${BRAND_URL}/help`;
 
 export const LEGAL_NAV_LINKS = [
   { path: BRAND_PRIVACY_PATH, label: "Privacy Policy" },
@@ -44,6 +46,8 @@ export const LEGAL_NAV_LINKS = [
   { path: BRAND_DPA_PATH, label: "DPA" },
   { path: BRAND_DATA_REQUEST_PATH, label: "Data Request" },
 ] as const;
+
+export const HELP_NAV_LINK = { path: BRAND_HELP_PATH, label: "Help center" } as const;
 
 export const BRAND_SLUG = "mailtostory";
 export const BRAND_ICON_PATH = "/mailtostory-logo.png";

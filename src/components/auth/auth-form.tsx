@@ -22,6 +22,8 @@ export function AuthForm({
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [totpCode, setTotpCode] = useState("");
+  const [needsTotp, setNeedsTotp] = useState(false);
   const [confirm, setConfirm] = useState("");
   const [privacyConsent, setPrivacyConsent] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,14 +58,22 @@ export function AuthForm({
       const result = await signIn("credentials", {
         email,
         password,
+        totpCode: needsTotp ? totpCode : undefined,
         redirect: false,
         callbackUrl,
       });
+      if (result?.error === "TwoFactorRequired") {
+        setNeedsTotp(true);
+        setError("Enter the 6-digit code from your authenticator app.");
+        return;
+      }
       if (result?.error) {
         setError(
-          mode === "login"
-            ? "Incorrect email or password."
-            : "If you already have an account, sign in. Otherwise check your email for a verification link.",
+          needsTotp
+            ? "Incorrect authentication code."
+            : mode === "login"
+              ? "Incorrect email or password."
+              : "If you already have an account, sign in. Otherwise check your email for a verification link.",
         );
         return;
       }
@@ -144,6 +154,20 @@ export function AuthForm({
                 onChange={(e) => setConfirm(e.target.value)}
                 autoComplete="new-password"
                 placeholder="Repeat password"
+              />
+            </label>
+          ) : null}
+          {mode === "login" && needsTotp ? (
+            <label className="auth-modal-form__field">
+              Authentication code
+              <input
+                value={totpCode}
+                onChange={(e) => setTotpCode(e.target.value)}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                pattern="\d{6}"
+                required
+                placeholder="6-digit code"
               />
             </label>
           ) : null}
@@ -259,6 +283,19 @@ export function AuthForm({
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               autoComplete="new-password"
+            />
+          </label>
+        ) : null}
+        {mode === "login" && needsTotp ? (
+          <label className="auth-form__field">
+            Authentication code
+            <input
+              value={totpCode}
+              onChange={(e) => setTotpCode(e.target.value)}
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              pattern="\d{6}"
+              required
             />
           </label>
         ) : null}

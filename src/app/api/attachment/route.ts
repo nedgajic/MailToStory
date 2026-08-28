@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { readFile } from "node:fs/promises";
+import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/auth";
 import { getWorkspaceContext } from "@/lib/session";
 import prisma from "@/lib/prisma";
+import { readAttachmentBuffer } from "@/lib/inbound/attachment-storage";
 
-export async function GET(req: NextRequest) {
+export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -13,8 +13,9 @@ export async function GET(req: NextRequest) {
   const ctx = await getWorkspaceContext(session.user.id);
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const threadId = req.nextUrl.searchParams.get("threadId");
-  const filename = req.nextUrl.searchParams.get("filename");
+  const url = new URL(req.url);
+  const threadId = url.searchParams.get("threadId");
+  const filename = url.searchParams.get("filename");
   if (!threadId || !filename) {
     return NextResponse.json({ error: "Missing params" }, { status: 400 });
   }
@@ -33,7 +34,10 @@ export async function GET(req: NextRequest) {
   if (!att?.storagePath) {
     return NextResponse.json({ error: "Attachment not found" }, { status: 404 });
   }
-  const buf = await readFile(att.storagePath);
+  const buf = await readAttachmentBuffer({
+    storagePath: att.storagePath,
+    storageBackend: att.storageBackend,
+  });
   return new NextResponse(new Uint8Array(buf), {
     headers: {
       "Content-Type": att.mimeType || "application/octet-stream",

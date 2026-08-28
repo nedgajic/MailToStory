@@ -6634,6 +6634,66 @@ a:focus-visible {
   margin-top: 0.45rem;
 }
 
+.help-index {
+  display: grid;
+  gap: 1rem;
+  margin: 1.5rem 0 2rem;
+}
+
+.help-index__card {
+  display: block;
+  padding: 1rem 1.1rem;
+  border: 1px solid color-mix(in srgb, var(--app-text) 12%, transparent);
+  border-radius: 12px;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.help-index__card:hover {
+  transform: translateY(-1px);
+  background: color-mix(in srgb, var(--app-text) 3%, transparent);
+}
+
+.help-index__card h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+}
+
+.help-index__card p {
+  margin: 0;
+  color: var(--app-text-soft);
+}
+
+.help-back-link {
+  margin-top: 2rem;
+}
+
+.two-factor-qr {
+  display: block;
+  width: 180px;
+  height: 180px;
+  margin: 0.5rem 0 1rem;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.two-factor-backup-codes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.two-factor-backup-codes code {
+  display: block;
+  padding: 0.45rem 0.55rem;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--app-text) 6%, transparent);
+}
+
 .copy-address {
   display: flex;
   gap: 0.5rem;

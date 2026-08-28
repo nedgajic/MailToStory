@@ -173,6 +173,57 @@ Optional off-site upload — set `BACKUP_S3_*` in `.env` (see `.env.example`), t
 
 **Restore uploads:** extract the tarball over `INBOUND_UPLOAD_DIR` (default `./uploads`).
 
+### Attachment storage (optional Cloudflare R2)
+
+By default, inbound attachments are stored on the VPS under `INBOUND_UPLOAD_DIR` (default `./uploads`). When R2 is configured, **new** attachments go to R2 automatically; existing local files keep working until you migrate them.
+
+```env
+ATTACHMENT_STORAGE="auto"   # auto | local | r2
+R2_BUCKET="mailtostory-attachments"
+R2_ENDPOINT="https://<account-id>.r2.cloudflarestorage.com"
+R2_ACCESS_KEY_ID="..."
+R2_SECRET_ACCESS_KEY="..."
+R2_PREFIX="attachments"
+```
+
+If any `R2_*` value is missing, the app falls back to local disk with no downtime.
+
+### Attachment malware scanning (optional, free)
+
+Every inbound attachment is checked against a built-in blocklist of executable file types (always on, no extra cost).
+
+Optional **ClamAV** daemon scanning (free open-source antivirus if you install `clamav` on the VPS):
+
+```bash
+sudo apt install clamav clamav-daemon
+sudo systemctl enable --now clamav-daemon
+```
+
+```env
+CLAMAV_HOST="127.0.0.1"
+CLAMAV_PORT="3310"
+```
+
+If ClamAV is unreachable, the app still stores attachments that pass the blocklist.
+
+### Two-factor authentication
+
+Users with email/password can enable TOTP in **Settings → Profile**. Google sign-in is unchanged. Optional dedicated encryption key:
+
+```env
+TWO_FACTOR_ENCRYPTION_KEY="..."   # defaults to NEXTAUTH_SECRET
+```
+
+Run the new migration after deploy:
+
+```bash
+npx prisma migrate deploy
+```
+
+### Help center
+
+Public docs live at `/help` (linked from the footer and app menu). No extra configuration required.
+
 ## Production Gemini setup
 
 Story generation uses the [Gemini API](https://ai.google.dev/gemini-api/docs/pricing) (pay-as-you-go). There is no separate “Gemini subscription” — attach a **billing account** to your Google Cloud / AI Studio project and pay per token.

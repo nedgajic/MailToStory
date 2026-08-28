@@ -19,7 +19,9 @@ describe("referencedMessageIds", () => {
 
 describe("formatSkippedAttachmentsNote", () => {
   it("summarizes skipped attachment names", () => {
-    expect(formatSkippedAttachmentsNote(["big.pdf"])).toContain("big.pdf");
+    expect(formatSkippedAttachmentsNote([{ filename: "big.pdf", reason: "size" }])).toContain(
+      "big.pdf",
+    );
     expect(formatSkippedAttachmentsNote([])).toBeNull();
   });
 });

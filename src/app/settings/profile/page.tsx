@@ -9,6 +9,7 @@ import { DeleteAccountForm } from "@/components/account/delete-account-form";
 import { ExportAccountForm } from "@/components/account/export-account-form";
 import { ChangePasswordForm } from "@/components/settings/change-password-form";
 import { ProfileNameForm } from "@/components/settings/profile-name-form";
+import { TwoFactorForm } from "@/components/settings/two-factor-form";
 import { StoryNotificationsForm } from "@/components/settings/story-notifications-form";
 import { ForwardingSettingsPanel } from "@/components/settings/forwarding-settings-panel";
 import {
@@ -30,6 +31,10 @@ export default async function ProfileSettingsPage() {
   const hasGoogleAccount = await prisma.account.findFirst({
     where: { userId: ctx.userId, provider: "google" },
     select: { id: true },
+  });
+  const twoFactorEnabled = await prisma.user.findUnique({
+    where: { id: ctx.userId },
+    select: { twoFactorEnabled: true },
   });
 
   return (
@@ -68,6 +73,14 @@ export default async function ProfileSettingsPage() {
             <ChangePasswordForm
               hasPassword={ctx.hasPassword}
               hasGoogleAccount={Boolean(hasGoogleAccount)}
+            />
+          </section>
+
+          <section className="dash-panel">
+            <h2 className="dash-panel__section-title">Two-factor authentication</h2>
+            <TwoFactorForm
+              enabled={Boolean(twoFactorEnabled?.twoFactorEnabled)}
+              hasPassword={ctx.hasPassword}
             />
           </section>
 

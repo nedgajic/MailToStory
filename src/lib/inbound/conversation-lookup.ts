@@ -55,10 +55,32 @@ export async function findConversationForInbound(input: {
   });
 }
 
-export function formatSkippedAttachmentsNote(filenames: string[]): string | null {
-  if (filenames.length === 0) return null;
-  const listed = filenames.slice(0, 5).join(", ");
-  const extra =
-    filenames.length > 5 ? ` (+${filenames.length - 5} more)` : "";
-  return `Some attachments were not stored because they exceed the 10 MB limit: ${listed}${extra}.`;
+export type SkippedAttachmentReason = "size" | "blocked" | "malware";
+
+export function formatSkippedAttachmentsNote(
+  skipped: Array<{ filename: string; reason: SkippedAttachmentReason }>,
+): string | null {
+  if (skipped.length === 0) return null;
+  const size = skipped.filter((item) => item.reason === "size").map((item) => item.filename);
+  const blocked = skipped.filter((item) => item.reason === "blocked").map((item) => item.filename);
+  const malware = skipped.filter((item) => item.reason === "malware").map((item) => item.filename);
+  const parts: string[] = [];
+  if (size.length > 0) {
+    const listed = size.slice(0, 5).join(", ");
+    const extra = size.length > 5 ? ` (+${size.length - 5} more)` : "";
+    parts.push(
+      `Some attachments were not stored because they exceed the 10 MB limit: ${listed}${extra}.`,
+    );
+  }
+  if (blocked.length > 0) {
+    const listed = blocked.slice(0, 5).join(", ");
+    const extra = blocked.length > 5 ? ` (+${blocked.length - 5} more)` : "";
+    parts.push(`Some attachments were blocked for security (${listed}${extra}).`);
+  }
+  if (malware.length > 0) {
+    const listed = malware.slice(0, 5).join(", ");
+    const extra = malware.length > 5 ? ` (+${malware.length - 5} more)` : "";
+    parts.push(`Some attachments failed our security scan (${listed}${extra}).`);
+  }
+  return parts.join(" ");
 }

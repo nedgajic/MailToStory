@@ -1,7 +1,6 @@
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
 import prisma from "@/lib/prisma";
-import { uploadRoot } from "@/lib/inbound/storage";
+import { writeAttachment } from "@/lib/inbound/attachment-storage";
+import { scanAttachmentBuffer } from "@/lib/inbound/attachment-scan";
 import { digestSchema, type Digest } from "@/lib/digest-schema";
 import { parseFromHeader } from "@/lib/parseFromHeader";
 import {
@@ -189,39 +188,54 @@ export async function ingestAllowedPostmarkPayload(input: {
     },
   });
 
-  const dir = path.join(uploadRoot(), workspace.id, conversation.id);
-  await mkdir(dir, { recursive: true });
-
-  const skippedAttachments: string[] = [];
+  const skippedAttachments: Array<{ filename: string; reason: "size" | "blocked" | "malware" }> = [];
   for (const att of payload.Attachments ?? []) {
     const filename = (att.Name || "attachment").replace(/[/\\]/g, "_");
+    const mimeType = att.ContentType || "application/octet-stream";
     const size = att.ContentLength ?? 0;
     if (size > MAX_ATTACHMENT_BYTES) {
-      skippedAttachments.push(filename);
+      skippedAttachments.push({ filename, reason: "size" });
       continue;
     }
     const content = att.Content;
     if (!content) continue;
     const buf = Buffer.from(content, "base64");
     if (buf.length > MAX_ATTACHMENT_BYTES) {
-      skippedAttachments.push(filename);
+      skippedAttachments.push({ filename, reason: "size" });
       continue;
     }
+
+    const scan = await scanAttachmentBuffer({ buffer: buf, filename, mimeType });
+    if (!scan.ok) {
+      skippedAttachments.push({ filename, reason: scan.reason });
+      continue;
+    }
+
     const row = await prisma.conversationAttachment.create({
       data: {
         conversationId: conversation.id,
         messageId: stored.id,
         filename,
-        mimeType: att.ContentType || "application/octet-stream",
+        mimeType,
         size: buf.length,
         storagePath: "",
+        storageBackend: "local",
       },
     });
-    const storagePath = path.join(dir, `${row.id}-${filename}`);
-    await writeFile(storagePath, buf);
+    const storedFile = await writeAttachment({
+      workspaceId: workspace.id,
+      conversationId: conversation.id,
+      attachmentId: row.id,
+      filename,
+      buffer: buf,
+      mimeType,
+    });
     await prisma.conversationAttachment.update({
       where: { id: row.id },
-      data: { storagePath },
+      data: {
+        storagePath: storedFile.storagePath,
+        storageBackend: storedFile.storageBackend,
+      },
     });
   }
 

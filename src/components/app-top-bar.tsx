@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { BrandLogo } from "@/components/brand-logo";
-import { BRAND_NAME, BRAND_LOGO_TEXT, LEGAL_NAV_LINKS } from "@/lib/brand";
+import { BRAND_NAME, BRAND_LOGO_TEXT, HELP_NAV_LINK, LEGAL_NAV_LINKS } from "@/lib/brand";
 import { isAdminEmail } from "@/lib/admin";
 import { createPortal } from "react-dom";
 import {
@@ -185,6 +185,14 @@ export function AppTopBar({
               }}
               role="menu"
             >
+              <a
+                href={HELP_NAV_LINK.path}
+                role="menuitem"
+                className="app-top-bar__user-item app-top-bar__user-item--link"
+                onClick={() => setUserMenuOpen(false)}
+              >
+                {HELP_NAV_LINK.label}
+              </a>
               {LEGAL_NAV_LINKS.map((link) => (
                 <a
                   key={link.path}
