@@ -6,6 +6,7 @@ import type { PlanId } from "@/lib/billing/plans";
 import prisma from "@/lib/prisma";
 import { AppTopBar } from "@/components/app-top-bar";
 import { StoriesLibrary } from "@/components/stories/stories-library";
+import { PendingStories } from "@/components/stories/pending-stories";
 import { inboundAddress } from "@/lib/workspace";
 
 export const metadata = { title: "Stories — MailToStory" };
@@ -16,19 +17,32 @@ export default async function StoriesPage() {
   const ctx = await getWorkspaceContext(session.user.id);
   if (!ctx) redirect("/login");
 
-  const stories = await prisma.story.findMany({
-    where: { workspaceId: ctx.workspace.id },
-    orderBy: { createdAt: "desc" },
-    take: 200,
-    select: {
-      id: true,
-      title: true,
-      subject: true,
-      status: true,
-      resolutionSummary: true,
-      createdAt: true,
-    },
-  });
+  const [stories, pending] = await Promise.all([
+    prisma.story.findMany({
+      where: { workspaceId: ctx.workspace.id },
+      orderBy: { createdAt: "desc" },
+      take: 200,
+      select: {
+        id: true,
+        title: true,
+        subject: true,
+        status: true,
+        resolutionSummary: true,
+        createdAt: true,
+      },
+    }),
+    prisma.conversation.findMany({
+      where: { workspaceId: ctx.workspace.id, story: null },
+      orderBy: { lastMessageAt: "desc" },
+      take: 20,
+      select: {
+        id: true,
+        subject: true,
+        snippet: true,
+        lastMessageAt: true,
+      },
+    }),
+  ]);
 
   return (
     <>
@@ -45,9 +59,16 @@ export default async function StoriesPage() {
             <h1>Stories</h1>
             <p>Search, group by month or year, and delete old reports.</p>
           </header>
+          <PendingStories
+            initial={pending.map((item) => ({
+              ...item,
+              lastMessageAt: item.lastMessageAt.toISOString(),
+            }))}
+          />
           <StoriesLibrary
             inbound={inboundAddress(ctx.workspace.inboundLocalPart)}
             isFree={ctx.workspace.plan === "free"}
+            verified={Boolean(ctx.emailVerified)}
             initial={stories.map((s) => ({
               ...s,
               createdAt: s.createdAt.toISOString(),

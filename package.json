@@ -1,6 +1,6 @@
 {
   "name": "mailtostory",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "engines": {
     "node": ">=20.9.0"
@@ -23,6 +23,7 @@
     "@react-email/components": "^1.0.12",
     "@react-email/render": "^2.1.0",
     "@react-pdf/renderer": "^4.5.1",
+    "@sentry/nextjs": "^10.71.0",
     "bcryptjs": "^3.0.3",
     "docx": "^9.6.1",
     "md5": "^2.3.0",

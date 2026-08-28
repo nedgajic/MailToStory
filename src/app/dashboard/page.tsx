@@ -7,6 +7,8 @@ import { getDashboardData } from "@/lib/dashboard-data";
 import { AppTopBar } from "@/components/app-top-bar";
 import { DashboardOverview } from "@/components/dashboard/dashboard-overview";
 import { HeldMailBanner } from "@/components/dashboard/held-mail-banner";
+import { GenerationLimitBanner } from "@/components/dashboard/generation-limit-banner";
+import { BillingPastDueBanner } from "@/components/dashboard/billing-past-due-banner";
 
 export const metadata = { title: "Overview — MailToStory" };
 
@@ -50,6 +52,10 @@ export default async function DashboardPage({
         </div>
         <div className="dash__inner">
           <HeldMailBanner count={data.heldMailCount} />
+          {data.billingPastDue ? (
+            <BillingPastDueBanner canBill={data.canBill} />
+          ) : null}
+          <GenerationLimitBanner used={data.used} limit={data.limit} />
           <DashboardOverview
             firstName={ctx.name?.split(" ")[0] ?? null}
             verified={data.verified}

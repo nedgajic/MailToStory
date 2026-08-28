@@ -22,6 +22,7 @@ export type WorkspaceContext = {
     stripeSubscriptionId: string | null;
     stripePriceId: string | null;
     cancelAtPeriodEnd: boolean;
+    billingPastDue: boolean;
     currentPeriodEnd: Date | null;
     currentPeriodStart: Date | null;
   };
@@ -116,6 +117,7 @@ function toContext(
       stripeSubscriptionId: string | null;
       stripePriceId: string | null;
       cancelAtPeriodEnd: boolean;
+      billingPastDue: boolean;
       currentPeriodEnd: Date | null;
       currentPeriodStart: Date | null;
     };
@@ -141,6 +143,7 @@ function toContext(
       stripeSubscriptionId: membership.workspace.stripeSubscriptionId,
       stripePriceId: membership.workspace.stripePriceId,
       cancelAtPeriodEnd: membership.workspace.cancelAtPeriodEnd,
+      billingPastDue: membership.workspace.billingPastDue,
       currentPeriodEnd: membership.workspace.currentPeriodEnd,
       currentPeriodStart: membership.workspace.currentPeriodStart,
     },

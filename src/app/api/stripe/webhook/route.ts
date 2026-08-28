@@ -59,6 +59,7 @@ export async function POST(req: NextRequest) {
               stripeSubscriptionId: null,
               stripePriceId: null,
               cancelAtPeriodEnd: false,
+              billingPastDue: false,
               seatQuantity: 1,
             },
           });
@@ -71,6 +72,28 @@ export async function POST(req: NextRequest) {
             where: { stripeSubscriptionId: sub.id },
           });
           if (ws) await syncSubscription(ws.id, sub.id, customerId);
+        }
+        break;
+      }
+      case "invoice.payment_failed": {
+        const invoice = event.data.object as Stripe.Invoice;
+        const customerId = stripeCustomerId(invoice.customer);
+        if (customerId) {
+          await prisma.workspace.updateMany({
+            where: { stripeCustomerId: customerId },
+            data: { billingPastDue: true },
+          });
+        }
+        break;
+      }
+      case "invoice.paid": {
+        const invoice = event.data.object as Stripe.Invoice;
+        const customerId = stripeCustomerId(invoice.customer);
+        if (customerId) {
+          await prisma.workspace.updateMany({
+            where: { stripeCustomerId: customerId },
+            data: { billingPastDue: false },
+          });
         }
         break;
       }
@@ -100,20 +123,30 @@ async function syncSubscription(
     "free";
   const periodEnd = periodEndFromSub(sub);
   const periodStart = periodStartFromSub(sub);
+  const isPaidActive = sub.status === "active" || sub.status === "trialing";
+  const billingPastDue = sub.status === "past_due" || sub.status === "unpaid";
 
   await prisma.workspace.update({
     where: { id: workspaceId },
     data: {
-      plan: sub.status === "active" || sub.status === "trialing" ? plan : "free",
+      plan: isPaidActive || billingPastDue ? plan : "free",
       stripeCustomerId: customerId,
       stripeSubscriptionId: sub.id,
       stripePriceId: priceId,
       seatQuantity: plan === "team" ? quantity : 1,
       cancelAtPeriodEnd: Boolean(sub.cancel_at_period_end),
+      billingPastDue,
       currentPeriodEnd: periodEnd,
       currentPeriodStart: periodStart,
     },
   });
+}
+
+function stripeCustomerId(
+  customer: string | Stripe.Customer | Stripe.DeletedCustomer | null,
+): string | null {
+  if (!customer) return null;
+  return typeof customer === "string" ? customer : customer.id;
 }
 
 function periodEndFromSub(sub: Stripe.Subscription): Date | null {

@@ -3,19 +3,13 @@ import {
   deleteDataByEmail,
   findRegisteredUserEmail,
 } from "@/lib/gdpr/export-data";
+import { createDeletionRequest } from "@/lib/gdpr/deletion-request";
 import {
   checkGdprRateLimit,
   gdprRateLimitKey,
 } from "@/lib/gdpr/rate-limit";
+import { clientIp } from "@/lib/client-ip";
 import { isValidEmail, normalizeEmail } from "@/lib/password";
-
-function clientIp(req: Request): string | null {
-  return (
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    req.headers.get("x-real-ip") ??
-    null
-  );
-}
 
 export async function POST(req: Request) {
   let body: { email?: string };
@@ -46,12 +40,19 @@ export async function POST(req: Request) {
     });
   }
 
-  const removed = await deleteDataByEmail(email);
+  try {
+    await createDeletionRequest(email);
+  } catch (error) {
+    console.error("[gdpr] deletion request email failed", error);
+    return NextResponse.json(
+      { error: "Could not send the confirmation email. Try again later." },
+      { status: 503 },
+    );
+  }
+
   return NextResponse.json({
     success: true,
     message:
-      removed > 0
-        ? "Matching records have been deleted."
-        : "No matching records were found for this email.",
+      "If we have data for this email, we sent a confirmation link. Open it within 24 hours to complete deletion.",
   });
 }

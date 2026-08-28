@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { DM_Mono, Lora } from "next/font/google";
-import { BRAND_ICON_PATH, BRAND_NAME, BRAND_URL } from "@/lib/brand";
+import { BRAND_ICON_PATH, BRAND_NAME, BRAND_OG_PATH, BRAND_URL } from "@/lib/brand";
 import { googleAuthEnabled } from "@/lib/google-auth-enabled";
 import "./theme-tokens.css";
 import "./globals.css";
@@ -26,6 +26,30 @@ export const metadata: Metadata = {
   title: `${BRAND_NAME} — Forward a thread, read the story`,
   description:
     "Sign up with any email. Forward threads to a private address and get structured stories, timelines, and action lists.",
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: BRAND_URL,
+    siteName: BRAND_NAME,
+    title: `${BRAND_NAME} — Forward a thread, read the story`,
+    description:
+      "Sign up with any email. Forward threads to a private address and get structured stories, timelines, and action lists.",
+    images: [
+      {
+        url: BRAND_OG_PATH,
+        width: 1200,
+        height: 630,
+        alt: `${BRAND_NAME} — email threads turned into readable stories`,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${BRAND_NAME} — Forward a thread, read the story`,
+    description:
+      "Sign up with any email. Forward threads to a private address and get structured stories, timelines, and action lists.",
+    images: [BRAND_OG_PATH],
+  },
   icons: {
     icon: [{ url: BRAND_ICON_PATH, type: "image/png" }],
     apple: [{ url: "/apple-touch-icon.png", type: "image/png" }],

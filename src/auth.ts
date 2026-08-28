@@ -22,7 +22,17 @@ export const authOptions: NextAuthOptions = {
         const email = normalizeEmail(credentials?.email ?? "");
         const password = credentials?.password ?? "";
         if (!email || !password) return null;
-        const user = await prisma.user.findUnique({ where: { email } });
+        const user = await prisma.user.findUnique({
+          where: { email },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            image: true,
+            passwordHash: true,
+            credentialsChangedAt: true,
+          },
+        });
         if (!user?.passwordHash) return null;
         const ok = await verifyPassword(password, user.passwordHash);
         if (!ok) return null;
@@ -31,6 +41,7 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.name,
           image: user.image,
+          credentialsChangedAt: user.credentialsChangedAt,
         };
       },
     }),
@@ -56,11 +67,40 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async jwt({ token, user }) {
-      if (user?.id) token.sub = user.id;
+      if (user?.id) {
+        token.sub = user.id;
+        const changedAt =
+          "credentialsChangedAt" in user && user.credentialsChangedAt instanceof Date
+            ? user.credentialsChangedAt.getTime()
+            : null;
+        if (changedAt != null) {
+          token.credentialsVersion = changedAt;
+        } else {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: user.id },
+            select: { credentialsChangedAt: true },
+          });
+          token.credentialsVersion = dbUser?.credentialsChangedAt?.getTime() ?? 0;
+        }
+        return token;
+      }
+
+      if (token.sub) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.sub },
+          select: { credentialsChangedAt: true },
+        });
+        const currentVersion = dbUser?.credentialsChangedAt?.getTime() ?? 0;
+        if ((token.credentialsVersion ?? 0) !== currentVersion) {
+          return {};
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
-      if (session.user && token.sub) session.user.id = token.sub;
+      if (!token.sub) return session;
+      if (session.user) session.user.id = token.sub;
       return session;
     },
   },

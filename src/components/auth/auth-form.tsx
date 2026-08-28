@@ -63,7 +63,7 @@ export function AuthForm({
         setError(
           mode === "login"
             ? "Incorrect email or password."
-            : "Account created but sign-in failed. Try logging in.",
+            : "If you already have an account, sign in. Otherwise check your email for a verification link.",
         );
         return;
       }

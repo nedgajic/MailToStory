@@ -62,6 +62,8 @@ Google OAuth redirect: `https://mailtostory.com/api/auth/callback/google`
 
 ### Nginx
 
+Copy the example config (includes security headers: `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, HSTS):
+
 ```bash
 sudo cp /var/www/mailtostory/docs/nginx-mailtostory.conf.example /etc/nginx/sites-available/mailtostory
 sudo ln -sf /etc/nginx/sites-available/mailtostory /etc/nginx/sites-enabled/
@@ -110,6 +112,66 @@ Webhooks:
 
 - Postmark inbound: `https://mailtostory.com/api/inbound/postmark`
 - Stripe: `https://mailtostory.com/api/stripe/webhook`
+
+## Operations (health, cron, backups)
+
+### Health check
+
+UptimeRobot (or similar) should ping:
+
+```text
+GET https://mailtostory.com/api/health
+```
+
+Returns `{ "ok": true, "version": "0.1.0", "db": "ok" }` when Postgres is reachable. No auth required.
+
+### Maintenance cron
+
+Generate a secret once:
+
+```bash
+openssl rand -base64 32
+```
+
+Add to production `.env`:
+
+```env
+CRON_SECRET="..."
+ADMIN_EMAILS="nedgajic@gmail.com"
+# SENTRY_DSN="https://...@sentry.io/..."   # optional
+```
+
+Daily maintenance (quarantine cleanup, expired story-access tokens, generation logs older than 90 days):
+
+```bash
+crontab -e
+# Daily 04:15 UTC
+15 4 * * * curl -fsS -H "Authorization: Bearer YOUR_CRON_SECRET" https://mailtostory.com/api/cron/maintenance >/dev/null
+```
+
+Legacy endpoint `/api/cron/quarantine-cleanup` still works but only deletes expired quarantine rows. Prefer `/api/cron/maintenance`.
+
+### Backups
+
+On the VPS (requires `pg_dump`, `tar`, optional `aws` CLI for S3/R2/B2):
+
+```bash
+cd /var/www/mailtostory
+chmod +x scripts/backup-postgres.sh scripts/backup-uploads.sh
+./scripts/backup-postgres.sh
+./scripts/backup-uploads.sh
+```
+
+Optional off-site upload — set `BACKUP_S3_*` in `.env` (see `.env.example`), then schedule:
+
+```bash
+# Daily 03:00 UTC
+0 3 * * * cd /var/www/mailtostory && ./scripts/backup-postgres.sh && ./scripts/backup-uploads.sh
+```
+
+**Restore Postgres:** `gunzip -c backups/postgres/mailtostory-*.sql.gz | psql "$DATABASE_URL"`
+
+**Restore uploads:** extract the tarball over `INBOUND_UPLOAD_DIR` (default `./uploads`).
 
 ## Production Gemini setup
 

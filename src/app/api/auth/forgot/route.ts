@@ -3,6 +3,11 @@ import prisma from "@/lib/prisma";
 import { isValidEmail, normalizeEmail } from "@/lib/password";
 import { hashToken, newRawToken } from "@/lib/workspace";
 import { appUrl, sendResetEmail } from "@/lib/email/send";
+import { checkAuthRateLimit } from "@/lib/auth/rate-limit";
+import { clientIp } from "@/lib/client-ip";
+
+const FORGOT_WINDOW_MS = 60 * 60 * 1000;
+const FORGOT_MAX = 10;
 
 export async function POST(req: Request) {
   let body: { email?: string };
@@ -13,6 +18,16 @@ export async function POST(req: Request) {
   }
   const email = normalizeEmail(body.email ?? "");
   if (!isValidEmail(email)) {
+    return NextResponse.json({ ok: true });
+  }
+
+  if (
+    !(await checkAuthRateLimit(
+      `forgot:ip:${clientIp(req)}`,
+      FORGOT_MAX,
+      FORGOT_WINDOW_MS,
+    ))
+  ) {
     return NextResponse.json({ ok: true });
   }
 

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { BrandLogo } from "@/components/brand-logo";
-import { BRAND_NAME, BRAND_LOGO_TEXT, BRAND_COOKIE_PATH, BRAND_DATA_REQUEST_PATH, BRAND_PRIVACY_PATH, BRAND_TERMS_PATH } from "@/lib/brand";
+import { BRAND_NAME, BRAND_LOGO_TEXT, LEGAL_NAV_LINKS } from "@/lib/brand";
 import { isAdminEmail } from "@/lib/admin";
 import { createPortal } from "react-dom";
 import {
@@ -185,38 +185,17 @@ export function AppTopBar({
               }}
               role="menu"
             >
-              <a
-                href={BRAND_PRIVACY_PATH}
-                role="menuitem"
-                className="app-top-bar__user-item app-top-bar__user-item--link"
-                onClick={() => setUserMenuOpen(false)}
-              >
-                Privacy Policy
-              </a>
-              <a
-                href={BRAND_COOKIE_PATH}
-                role="menuitem"
-                className="app-top-bar__user-item app-top-bar__user-item--link"
-                onClick={() => setUserMenuOpen(false)}
-              >
-                Cookie Policy
-              </a>
-              <a
-                href={BRAND_TERMS_PATH}
-                role="menuitem"
-                className="app-top-bar__user-item app-top-bar__user-item--link"
-                onClick={() => setUserMenuOpen(false)}
-              >
-                Terms of Service
-              </a>
-              <a
-                href={BRAND_DATA_REQUEST_PATH}
-                role="menuitem"
-                className="app-top-bar__user-item app-top-bar__user-item--link"
-                onClick={() => setUserMenuOpen(false)}
-              >
-                Data Request
-              </a>
+              {LEGAL_NAV_LINKS.map((link) => (
+                <a
+                  key={link.path}
+                  href={link.path}
+                  role="menuitem"
+                  className="app-top-bar__user-item app-top-bar__user-item--link"
+                  onClick={() => setUserMenuOpen(false)}
+                >
+                  {link.label}
+                </a>
+              ))}
               <Link
                 href="/settings/profile"
                 role="menuitem"

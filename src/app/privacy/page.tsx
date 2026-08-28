@@ -4,12 +4,18 @@ import { MarketingShell } from "@/components/landing/marketing-shell";
 import {
   BRAND_COOKIE_PATH,
   BRAND_DATA_REQUEST_PATH,
+  BRAND_LEGAL_ADDRESS,
   BRAND_LEGAL_ENTITY,
+  BRAND_LEGAL_ENTITY_OFFICIAL,
   BRAND_NAME,
-  BRAND_PRIVACY_PATH,
+  BRAND_PRIVACY_URL,
+  BRAND_REGISTRATION_NUMBER,
+  BRAND_SUBPROCESSORS_PATH,
   BRAND_SUPPORT_EMAIL,
+  BRAND_TAX_NUMBER,
   BRAND_TERMS_PATH,
   BRAND_URL,
+  BRAND_VAT_REGISTERED,
 } from "@/lib/brand";
 
 const EFFECTIVE_DATE = "August 28, 2026";
@@ -32,8 +38,17 @@ export default function PrivacyPage() {
 
         <h2>1. Data controller</h2>
         <p>
-          {BRAND_LEGAL_ENTITY} operates {BRAND_NAME}. For privacy questions or
-          to exercise your rights, contact{" "}
+          The data controller is <strong>{BRAND_LEGAL_ENTITY_OFFICIAL}</strong>,{" "}
+          {BRAND_LEGAL_ADDRESS}. Registration number (matična številka):{" "}
+          {BRAND_REGISTRATION_NUMBER}. Tax number (davčna številka):{" "}
+          {BRAND_TAX_NUMBER}.
+          {BRAND_VAT_REGISTERED
+            ? " We are registered for VAT in Slovenia."
+            : " We are not registered for VAT in Slovenia (ni zavezanec za DDV)."}
+        </p>
+        <p>
+          {BRAND_LEGAL_ENTITY} operates the {BRAND_NAME} product. For privacy
+          questions or to exercise your rights, contact{" "}
           <a href={`mailto:${BRAND_SUPPORT_EMAIL}`}>{BRAND_SUPPORT_EMAIL}</a>.
           {BRAND_NAME} is not affiliated with Google LLC.
         </p>
@@ -114,7 +129,8 @@ export default function PrivacyPage() {
         <p>
           Where required, we rely on appropriate safeguards such as Standard
           Contractual Clauses and processor data processing terms offered by
-          these providers.
+          these providers. See our current{" "}
+          <a href={BRAND_SUBPROCESSORS_PATH}>Subprocessors</a> list.
         </p>
 
         <h2>7. Retention and deletion</h2>

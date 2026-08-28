@@ -8,6 +8,8 @@ import {
 } from "@/lib/password";
 import { ensureWorkspaceForUser, hashToken, newRawToken } from "@/lib/workspace";
 import { appUrl, sendVerifyEmail } from "@/lib/email/send";
+import { checkRegisterRateLimit } from "@/lib/auth/rate-limit";
+import { clientIp } from "@/lib/client-ip";
 
 export async function POST(req: Request) {
   let body: { name?: string; email?: string; password?: string; privacyConsent?: boolean };
@@ -35,12 +37,16 @@ export async function POST(req: Request) {
     );
   }
 
+  if (!(await checkRegisterRateLimit({ ip: clientIp(req), email }))) {
+    return NextResponse.json(
+      { error: "Too many attempts. Try again later." },
+      { status: 429 },
+    );
+  }
+
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
-    return NextResponse.json(
-      { error: "An account with this email already exists. Sign in instead." },
-      { status: 409 },
-    );
+    return NextResponse.json({ ok: true });
   }
 
   const passwordHash = await hashPassword(password);

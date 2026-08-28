@@ -176,7 +176,7 @@ export const PLAN_CARDS: Array<{
     blurb: "Keep forwarding — every thread becomes a story you can search and export.",
     features: [
       "1 person",
-      "Unlimited stories",
+      "500 stories / month (fair use)",
       "1 inbound address",
       "Search, grouping, and exports",
     ],
@@ -188,7 +188,7 @@ export const PLAN_CARDS: Array<{
     features: [
       "Shared inbound address",
       "Shared stories for every seat",
-      "Unlimited stories",
+      "500 stories / seat / month (fair use)",
       "Invite, assign, and unassign seats",
     ],
   },

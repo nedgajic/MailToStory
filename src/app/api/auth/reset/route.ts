@@ -33,7 +33,10 @@ export async function POST(req: Request) {
   const passwordHash = await hashPassword(body.password!);
   await prisma.user.update({
     where: { email },
-    data: { passwordHash },
+    data: {
+      passwordHash,
+      credentialsChangedAt: new Date(),
+    },
   });
   await prisma.verificationToken.delete({
     where: { identifier_token: { identifier: row.identifier, token: row.token } },

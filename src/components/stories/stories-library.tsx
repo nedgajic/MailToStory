@@ -38,10 +38,12 @@ export function StoriesLibrary({
   initial,
   inbound,
   isFree,
+  verified,
 }: {
   initial: StoryCardData[];
   inbound: string;
   isFree: boolean;
+  verified: boolean;
 }) {
   const [stories, setStories] = useState(initial);
   const [q, setQ] = useState("");
@@ -187,8 +189,22 @@ export function StoriesLibrary({
       {stories.length === 0 ? (
         <div className="dash-empty">
           <h2>No stories yet</h2>
-          <p>Forward a thread from Gmail, Outlook, or Apple Mail to your private address.</p>
-          <CopyAddress address={inbound} />
+          <p>Complete these steps to create your first story:</p>
+          <ol className="stories-checklist">
+            <li>Copy your private forwarding address below.</li>
+            {!verified ? (
+              <li>
+                Verify your email in{" "}
+                <Link href="/settings/profile">Settings → Profile</Link> so
+                generation can start.
+              </li>
+            ) : null}
+            <li>
+              Forward a thread from Gmail, Outlook, or Apple Mail to that address.
+            </li>
+            <li>Open this page again — your story usually appears within a minute.</li>
+          </ol>
+          <CopyAddress address={inbound} prominent />
         </div>
       ) : (
         groups.map((section) => (

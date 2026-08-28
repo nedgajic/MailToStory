@@ -6,6 +6,8 @@ import type { PlanId } from "@/lib/billing/plans";
 import { getDashboardData } from "@/lib/dashboard-data";
 import { AppTopBar } from "@/components/app-top-bar";
 import { BillingPanel } from "@/components/dashboard/billing-panel";
+import { BillingPastDueBanner } from "@/components/dashboard/billing-past-due-banner";
+import { GenerationLimitBanner } from "@/components/dashboard/generation-limit-banner";
 import "@/app/dashboard-billing.css";
 
 export const metadata = { title: "Billing & Invoices — MailToStory" };
@@ -46,10 +48,15 @@ export default async function BillingSettingsPage({
             </h1>
             <p className="dash-billing-page__lead">
               {ctx.workspace.plan === "free"
-                ? "Start free or upgrade for unlimited stories and shared team seats."
+                ? "Start free or upgrade for 500 stories per month and shared team seats."
                 : "Manage your subscription, payment method, and download past invoices."}
             </p>
           </header>
+
+          {data.billingPastDue ? (
+            <BillingPastDueBanner canBill={data.canBill} />
+          ) : null}
+          <GenerationLimitBanner used={data.used} limit={data.limit} />
 
           <BillingPanel
             plan={ctx.workspace.plan as PlanId}
@@ -62,6 +69,8 @@ export default async function BillingSettingsPage({
             upcoming={data.upcoming}
             billingFlash={billingFlash}
             invoices={data.invoices}
+            used={data.used}
+            limit={data.limit}
           />
         </div>
       </main>

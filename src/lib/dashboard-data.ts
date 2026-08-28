@@ -11,6 +11,10 @@ import {
   storyLimitForPlan,
   type PlanId,
 } from "@/lib/billing/plans";
+import {
+  generationsThisMonth,
+  monthlyGenerationLimit,
+} from "@/lib/billing/generation-limits";
 import { activeSeatCount, storiesCreatedThisMonth } from "@/lib/billing/entitlements";
 import { countVisibleQuarantine } from "@/lib/inbound/quarantine";
 import { inboundAddress } from "@/lib/workspace";
@@ -67,27 +71,32 @@ export async function getUpcomingBill(ctx: WorkspaceContext): Promise<UpcomingBi
 }
 
 export async function getDashboardData(ctx: WorkspaceContext) {
-  const [used, seatsUsed, recent, heldMailCount] = await Promise.all([
-    storiesCreatedThisMonth(ctx.workspace.id),
-    activeSeatCount(ctx.workspace.id),
-    prisma.story.findMany({
-      where: { workspaceId: ctx.workspace.id },
-      orderBy: { createdAt: "desc" },
-      take: 8,
-      select: {
-        id: true,
-        title: true,
-        subject: true,
-        status: true,
-        resolutionSummary: true,
-        createdAt: true,
-      },
-    }),
-    countVisibleQuarantine(ctx),
-  ]);
+  const plan = ctx.workspace.plan as PlanId;
+  const [storiesUsed, generationsUsed, seatsUsed, recent, heldMailCount] =
+    await Promise.all([
+      storiesCreatedThisMonth(ctx.workspace.id),
+      generationsThisMonth(ctx.workspace.id),
+      activeSeatCount(ctx.workspace.id),
+      prisma.story.findMany({
+        where: { workspaceId: ctx.workspace.id },
+        orderBy: { createdAt: "desc" },
+        take: 8,
+        select: {
+          id: true,
+          title: true,
+          subject: true,
+          status: true,
+          resolutionSummary: true,
+          createdAt: true,
+        },
+      }),
+      countVisibleQuarantine(ctx),
+    ]);
 
   const upcoming = await getUpcomingBill(ctx);
-  const limit = storyLimitForPlan(ctx.workspace.plan);
+  const generationLimit = monthlyGenerationLimit(plan, ctx.workspace.seatQuantity);
+  const used = plan === "free" ? storiesUsed : generationsUsed;
+  const limit = plan === "free" ? storyLimitForPlan(plan) : generationLimit;
 
   return {
     ctx,
@@ -96,11 +105,12 @@ export async function getDashboardData(ctx: WorkspaceContext) {
     used,
     limit,
     seatsUsed,
-    planName: planLabel(ctx.workspace.plan as PlanId),
+    planName: planLabel(plan),
     upcoming,
     recent,
     verified: Boolean(ctx.emailVerified),
     heldMailCount,
+    billingPastDue: ctx.workspace.billingPastDue,
     invoices: await listInvoices(ctx),
     stripeReady: stripeConfigured(),
   };

@@ -2,14 +2,19 @@ import type { Metadata } from "next";
 import { LegalDocument } from "@/components/landing/legal-document";
 import { MarketingShell } from "@/components/landing/marketing-shell";
 import {
+  BRAND_LEGAL_ADDRESS,
+  BRAND_LEGAL_ENTITY_OFFICIAL,
   BRAND_NAME,
   BRAND_PRIVACY_PATH,
+  BRAND_REFUNDS_PATH,
   BRAND_SUPPORT_EMAIL,
   BRAND_TERMS_PATH,
+  BRAND_TERMS_URL,
   BRAND_URL,
+  BRAND_VAT_REGISTERED,
 } from "@/lib/brand";
 
-const EFFECTIVE_DATE = "August 27, 2026";
+const EFFECTIVE_DATE = "August 28, 2026";
 
 export const metadata: Metadata = {
   title: `Terms of Service — ${BRAND_NAME}`,
@@ -24,8 +29,10 @@ export default function TermsPage() {
         <p>
           These Terms of Service (&quot;Terms&quot;) govern your access to and
           use of {BRAND_NAME} at <a href={BRAND_URL}>{BRAND_URL}</a> (the
-          &quot;Service&quot;). By using the Service, you agree to these Terms
-          and our <a href={BRAND_PRIVACY_PATH}>Privacy Policy</a>.
+          &quot;Service&quot;). The Service is operated by{" "}
+          <strong>{BRAND_LEGAL_ENTITY_OFFICIAL}</strong>, {BRAND_LEGAL_ADDRESS}{" "}
+          (&quot;we&quot;, &quot;us&quot;). By using the Service, you agree to
+          these Terms and our <a href={BRAND_PRIVACY_PATH}>Privacy Policy</a>.
         </p>
 
         <h2>1. The Service</h2>
@@ -54,6 +61,24 @@ export default function TermsPage() {
           account. You may delete stories or your entire account in the
           dashboard. Paid plans are billed by Stripe; cancel anytime. Account
           deletion cancels a subscription immediately.
+        </p>
+        <p>
+          Prices are shown in USD.{" "}
+          {BRAND_VAT_REGISTERED
+            ? "Applicable VAT is shown at checkout."
+            : "We are not registered for VAT in Slovenia, so no VAT is charged on subscriptions."}{" "}
+          See our <a href={BRAND_REFUNDS_PATH}>Refunds &amp; Withdrawal</a>{" "}
+          policy for consumer withdrawal rights.
+        </p>
+
+        <h3>Fair use</h3>
+        <p>
+          The Free plan includes five new stories per calendar month. Pro and
+          Team plans include a fair-use allowance of 500 stories per month (500
+          per seat on Team). If you reach your monthly limit, we continue to
+          store forwarded mail but pause automatic story generation until the
+          next calendar month or until you upgrade. Hourly and daily rate limits
+          may also apply to protect the Service.
         </p>
 
         <h2>4. Acceptable use</h2>

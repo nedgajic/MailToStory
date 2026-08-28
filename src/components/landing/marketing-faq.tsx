@@ -16,6 +16,10 @@ const FAQ_ITEMS = [
     a: "You get a private inbound address and five stories per calendar month. Forwarded mail is stored until you delete the story.",
   },
   {
+    q: "What happens if I hit the monthly limit?",
+    a: "On Free, you get five new stories per calendar month. On Pro and Team, fair use is 500 stories per month (500 per seat on Team). If you hit the cap, we still store forwarded mail, but we pause new AI generation until the next month or until you upgrade. Open Stories to retry manually once you have capacity.",
+  },
+  {
     q: "Can I delete my data?",
     a: "Yes. Delete individual stories, bulk-delete by month or year, or delete your entire account from Settings.",
   },

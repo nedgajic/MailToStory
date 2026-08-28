@@ -232,7 +232,7 @@ export function LandingPage() {
               <p className="mkt-eyebrow mkt-eyebrow--light">Pricing</p>
               <h2 className="mkt-h2 mkt-h2--light">Simple plans</h2>
               <p className="mkt-lede mkt-lede--light">
-                Start free. Upgrade when you need unlimited stories or team seats.
+                Start free. Upgrade when you need more stories per month or team seats.
               </p>
             </div>
             <PricingCards variant="dark" />

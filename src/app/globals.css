@@ -305,6 +305,18 @@ button.home-nav__signin {
     0 8px 28px rgba(29, 53, 87, 0.32);
 }
 
+.home-cta--secondary {
+  color: inherit;
+  background: transparent;
+  padding: 0.8rem 1.35rem;
+  border: 1px solid color-mix(in srgb, var(--app-text) 18%, transparent);
+}
+
+.home-cta--secondary:hover {
+  transform: translateY(-1px);
+  background: color-mix(in srgb, var(--app-text) 4%, transparent);
+}
+
 .home-cta--large {
   padding: 0.95rem 1.65rem;
   font-size: 1rem;
@@ -1212,6 +1224,26 @@ button.home-nav__signin {
 .home-legal-prose strong {
   color: var(--app-text);
   font-weight: 600;
+}
+
+.home-legal-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0 1.25rem;
+  font-size: 0.92rem;
+}
+
+.home-legal-table th,
+.home-legal-table td {
+  border: 1px solid color-mix(in srgb, var(--app-text) 14%, transparent);
+  padding: 0.55rem 0.65rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.home-legal-table th {
+  font-weight: 700;
+  background: color-mix(in srgb, var(--app-text) 4%, transparent);
 }
 
 .app-top-bar__user-item--link {
@@ -6590,6 +6622,18 @@ a:focus-visible {
   padding: 1.5rem 0;
 }
 
+.stories-checklist {
+  text-align: left;
+  max-width: 36rem;
+  margin: 1rem auto 1.25rem;
+  padding-left: 1.2rem;
+  color: var(--app-text-soft);
+}
+
+.stories-checklist li + li {
+  margin-top: 0.45rem;
+}
+
 .copy-address {
   display: flex;
   gap: 0.5rem;
@@ -6638,7 +6682,8 @@ a:focus-visible {
   font-weight: 600;
 }
 
-.auth-form__field input {
+.auth-form__field input,
+.auth-form__field select {
   font: inherit;
   font-weight: 400;
   padding: 0.55rem 0.7rem;
@@ -6704,6 +6749,41 @@ a:focus-visible {
 
 .story-card__meta {
   font-size: 0.78rem;
+  color: var(--app-text-soft);
+}
+
+.stories-pending {
+  margin-bottom: 1.5rem;
+}
+
+.stories-pending__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.stories-pending__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--app-text) 12%, transparent);
+  background: color-mix(in srgb, var(--app-surface) 88%, transparent);
+}
+
+.stories-pending__subject {
+  margin: 0 0 0.2rem;
+  font-weight: 600;
+}
+
+.stories-pending__meta {
+  margin: 0;
+  font-size: 0.82rem;
   color: var(--app-text-soft);
 }
 

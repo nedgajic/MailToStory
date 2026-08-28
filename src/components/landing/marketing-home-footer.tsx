@@ -1,16 +1,14 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand-logo";
 import {
+  BRAND_LEGAL_ENTITY,
   BRAND_LOGO_TEXT,
   BRAND_NAME,
-  BRAND_COOKIE_PATH,
-  BRAND_DATA_REQUEST_PATH,
-  BRAND_PRIVACY_PATH,
-  BRAND_TERMS_PATH,
+  LEGAL_NAV_LINKS,
 } from "@/lib/brand";
 
 export function MarketingHomeFooter({
-  privacyUrl = BRAND_PRIVACY_PATH,
+  privacyUrl,
 }: {
   privacyUrl?: string;
 }) {
@@ -51,23 +49,22 @@ export function MarketingHomeFooter({
         <div>
           <h3 className="mkt-footer__heading">Legal</h3>
           <ul className="mkt-footer__links">
-            <li>
-              <Link href={privacyUrl}>Privacy Policy</Link>
-            </li>
-            <li>
-              <Link href={BRAND_COOKIE_PATH}>Cookie Policy</Link>
-            </li>
-            <li>
-              <Link href={BRAND_TERMS_PATH}>Terms of Service</Link>
-            </li>
-            <li>
-              <Link href={BRAND_DATA_REQUEST_PATH}>Data Request</Link>
-            </li>
+            {LEGAL_NAV_LINKS.map((link) => (
+              <li key={link.path}>
+                <Link
+                  href={link.path === "/privacy" && privacyUrl ? privacyUrl : link.path}
+                >
+                  {link.label}
+                </Link>
+              </li>
+            ))}
           </ul>
         </div>
       </div>
       <div className="mkt-container mkt-footer__bottom">
-        <span>© {new Date().getFullYear()} {BRAND_NAME}</span>
+        <span>
+          © {new Date().getFullYear()} {BRAND_LEGAL_ENTITY} · {BRAND_NAME}
+        </span>
       </div>
     </footer>
   );

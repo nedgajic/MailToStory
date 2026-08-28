@@ -55,7 +55,7 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           error:
-            "You still own a team workspace with other members. Unassign them or transfer ownership first.",
+            "You still own a team workspace with other members. Transfer ownership under Settings → Team first.",
         },
         { status: 400 },
       );

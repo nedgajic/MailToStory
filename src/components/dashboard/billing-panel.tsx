@@ -192,6 +192,8 @@ export function BillingPanel({
   upcoming,
   billingFlash,
   invoices,
+  used,
+  limit,
 }: {
   plan: PlanId;
   canBill: boolean;
@@ -203,6 +205,8 @@ export function BillingPanel({
   upcoming: UpcomingBill;
   billingFlash: boolean;
   invoices: BillingInvoice[];
+  used: number;
+  limit: number | null;
 }) {
   const [seats, setSeats] = useState(Math.max(seatQuantity, seatsUsed, 1));
   const [teamName, setTeamName] = useState(
@@ -304,6 +308,20 @@ export function BillingPanel({
       icon: (
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
           <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+      ),
+    });
+  }
+
+  if (limit != null) {
+    detailRows.push({
+      key: "usage",
+      label: "Stories this month",
+      value: `${used} of ${limit}`,
+      icon: (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
         </svg>
       ),
     });

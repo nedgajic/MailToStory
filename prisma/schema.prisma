@@ -14,6 +14,7 @@ model User {
   emailVerified      DateTime?
   image              String?
   passwordHash       String?
+  credentialsChangedAt DateTime?
   activeWorkspaceId  String?
   accounts           Account[]
   sessions           Session[]
@@ -66,6 +67,7 @@ model Workspace {
   stripeSubscriptionId  String?
   stripePriceId         String?
   cancelAtPeriodEnd     Boolean   @default(false)
+  billingPastDue        Boolean   @default(false)
   currentPeriodEnd      DateTime?
   currentPeriodStart    DateTime?
   createdAt             DateTime  @default(now())
@@ -239,4 +241,26 @@ model QuarantinedInbound {
 
   @@index([workspaceId, fromEmail])
   @@index([expiresAt])
+}
+
+model AuthRateLimit {
+  key       String   @id
+  hitsJson  String   @default("[]")
+  updatedAt DateTime @updatedAt
+}
+
+model GdprRequest {
+  id          String    @id @default(cuid())
+  email       String
+  type        String
+  tokenHash   String    @unique
+  status      String    @default("pending")
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+  confirmedAt DateTime?
+  completedAt DateTime?
+
+  @@index([email, type])
+  @@index([expiresAt])
+  @@index([status])
 }

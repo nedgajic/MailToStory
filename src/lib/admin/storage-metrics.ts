@@ -294,7 +294,7 @@ export function buildStorageSuggestions(
       id: "quarantine-cleanup",
       level: "watch",
       title: "Run quarantine cleanup",
-      detail: `${metrics.counts.quarantineExpired} expired quarantine row(s) remain. Schedule GET /api/cron/quarantine-cleanup daily${metrics.env.cronSecretConfigured ? "" : " and set CRON_SECRET in .env"}.`,
+      detail: `${metrics.counts.quarantineExpired} expired quarantine row(s) remain. Schedule GET /api/cron/maintenance daily${metrics.env.cronSecretConfigured ? "" : " and set CRON_SECRET in .env"}.`,
     });
   }
 
@@ -312,7 +312,7 @@ export function buildStorageSuggestions(
       id: "generation-log-retention",
       level: "action",
       title: "Add retention for StoryGenerationLog",
-      detail: `Generation log table is ${formatStorageBytes(metrics.tableBytes.storyGenerationLog)} (${metrics.counts.generationLogTotal} rows). Purge rows older than 90 days to keep rate-limit history without unbounded growth.`,
+      detail: `Generation log table is ${formatStorageBytes(metrics.tableBytes.storyGenerationLog)} (${metrics.counts.generationLogTotal} rows). Daily GET /api/cron/maintenance purges rows older than 90 days.`,
     });
   }
 

@@ -78,8 +78,8 @@ export function setCookieConsent(
 export function acceptAllCookies(): CookieConsent {
   return setCookieConsent({
     analytics: true,
-    marketing: true,
-    functional: true,
+    marketing: false,
+    functional: false,
   });
 }
 

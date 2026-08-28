@@ -18,6 +18,10 @@ import {
 } from "@/lib/billing/generation-limits";
 import { parsePlanId } from "@/lib/billing/plans";
 import { notifyStoryReady } from "@/lib/email/story-notifications";
+import {
+  notifyGenerationFailed,
+  notifyGenerationSkipped,
+} from "@/lib/email/generation-notifications";
 import { isInboundSenderAllowed } from "@/lib/inbound/sender-allowlist";
 import { quarantineInboundPayload, payloadFromQuarantineRow } from "@/lib/inbound/quarantine";
 import { enqueueBackgroundJob } from "@/lib/inbound/release-queue";
@@ -27,6 +31,10 @@ import {
   senderFromPayload,
   type PostmarkInboundPayload,
 } from "@/lib/inbound/postmark";
+import {
+  findConversationForInbound,
+  formatSkippedAttachmentsNote,
+} from "@/lib/inbound/conversation-lookup";
 
 const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 
@@ -135,26 +143,13 @@ export async function ingestAllowedPostmarkPayload(input: {
   const safeDate = Number.isNaN(date.getTime()) ? new Date() : date;
   const text = payload.TextBody?.trim() || "";
   const html = payload.HtmlBody?.trim() || null;
-  const inReplyTo = headerValue(payload, "In-Reply-To");
 
-  let conversation = inReplyTo
-    ? await prisma.conversation.findFirst({
-        where: {
-          workspaceId: workspace.id,
-          messages: { some: { postmarkMessageId: inReplyTo } },
-        },
-      })
-    : null;
-
-  if (!conversation && stripped) {
-    conversation = await prisma.conversation.findFirst({
-      where: {
-        workspaceId: workspace.id,
-        subject: { equals: stripped, mode: "insensitive" },
-      },
-      orderBy: { lastMessageAt: "desc" },
-    });
-  }
+  let conversation = await findConversationForInbound({
+    workspaceId: workspace.id,
+    payload,
+    strippedSubject: stripped,
+    fromEmail,
+  });
 
   if (!conversation) {
     conversation = await prisma.conversation.create({
@@ -164,8 +159,11 @@ export async function ingestAllowedPostmarkPayload(input: {
         snippet: text.slice(0, 180),
         lastMessageAt: safeDate,
       },
+      select: { id: true, subject: true, snippet: true },
     });
   }
+
+  const inReplyTo = headerValue(payload, "In-Reply-To");
 
   const last = await prisma.conversationMessage.findFirst({
     where: { conversationId: conversation.id },
@@ -194,14 +192,21 @@ export async function ingestAllowedPostmarkPayload(input: {
   const dir = path.join(uploadRoot(), workspace.id, conversation.id);
   await mkdir(dir, { recursive: true });
 
+  const skippedAttachments: string[] = [];
   for (const att of payload.Attachments ?? []) {
     const filename = (att.Name || "attachment").replace(/[/\\]/g, "_");
     const size = att.ContentLength ?? 0;
-    if (size > MAX_ATTACHMENT_BYTES) continue;
+    if (size > MAX_ATTACHMENT_BYTES) {
+      skippedAttachments.push(filename);
+      continue;
+    }
     const content = att.Content;
     if (!content) continue;
     const buf = Buffer.from(content, "base64");
-    if (buf.length > MAX_ATTACHMENT_BYTES) continue;
+    if (buf.length > MAX_ATTACHMENT_BYTES) {
+      skippedAttachments.push(filename);
+      continue;
+    }
     const row = await prisma.conversationAttachment.create({
       data: {
         conversationId: conversation.id,
@@ -220,10 +225,20 @@ export async function ingestAllowedPostmarkPayload(input: {
     });
   }
 
+  if (skippedAttachments.length > 0) {
+    console.info("[inbound] attachments skipped", {
+      workspaceId: workspace.id,
+      conversationId: conversation.id,
+      skippedAttachments,
+    });
+  }
+
+  const attachmentNote = formatSkippedAttachmentsNote(skippedAttachments);
+
   await prisma.conversation.update({
     where: { id: conversation.id },
     data: {
-      snippet: text.slice(0, 180) || conversation.snippet,
+      snippet: text.slice(0, 180) || conversation.snippet || "",
       lastMessageAt: safeDate,
       subject: stripped || conversation.subject,
     },
@@ -248,6 +263,17 @@ export async function ingestAllowedPostmarkPayload(input: {
       conversationId: conversation.id,
       reason: gate.reason,
     });
+    if (gate.reason) {
+      void notifyGenerationSkipped({
+        workspaceId: workspace.id,
+        conversationId: conversation.id,
+        subject: conversation.subject,
+        fromEmail,
+        reason: gate.reason,
+        message: gate.message ?? "Story generation was skipped.",
+        attachmentNote,
+      });
+    }
     return conversation.id;
   }
 
@@ -255,6 +281,13 @@ export async function ingestAllowedPostmarkPayload(input: {
     await generateAndSaveStory(conversation.id);
   } catch (error) {
     console.error("[inbound] digest failed", error);
+    void notifyGenerationFailed({
+      workspaceId: workspace.id,
+      conversationId: conversation.id,
+      subject: conversation.subject,
+      fromEmail,
+      attachmentNote,
+    });
   }
 
   return conversation.id;

@@ -55,7 +55,9 @@ export function DataRequestForm() {
       }
       setMessage(
         data.message ||
-          "Your request has been processed. If we had your data, it has been handled.",
+          (requestType === "deletion"
+            ? "If we have data for this email, we sent a confirmation link. Open it within 24 hours to complete deletion."
+            : "Your request has been processed. If we had your data, it has been handled."),
       );
     } finally {
       setBusy(false);

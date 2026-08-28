@@ -6,6 +6,7 @@ import type { PlanId } from "@/lib/billing/plans";
 import prisma from "@/lib/prisma";
 import { AppTopBar } from "@/components/app-top-bar";
 import { TeamManager } from "@/components/team/team-manager";
+import { TransferOwnershipForm } from "@/components/team/transfer-ownership-form";
 import { TeamNameForm } from "@/components/team/team-name-form";
 import { inboundAddress } from "@/lib/workspace";
 
@@ -17,6 +18,7 @@ export default async function TeamSettingsPage() {
   const ctx = await getWorkspaceContext(session.user.id);
   if (!ctx) redirect("/login");
   if (!isWorkspaceAdmin(ctx.role)) redirect("/dashboard");
+  const isOwner = ctx.role === "owner";
 
   const [members, invites] = await Promise.all([
     prisma.workspaceMember.findMany({
@@ -65,6 +67,17 @@ export default async function TeamSettingsPage() {
               expiresAt: i.expiresAt.toISOString(),
             }))}
           />
+          {isOwner && members.length > 1 ? (
+            <TransferOwnershipForm
+              members={members
+                .filter((member) => member.role !== "owner")
+                .map((member) => ({
+                  id: member.id,
+                  name: member.user.name,
+                  email: member.user.email,
+                }))}
+            />
+          ) : null}
         </div>
       </main>
     </>

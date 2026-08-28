@@ -24,6 +24,7 @@ function ctx(partial: Partial<WorkspaceContext>): WorkspaceContext {
       stripeSubscriptionId: null,
       stripePriceId: null,
       cancelAtPeriodEnd: false,
+      billingPastDue: false,
       currentPeriodEnd: null,
       currentPeriodStart: null,
     },

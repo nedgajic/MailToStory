@@ -7,12 +7,15 @@ import type { PlanId } from "@/lib/billing/plans";
 import { AppTopBar } from "@/components/app-top-bar";
 import { DeleteAccountForm } from "@/components/account/delete-account-form";
 import { ExportAccountForm } from "@/components/account/export-account-form";
+import { ChangePasswordForm } from "@/components/settings/change-password-form";
+import { ProfileNameForm } from "@/components/settings/profile-name-form";
 import { StoryNotificationsForm } from "@/components/settings/story-notifications-form";
 import { ForwardingSettingsPanel } from "@/components/settings/forwarding-settings-panel";
 import {
   storyNotificationSettingHint,
   storyNotificationSettingLabel,
 } from "@/lib/email/story-notifications";
+import prisma from "@/lib/prisma";
 
 export const metadata = { title: "Profile — MailToStory" };
 
@@ -24,6 +27,10 @@ export default async function ProfileSettingsPage() {
   const canManageTeam = isWorkspaceAdmin(ctx.role);
   const plan = ctx.workspace.plan as PlanId;
   const notifyCopy = storyNotificationSettingLabel(plan);
+  const hasGoogleAccount = await prisma.account.findFirst({
+    where: { userId: ctx.userId, provider: "google" },
+    select: { id: true },
+  });
 
   return (
     <>
@@ -45,10 +52,6 @@ export default async function ProfileSettingsPage() {
             <h2 className="dash-panel__section-title">Account</h2>
             <dl className="dash-profile__dl">
               <div className="dash-profile__row">
-                <dt>Name</dt>
-                <dd>{ctx.name?.trim() || "—"}</dd>
-              </div>
-              <div className="dash-profile__row">
                 <dt>Email</dt>
                 <dd>{ctx.email}</dd>
               </div>
@@ -57,6 +60,15 @@ export default async function ProfileSettingsPage() {
                 <dd>{plan.charAt(0).toUpperCase() + plan.slice(1)}</dd>
               </div>
             </dl>
+            <ProfileNameForm initialName={ctx.name?.trim() ?? ""} />
+          </section>
+
+          <section className="dash-panel">
+            <h2 className="dash-panel__section-title">Password</h2>
+            <ChangePasswordForm
+              hasPassword={ctx.hasPassword}
+              hasGoogleAccount={Boolean(hasGoogleAccount)}
+            />
           </section>
 
           <StoryNotificationsForm
