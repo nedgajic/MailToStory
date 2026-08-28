@@ -3,7 +3,9 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/auth";
 import { getWorkspaceContext, isWorkspaceAdmin } from "@/lib/session";
 import type { PlanId } from "@/lib/billing/plans";
+import { intervalFromStripePriceId } from "@/lib/billing/plans";
 import { getDashboardData } from "@/lib/dashboard-data";
+import prisma from "@/lib/prisma";
 import { AppTopBar } from "@/components/app-top-bar";
 import { BillingPanel } from "@/components/dashboard/billing-panel";
 import { BillingPastDueBanner } from "@/components/dashboard/billing-past-due-banner";
@@ -24,6 +26,32 @@ export default async function BillingSettingsPage({
   const data = await getDashboardData(ctx);
   const params = await searchParams;
   const billingFlash = params.billing === "ok";
+  const billingInterval = intervalFromStripePriceId(ctx.workspace.stripePriceId) ?? "monthly";
+  const teamMembers =
+    ctx.workspace.plan === "team"
+      ? (
+          await prisma.workspaceMember.findMany({
+            where: { workspaceId: ctx.workspace.id, status: "active" },
+            include: { user: { select: { email: true, name: true } } },
+            orderBy: { createdAt: "asc" },
+          })
+        ).map((member) => ({
+          id: member.id,
+          email: member.user.email,
+          name: member.user.name,
+          role: member.role,
+          createdAt: member.createdAt.toISOString(),
+        }))
+      : [];
+  const teamInvites =
+    ctx.workspace.plan === "team"
+      ? (
+          await prisma.workspaceInvite.findMany({
+            where: { workspaceId: ctx.workspace.id, expiresAt: { gt: new Date() } },
+            orderBy: { createdAt: "desc" },
+          })
+        ).map((invite) => ({ id: invite.id, email: invite.email }))
+      : [];
 
   return (
     <>
@@ -71,6 +99,9 @@ export default async function BillingSettingsPage({
             invoices={data.invoices}
             used={data.used}
             limit={data.limit}
+            billingInterval={billingInterval}
+            teamMembers={teamMembers}
+            teamInvites={teamInvites}
           />
         </div>
       </main>

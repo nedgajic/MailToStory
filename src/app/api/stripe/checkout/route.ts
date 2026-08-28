@@ -6,6 +6,7 @@ import { getStripe, stripeConfigured } from "@/lib/billing/stripe";
 import { parsePlanId, parseBillingInterval, stripePriceIdForPlan, type PlanId } from "@/lib/billing/plans";
 import { appUrl } from "@/lib/email/send";
 import { updateWorkspaceIdentity } from "@/lib/workspace";
+import { loadWorkspaceMembers, validateSeatChange } from "@/lib/billing/seats";
 
 async function applyTeamNameIfNeeded(
   workspaceId: string,
@@ -52,6 +53,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Stripe price IDs are missing." }, { status: 503 });
   }
   const seats = plan === "team" ? Math.max(1, Number(body.seats) || 1) : 1;
+  if (plan === "team") {
+    const members = await loadWorkspaceMembers(ctx.workspace.id);
+    const validation = validateSeatChange({
+      members,
+      targetSeats: seats,
+      removeMemberIds: [],
+    });
+    if (!validation.ok) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
+    }
+  }
 
   try {
     await applyTeamNameIfNeeded(ctx.workspace.id, plan, body.teamName);

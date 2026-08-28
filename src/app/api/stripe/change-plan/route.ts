@@ -3,9 +3,18 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/auth";
 import { getWorkspaceContext, isWorkspaceAdmin } from "@/lib/session";
 import { getStripe, stripeConfigured } from "@/lib/billing/stripe";
-import { parsePlanId, parseBillingInterval, stripePriceIdForPlan, type PlanId } from "@/lib/billing/plans";
+import {
+  parsePlanId,
+  parseBillingInterval,
+  stripePriceIdForPlan,
+  type PlanId,
+} from "@/lib/billing/plans";
 import prisma from "@/lib/prisma";
-import { activeSeatCount } from "@/lib/billing/entitlements";
+import {
+  applySeatReduction,
+  loadWorkspaceMembers,
+  validateSeatChange,
+} from "@/lib/billing/seats";
 import { updateWorkspaceIdentity } from "@/lib/workspace";
 
 async function applyTeamNameIfNeeded(
@@ -31,7 +40,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "No active subscription." }, { status: 400 });
   }
 
-  let body: { plan?: PlanId; seats?: number; teamName?: string; interval?: string };
+  let body: {
+    plan?: PlanId;
+    seats?: number;
+    teamName?: string;
+    interval?: string;
+    removeMemberIds?: string[];
+    revokeInviteIds?: string[];
+  };
   try {
     body = await req.json();
   } catch {
@@ -52,13 +68,24 @@ export async function POST(req: Request) {
   }
 
   let seats = plan === "team" ? Math.max(1, Number(body.seats) || ctx.workspace.seatQuantity) : 1;
+  const members = await loadWorkspaceMembers(ctx.workspace.id);
+
   if (plan === "team") {
-    const used = await activeSeatCount(ctx.workspace.id);
-    if (seats < used) {
-      return NextResponse.json(
-        { error: `Unassign seats first. ${used} people occupy seats.` },
-        { status: 400 },
-      );
+    const validation = validateSeatChange({
+      members,
+      targetSeats: seats,
+      removeMemberIds: body.removeMemberIds ?? [],
+      revokeInviteIds: body.revokeInviteIds,
+    });
+    if (!validation.ok) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
+    }
+    if (validation.removeMemberIds.length > 0 || validation.revokeInviteIds.length > 0) {
+      await applySeatReduction({
+        workspaceId: ctx.workspace.id,
+        removeMemberIds: validation.removeMemberIds,
+        revokeInviteIds: validation.revokeInviteIds,
+      });
     }
     if (body.teamName?.trim()) {
       try {
@@ -73,6 +100,32 @@ export async function POST(req: Request) {
         throw error;
       }
     }
+  } else if (plan === "pro") {
+    const validation = validateSeatChange({
+      members,
+      targetSeats: 1,
+      removeMemberIds: body.removeMemberIds ?? [],
+      revokeInviteIds: body.revokeInviteIds,
+    });
+    if (!validation.ok) {
+      return NextResponse.json(
+        {
+          error:
+            members.length > 1
+              ? "Switching to Pro keeps one seat. Choose which team members to remove first."
+              : validation.error,
+        },
+        { status: 400 },
+      );
+    }
+    if (validation.removeMemberIds.length > 0 || validation.revokeInviteIds.length > 0) {
+      await applySeatReduction({
+        workspaceId: ctx.workspace.id,
+        removeMemberIds: validation.removeMemberIds,
+        revokeInviteIds: validation.revokeInviteIds,
+      });
+    }
+    seats = 1;
   }
 
   const stripe = getStripe();
@@ -99,5 +152,5 @@ export async function POST(req: Request) {
     },
   });
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, seatQuantity: seats });
 }

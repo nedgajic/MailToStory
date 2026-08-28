@@ -100,6 +100,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
       {
         heading: "Admin tasks",
         bullets: [
+          "Change seat count from Settings → Team — upgrades bill immediately; downgrades let you choose who to remove.",
           "Invite members from Settings → Team.",
           "Transfer ownership when the primary admin changes.",
           "Enable two-factor authentication on accounts that sign in with password.",

@@ -1,7 +1,13 @@
 import prisma from "@/lib/prisma";
 import type { PlanId } from "@/lib/billing/plans";
 import { storyLimitForPlan } from "@/lib/billing/plans";
+import { activeSeatCount } from "@/lib/billing/seats";
 import { utcMonthRange } from "@/lib/workspace";
+
+export async function canAddMember(workspaceId: string, seatQuantity: number): Promise<boolean> {
+  const used = await activeSeatCount(workspaceId);
+  return used < seatQuantity;
+}
 
 export async function storiesCreatedThisMonth(workspaceId: string): Promise<number> {
   const { start, end } = utcMonthRange();
@@ -24,13 +30,4 @@ export async function canGenerateStory(plan: PlanId, workspaceId: string): Promi
   return { allowed: used < limit, used, limit };
 }
 
-export async function activeSeatCount(workspaceId: string): Promise<number> {
-  return prisma.workspaceMember.count({
-    where: { workspaceId, status: "active" },
-  });
-}
-
-export async function canAddMember(workspaceId: string, seatQuantity: number): Promise<boolean> {
-  const used = await activeSeatCount(workspaceId);
-  return used < seatQuantity;
-}
+export { activeSeatCount } from "@/lib/billing/seats";

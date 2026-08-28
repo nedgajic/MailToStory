@@ -99,7 +99,7 @@ export function TeamManager({
       </p>
       {full ? (
         <p className="dash-muted">
-          All seats are taken. Add a seat on the dashboard, then invite someone.
+          All seats are taken. Add seats above, then invite someone.
         </p>
       ) : null}
       {error ? <p className="auth-form__error">{error}</p> : null}

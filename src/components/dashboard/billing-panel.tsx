@@ -5,6 +5,7 @@ import { PLAN_CARDS, planLabel, type BillingInterval, type PlanId } from "@/lib/
 import type { UpcomingBill } from "@/lib/dashboard-data";
 import { BillingInvoicesPanel, type BillingInvoice } from "@/components/dashboard/billing-invoices-panel";
 import { PlanPriceBlock } from "@/components/billing/plan-price-block";
+import { SeatChangeForm } from "@/components/team/seat-change-form";
 import {
   PricingBillingToggle,
   pricingIntervalFromAnnual,
@@ -194,6 +195,9 @@ export function BillingPanel({
   invoices,
   used,
   limit,
+  billingInterval = "monthly",
+  teamMembers = [],
+  teamInvites = [],
 }: {
   plan: PlanId;
   canBill: boolean;
@@ -207,6 +211,15 @@ export function BillingPanel({
   invoices: BillingInvoice[];
   used: number;
   limit: number | null;
+  billingInterval?: BillingInterval;
+  teamMembers?: Array<{
+    id: string;
+    email: string | null;
+    name: string | null;
+    role: string;
+    createdAt: string;
+  }>;
+  teamInvites?: Array<{ id: string; email: string }>;
 }) {
   const [seats, setSeats] = useState(Math.max(seatQuantity, seatsUsed, 1));
   const [teamName, setTeamName] = useState(
@@ -247,6 +260,12 @@ export function BillingPanel({
   function startPaidPlan(targetPlan: PlanId, interval: BillingInterval) {
     if (targetPlan === "team" && !teamName.trim()) {
       setError("Enter a team name — it becomes your shared inbox address.");
+      return;
+    }
+    if (targetPlan === "pro" && plan === "team" && seatsUsed > 1) {
+      setError(
+        "Switching to Pro keeps one seat. Open Settings → Team, reduce seats to 1, and choose who to remove first.",
+      );
       return;
     }
     void post(
@@ -474,6 +493,18 @@ export function BillingPanel({
             ) : null}
           </article>
 
+          {canBill && plan === "team" ? (
+            <SeatChangeForm
+              compact
+              seatQuantity={seatQuantity}
+              seatsUsed={seatsUsed}
+              interval={billingInterval}
+              stripeReady={stripeReady}
+              members={teamMembers}
+              invites={teamInvites}
+            />
+          ) : null}
+
           {canBill ? (
             <div className="dash-billing-switch-wrap">
               {!showPlanSwitcher ? (
@@ -490,8 +521,8 @@ export function BillingPanel({
                     <div>
                       <h2 className="dash-billing-picker-section__title">Change plan</h2>
                       <p className="dash-billing-picker-section__intro">
-                        Upgrades apply immediately with prorated billing. Downgrades take
-                        effect at the end of your current period.
+                        Plan and seat changes apply immediately. Stripe prorates
+                        charges or credits on your next invoice.
                       </p>
                     </div>
                     <button
