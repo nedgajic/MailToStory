@@ -3,7 +3,9 @@ import prisma from "@/lib/prisma";
 import { hashToken } from "@/lib/workspace";
 import Link from "next/link";
 
-export const metadata = { title: "Verify email — MailToStory" };
+import { BRAND_NAME } from "@/lib/brand";
+
+export const metadata = { title: `Verify email — ${BRAND_NAME}` };
 
 export default async function VerifyEmailPage({
   searchParams,

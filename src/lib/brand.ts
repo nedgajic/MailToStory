@@ -1,4 +1,4 @@
-export const BRAND_NAME = "MailToStory";
+export const BRAND_NAME = "Mail To Story";
 /** Wordmark shown beside the logo icon in headers and footers. */
 export const BRAND_LOGO_TEXT = "Mail To Story";
 export const BRAND_DOMAIN = "mailtostory.com";

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { BRAND_COOKIE_PATH } from "@/lib/brand";
+import { BRAND_COOKIE_PATH, BRAND_NAME } from "@/lib/brand";
 
 type CookieConsentBannerProps = {
   onAcceptAll: () => void;
@@ -49,7 +49,7 @@ export function CookieConsentBanner({
               </div>
               <p className="cookie-consent-banner__text">
                 We use necessary cookies to keep you signed in and optional
-                analytics cookies to improve MailToStory. You can accept all,
+                analytics cookies to improve {BRAND_NAME}. You can accept all,
                 reject non-essential cookies, or choose what to allow.{" "}
                 <Link
                   href={BRAND_COOKIE_PATH}

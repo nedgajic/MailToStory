@@ -9,7 +9,9 @@ import { StoriesLibrary } from "@/components/stories/stories-library";
 import { PendingStories } from "@/components/stories/pending-stories";
 import { inboundAddress } from "@/lib/workspace";
 
-export const metadata = { title: "Stories — MailToStory" };
+import { BRAND_NAME } from "@/lib/brand";
+
+export const metadata = { title: `Stories — ${BRAND_NAME}` };
 
 export default async function StoriesPage() {
   const session = await getServerSession(authOptions);

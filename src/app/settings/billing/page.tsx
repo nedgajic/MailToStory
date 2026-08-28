@@ -12,7 +12,9 @@ import { BillingPastDueBanner } from "@/components/dashboard/billing-past-due-ba
 import { GenerationLimitBanner } from "@/components/dashboard/generation-limit-banner";
 import "@/app/dashboard-billing.css";
 
-export const metadata = { title: "Billing & Invoices — MailToStory" };
+import { BRAND_NAME } from "@/lib/brand";
+
+export const metadata = { title: `Billing & Invoices — ${BRAND_NAME}` };
 
 export default async function BillingSettingsPage({
   searchParams,

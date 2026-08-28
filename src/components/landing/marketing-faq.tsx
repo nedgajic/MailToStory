@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { BRAND_NAME } from "@/lib/brand";
 
 const FAQ_ITEMS = [
   {
     q: "Do you connect to my Gmail or inbox?",
-    a: "No. MailToStory never requests inbox access. You forward only the threads you choose to your private address.",
+    a: `No. ${BRAND_NAME} never requests inbox access. You forward only the threads you choose to your private address.`,
   },
   {
     q: "Which email apps work?",

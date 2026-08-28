@@ -10,7 +10,9 @@ import { HeldMailBanner } from "@/components/dashboard/held-mail-banner";
 import { GenerationLimitBanner } from "@/components/dashboard/generation-limit-banner";
 import { BillingPastDueBanner } from "@/components/dashboard/billing-past-due-banner";
 
-export const metadata = { title: "Overview — MailToStory" };
+import { BRAND_NAME } from "@/lib/brand";
+
+export const metadata = { title: `Overview — ${BRAND_NAME}` };
 
 export default async function DashboardPage({
   searchParams,

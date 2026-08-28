@@ -7,7 +7,9 @@ import type { PlanId } from "@/lib/billing/plans";
 import { AppTopBar, AppTopBarBackLink } from "@/components/app-top-bar";
 import { StoryDetail } from "./story-detail";
 
-export const metadata = { title: "Story — MailToStory" };
+import { BRAND_NAME } from "@/lib/brand";
+
+export const metadata = { title: `Story — ${BRAND_NAME}` };
 
 export default async function StoryPage({
   params,

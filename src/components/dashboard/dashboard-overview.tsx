@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { PlanId } from "@/lib/billing/plans";
+import { BRAND_NAME } from "@/lib/brand";
 import { CopyAddress } from "@/components/copy-address";
 import { ResendVerifyButton } from "@/components/dashboard/resend-verify";
 
@@ -44,7 +45,7 @@ export function DashboardOverview({
         <h2 className="dash-inbound__title">Forward threads here</h2>
         <p className="dash-inbound__lede">
           Forward any email thread to this address from whatever mail app or provider
-          you use. MailToStory turns it into a readable story with timeline and open
+          you use. {BRAND_NAME} turns it into a readable story with timeline and open
           actions.
         </p>
         <CopyAddress address={inbound} prominent />

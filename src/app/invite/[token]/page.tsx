@@ -2,7 +2,9 @@ import { MarketingShell } from "@/components/landing/marketing-shell";
 import { googleAuthEnabled } from "@/lib/google-auth-enabled";
 import { InviteClient } from "./invite-client";
 
-export const metadata = { title: "Invite — MailToStory" };
+import { BRAND_NAME } from "@/lib/brand";
+
+export const metadata = { title: `Invite — ${BRAND_NAME}` };
 
 export default async function InvitePage({
   params,

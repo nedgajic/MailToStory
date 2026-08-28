@@ -18,7 +18,9 @@ import {
 } from "@/lib/email/story-notifications";
 import prisma from "@/lib/prisma";
 
-export const metadata = { title: "Profile — MailToStory" };
+import { BRAND_NAME } from "@/lib/brand";
+
+export const metadata = { title: `Profile — ${BRAND_NAME}` };
 
 export default async function ProfileSettingsPage() {
   const session = await getServerSession(authOptions);

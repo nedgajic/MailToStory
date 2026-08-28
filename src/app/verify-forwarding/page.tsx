@@ -5,7 +5,9 @@ import {
 } from "@/lib/inbound/ingest";
 import { verifyForwardingAddressToken } from "@/lib/email/forwarding-address";
 
-export const metadata = { title: "Verify forwarding address — MailToStory" };
+import { BRAND_NAME } from "@/lib/brand";
+
+export const metadata = { title: `Verify forwarding address — ${BRAND_NAME}` };
 
 export default async function VerifyForwardingPage({
   searchParams,

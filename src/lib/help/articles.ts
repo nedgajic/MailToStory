@@ -1,3 +1,5 @@
+import { BRAND_NAME } from "@/lib/brand";
+
 export type HelpSection = {
   heading?: string;
   paragraphs?: string[];
@@ -19,7 +21,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
     sections: [
       {
         paragraphs: [
-          "MailToStory turns forwarded email threads into readable stories. You do not connect Gmail or any inbox directly — you forward mail to your personal MailToStory address.",
+          `${BRAND_NAME} turns forwarded email threads into readable stories. You do not connect Gmail or any inbox directly — you forward mail to your personal ${BRAND_NAME} address.`,
         ],
       },
       {
@@ -27,7 +29,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
         paragraphs: [],
         bullets: [
           "Create an account and verify your email address.",
-          "Open Dashboard and copy your MailToStory inbox address.",
+          `Open Dashboard and copy your ${BRAND_NAME} inbox address.`,
           "Forward a thread from Gmail, Outlook, or any mail client.",
           "Open Stories when you receive the story-ready notification.",
         ],
@@ -47,13 +49,13 @@ export const HELP_ARTICLES: HelpArticle[] = [
     sections: [
       {
         paragraphs: [
-          "For a single thread, open the message in Gmail, choose Forward, paste your MailToStory address, and send.",
+          `For a single thread, open the message in Gmail, choose Forward, paste your ${BRAND_NAME} address, and send.`,
         ],
       },
       {
         heading: "Automatic forwarding",
         paragraphs: [
-          "If you want every message from a label or filter forwarded, create a Gmail filter that forwards matching mail to your MailToStory address. Gmail may ask you to confirm the forwarding address first.",
+          `If you want every message from a label or filter forwarded, create a Gmail filter that forwards matching mail to your ${BRAND_NAME} address. Gmail may ask you to confirm the forwarding address first.`,
         ],
       },
       {
@@ -134,9 +136,9 @@ export const HELP_ARTICLES: HelpArticle[] = [
       {
         heading: "No story appeared",
         bullets: [
-          "Confirm you forwarded to the correct MailToStory address.",
+          `Confirm you forwarded to the correct ${BRAND_NAME} address.`,
           "Check whether the sender is verified or allowed for your workspace.",
-          "Look for a skip or failure email from MailToStory.",
+          `Look for a skip or failure email from ${BRAND_NAME}.`,
           "Open Stories for conversations marked as waiting or pending.",
         ],
       },

@@ -16,7 +16,9 @@ function buildAuthRedirect(
   return `/?${params.toString()}`;
 }
 
-export const metadata = { title: "Sign in — MailToStory" };
+import { BRAND_NAME } from "@/lib/brand";
+
+export const metadata = { title: `Sign in — ${BRAND_NAME}` };
 
 export default async function LoginPage({
   searchParams,

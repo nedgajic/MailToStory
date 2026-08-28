@@ -11,8 +11,10 @@ import { getAdminUserSummary, listAdminUsers } from "@/lib/adminUsers";
 import { getAdminStorageReport } from "@/lib/admin/storage-metrics";
 import { AdminStoragePanel } from "@/components/admin/admin-storage-panel";
 
+import { BRAND_NAME } from "@/lib/brand";
+
 export const metadata = {
-  title: "Admin — MailToStory",
+  title: `Admin — ${BRAND_NAME}`,
   robots: { index: false, follow: false },
 };
 

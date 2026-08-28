@@ -14,7 +14,9 @@ import { TeamNameForm } from "@/components/team/team-name-form";
 import { inboundAddress } from "@/lib/workspace";
 import { activeSeatCount } from "@/lib/billing/seats";
 
-export const metadata = { title: "Team — MailToStory" };
+import { BRAND_NAME } from "@/lib/brand";
+
+export const metadata = { title: `Team — ${BRAND_NAME}` };
 
 export default async function TeamSettingsPage() {
   const session = await getServerSession(authOptions);

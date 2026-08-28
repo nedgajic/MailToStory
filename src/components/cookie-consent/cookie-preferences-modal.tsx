@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { CookieConsent } from "@/lib/cookie-consent";
+import { BRAND_NAME } from "@/lib/brand";
 
 type CookiePreferencesModalProps = {
   open: boolean;
@@ -83,7 +84,7 @@ export function CookiePreferencesModal({
               <span>Analytics cookies</span>
             </label>
             <p className="cookie-consent-category__desc">
-              Help us understand how visitors use MailToStory via Google Analytics.
+              Help us understand how visitors use {BRAND_NAME} via Google Analytics.
               These cookies are only set if you opt in.
             </p>
           </div>
