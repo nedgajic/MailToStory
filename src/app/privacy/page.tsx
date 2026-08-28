@@ -2,14 +2,17 @@ import type { Metadata } from "next";
 import { LegalDocument } from "@/components/landing/legal-document";
 import { MarketingShell } from "@/components/landing/marketing-shell";
 import {
+  BRAND_COOKIE_PATH,
+  BRAND_DATA_REQUEST_PATH,
+  BRAND_LEGAL_ENTITY,
   BRAND_NAME,
-  BRAND_PRIVACY_URL,
+  BRAND_PRIVACY_PATH,
   BRAND_SUPPORT_EMAIL,
-  BRAND_TERMS_URL,
+  BRAND_TERMS_PATH,
   BRAND_URL,
 } from "@/lib/brand";
 
-const EFFECTIVE_DATE = "August 27, 2026";
+const EFFECTIVE_DATE = "August 28, 2026";
 
 export const metadata: Metadata = {
   title: `Privacy Policy — ${BRAND_NAME}`,
@@ -27,9 +30,10 @@ export default function PrivacyPage() {
           <a href={BRAND_URL}>{BRAND_URL}</a>.
         </p>
 
-        <h2>1. Who we are</h2>
+        <h2>1. Data controller</h2>
         <p>
-          Contact{" "}
+          {BRAND_LEGAL_ENTITY} operates {BRAND_NAME}. For privacy questions or
+          to exercise your rights, contact{" "}
           <a href={`mailto:${BRAND_SUPPORT_EMAIL}`}>{BRAND_SUPPORT_EMAIL}</a>.
           {BRAND_NAME} is not affiliated with Google LLC.
         </p>
@@ -45,7 +49,7 @@ export default function PrivacyPage() {
           We never connect to your inbox. We only see mail you send to us.
         </p>
 
-        <h2>3. Data we access</h2>
+        <h2>3. Data we collect</h2>
         <ul>
           <li>
             <strong>Account:</strong> name, email, password hash (if you set a
@@ -63,9 +67,31 @@ export default function PrivacyPage() {
             <strong>Billing:</strong> Stripe customer and invoice records if you
             subscribe. Card details stay with Stripe.
           </li>
+          <li>
+            <strong>Usage analytics (optional):</strong> aggregate page views
+            via Google Analytics, only if you accept analytics cookies. See our{" "}
+            <a href={BRAND_COOKIE_PATH}>Cookie Policy</a>.
+          </li>
         </ul>
 
-        <h2>4. How we use data</h2>
+        <h2>4. Legal basis for processing (GDPR)</h2>
+        <ul>
+          <li>
+            <strong>Contract:</strong> creating and running your account,
+            generating stories from mail you forward, billing paid plans.
+          </li>
+          <li>
+            <strong>Legitimate interest:</strong> security, abuse prevention,
+            rate limiting, and improving reliability of the Service.
+          </li>
+          <li>
+            <strong>Consent:</strong> analytics cookies, optional story-ready
+            email notifications, and marketing communications if we add them
+            later.
+          </li>
+        </ul>
+
+        <h2>5. How we use data</h2>
         <p>
           To run your account, generate stories you request by forwarding,
           email you verification and invites, and process subscriptions. We do
@@ -74,14 +100,24 @@ export default function PrivacyPage() {
           on-demand summarization of the forwarded thread.
         </p>
 
-        <h2>5. Sharing</h2>
+        <h2>6. Processors and international transfers</h2>
         <p>
-          Infrastructure providers that process data for us: hosting/database,
-          Postmark (inbound and transactional email), Google Gemini (story
-          generation), Stripe (payments). We do not sell your mail.
+          We use infrastructure and service providers that may process data
+          outside the European Economic Area, including in the United States:
+        </p>
+        <ul>
+          <li>Hosting and database (your VPS provider)</li>
+          <li>Postmark (inbound and transactional email)</li>
+          <li>Google (optional sign-in, Gemini story generation, optional Analytics)</li>
+          <li>Stripe (payments)</li>
+        </ul>
+        <p>
+          Where required, we rely on appropriate safeguards such as Standard
+          Contractual Clauses and processor data processing terms offered by
+          these providers.
         </p>
 
-        <h2>6. Retention and deletion</h2>
+        <h2>7. Retention and deletion</h2>
         <ul>
           <li>
             Delete any story in the library (including a month or year at a
@@ -93,23 +129,66 @@ export default function PrivacyPage() {
             immediately, remove workspaces you own, and delete stored mail.
           </li>
           <li>
+            Quarantined mail from unknown senders is kept for a limited period
+            (default 14 days) then deleted automatically.
+          </li>
+          <li>
             Exports you already downloaded remain on your devices.
           </li>
         </ul>
 
-        <h2>7. Security</h2>
+        <h2>8. Your rights</h2>
+        <p>
+          If you are in the European Economic Area or United Kingdom, you have
+          the right to:
+        </p>
+        <ul>
+          <li>Access the personal data we hold about you</li>
+          <li>Rectify inaccurate data</li>
+          <li>Erase your data (&quot;right to be forgotten&quot;)</li>
+          <li>Restrict or object to certain processing</li>
+          <li>Data portability</li>
+          <li>Withdraw consent at any time (for consent-based processing)</li>
+          <li>
+            Lodge a complaint with your supervisory authority — in Slovenia, the{" "}
+            <a
+              href="https://www.ip-rs.si/"
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              Information Commissioner (IP)
+            </a>
+          </li>
+        </ul>
+        <p>
+          <strong>Account holders:</strong> use{" "}
+          <a href="/settings/profile">Settings → Profile</a> to export or delete
+          your account.
+        </p>
+        <p>
+          <strong>Without an account:</strong> use our{" "}
+          <a href={BRAND_DATA_REQUEST_PATH}>Data Request</a> form or email{" "}
+          {BRAND_SUPPORT_EMAIL}.
+        </p>
+        <p>
+          You can change analytics cookie preferences anytime via our{" "}
+          <a href={BRAND_COOKIE_PATH}>Cookie Policy</a>.
+        </p>
+
+        <h2>9. Security</h2>
         <p>
           Production traffic uses HTTPS. Passwords are hashed. Inbound webhooks
           require a shared secret. No method of storage is 100% secure.
         </p>
 
-        <h2>8. Children</h2>
+        <h2>10. Children</h2>
         <p>The Service is not directed at children under 13.</p>
 
-        <h2>9. Changes</h2>
+        <h2>11. Changes</h2>
         <p>
           We post updates at this URL with a new effective date. See also{" "}
-          <a href={BRAND_TERMS_URL}>Terms of Service</a>.
+          <a href={BRAND_TERMS_PATH}>Terms of Service</a> and{" "}
+          <a href={BRAND_COOKIE_PATH}>Cookie Policy</a>.
         </p>
       </LegalDocument>
     </MarketingShell>

@@ -3,9 +3,9 @@ import { LegalDocument } from "@/components/landing/legal-document";
 import { MarketingShell } from "@/components/landing/marketing-shell";
 import {
   BRAND_NAME,
-  BRAND_PRIVACY_URL,
+  BRAND_PRIVACY_PATH,
   BRAND_SUPPORT_EMAIL,
-  BRAND_TERMS_URL,
+  BRAND_TERMS_PATH,
   BRAND_URL,
 } from "@/lib/brand";
 
@@ -25,7 +25,7 @@ export default function TermsPage() {
           These Terms of Service (&quot;Terms&quot;) govern your access to and
           use of {BRAND_NAME} at <a href={BRAND_URL}>{BRAND_URL}</a> (the
           &quot;Service&quot;). By using the Service, you agree to these Terms
-          and our <a href={BRAND_PRIVACY_URL}>Privacy Policy</a>.
+          and our <a href={BRAND_PRIVACY_PATH}>Privacy Policy</a>.
         </p>
 
         <h2>1. The Service</h2>

@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/auth";
 import { getWorkspaceContext, isWorkspaceAdmin } from "@/lib/session";
-import { getUpcomingBill } from "@/lib/dashboard-data";
+import type { PlanId } from "@/lib/billing/plans";
 import prisma from "@/lib/prisma";
 import { AppTopBar } from "@/components/app-top-bar";
 import { StoriesLibrary } from "@/components/stories/stories-library";
@@ -15,7 +15,6 @@ export default async function StoriesPage() {
   if (!session?.user?.id) redirect("/login");
   const ctx = await getWorkspaceContext(session.user.id);
   if (!ctx) redirect("/login");
-  const upcoming = await getUpcomingBill(ctx);
 
   const stories = await prisma.story.findMany({
     where: { workspaceId: ctx.workspace.id },
@@ -36,7 +35,7 @@ export default async function StoriesPage() {
       <AppTopBar
         showNav
         canManageTeam={isWorkspaceAdmin(ctx.role)}
-        billingLabel={upcoming.label}
+        plan={ctx.workspace.plan as PlanId}
         contentMaxWidth="app"
       />
       <main className="dash">

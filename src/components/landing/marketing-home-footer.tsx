@@ -1,14 +1,16 @@
 import Link from "next/link";
-import Image from "next/image";
+import { BrandLogo } from "@/components/brand-logo";
 import {
-  BRAND_ICON_PATH,
+  BRAND_LOGO_TEXT,
   BRAND_NAME,
-  BRAND_PRIVACY_URL,
-  BRAND_TERMS_URL,
+  BRAND_COOKIE_PATH,
+  BRAND_DATA_REQUEST_PATH,
+  BRAND_PRIVACY_PATH,
+  BRAND_TERMS_PATH,
 } from "@/lib/brand";
 
 export function MarketingHomeFooter({
-  privacyUrl = BRAND_PRIVACY_URL,
+  privacyUrl = BRAND_PRIVACY_PATH,
 }: {
   privacyUrl?: string;
 }) {
@@ -17,14 +19,12 @@ export function MarketingHomeFooter({
       <div className="mkt-container mkt-footer__grid">
         <div className="mkt-footer__brand">
           <div className="mkt-footer__logo">
-            <Image
-              src={BRAND_ICON_PATH}
-              alt=""
+            <BrandLogo
               width={36}
               height={36}
               className="mkt-logo__img mkt-logo__img--footer"
             />
-            <span className="mkt-logo__word">{BRAND_NAME}</span>
+            <span className="mkt-logo__word">{BRAND_LOGO_TEXT}</span>
           </div>
           <p>
             Forward email threads to a private address and read structured stories,
@@ -55,7 +55,13 @@ export function MarketingHomeFooter({
               <Link href={privacyUrl}>Privacy Policy</Link>
             </li>
             <li>
-              <Link href={BRAND_TERMS_URL}>Terms of Service</Link>
+              <Link href={BRAND_COOKIE_PATH}>Cookie Policy</Link>
+            </li>
+            <li>
+              <Link href={BRAND_TERMS_PATH}>Terms of Service</Link>
+            </li>
+            <li>
+              <Link href={BRAND_DATA_REQUEST_PATH}>Data Request</Link>
             </li>
           </ul>
         </div>

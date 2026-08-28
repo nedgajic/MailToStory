@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { AuthModalTrigger } from "@/components/auth/auth-modal-trigger";
 
 type MarketingNavActionsProps = {
   showSignIn?: boolean;
@@ -23,7 +23,6 @@ export function MarketingNavActions({
 
   return (
     <div className="home-nav__actions">
-      <ThemeToggle />
       {showSignIn ? (
         mounted ? (
           signedIn ? (
@@ -31,9 +30,9 @@ export function MarketingNavActions({
               Dashboard
             </Link>
           ) : (
-            <Link href="/login" className="home-nav__signin">
+            <AuthModalTrigger mode="login" className="home-nav__signin">
               Sign in
-            </Link>
+            </AuthModalTrigger>
           )
         ) : (
           <span

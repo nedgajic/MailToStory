@@ -74,18 +74,21 @@ model Workspace {
   members       WorkspaceMember[]
   invites       WorkspaceInvite[]
   conversations Conversation[]
+  forwardingAddresses ForwardingAddress[]
+  quarantinedInbound QuarantinedInbound[]
 
   @@index([stripeCustomerId])
   @@index([stripeSubscriptionId])
 }
 
 model WorkspaceMember {
-  id          String   @id @default(cuid())
-  workspaceId String
-  userId      String
-  role        String
-  status      String   @default("active")
-  createdAt   DateTime @default(now())
+  id                String   @id @default(cuid())
+  workspaceId       String
+  userId            String
+  role              String
+  status            String   @default("active")
+  notifyStoryReady  Boolean  @default(true)
+  createdAt         DateTime @default(now())
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -177,4 +180,63 @@ model Story {
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([workspaceId, createdAt])
+}
+
+model StoryAccessToken {
+  id        String   @id @default(cuid())
+  storyId   String
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([storyId, userId])
+  @@index([expiresAt])
+}
+
+model StoryGenerationLog {
+  id             String   @id @default(cuid())
+  workspaceId    String
+  conversationId String
+  createdAt      DateTime @default(now())
+
+  @@index([workspaceId, createdAt])
+  @@index([conversationId, createdAt])
+}
+
+model ForwardingAddress {
+  id          String    @id @default(cuid())
+  workspaceId String
+  email       String
+  verifiedAt  DateTime?
+  addedById   String?
+  createdAt   DateTime  @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, email])
+  @@index([workspaceId])
+}
+
+model QuarantinedInbound {
+  id                String    @id @default(cuid())
+  workspaceId       String
+  fromEmail         String
+  fromName          String    @default("")
+  subject           String    @default("")
+  snippet           String    @default("")
+  textBody          String    @db.Text
+  htmlBody          String?   @db.Text
+  toAddresses       String    @default("")
+  messageDate       DateTime?
+  attachmentCount   Int       @default(0)
+  postmarkMessageId String?   @unique
+  notifiedAt        DateTime?
+  expiresAt         DateTime
+  createdAt         DateTime  @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, fromEmail])
+  @@index([expiresAt])
 }

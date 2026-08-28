@@ -27,6 +27,10 @@ export async function GET() {
   const invoices = list.data.map((inv) => ({
     id: inv.id,
     number: inv.number,
+    description:
+      inv.lines?.data?.[0]?.description?.trim() ||
+      inv.description?.trim() ||
+      null,
     status: inv.status,
     amount: formatStripeAmount(inv.amount_paid || inv.amount_due, inv.currency),
     created: inv.created,

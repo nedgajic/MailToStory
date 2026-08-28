@@ -12,6 +12,7 @@ import {
   type PlanId,
 } from "@/lib/billing/plans";
 import { activeSeatCount, storiesCreatedThisMonth } from "@/lib/billing/entitlements";
+import { countVisibleQuarantine } from "@/lib/inbound/quarantine";
 import { inboundAddress } from "@/lib/workspace";
 import type { WorkspaceContext } from "@/lib/session";
 import { isWorkspaceAdmin } from "@/lib/session";
@@ -66,7 +67,7 @@ export async function getUpcomingBill(ctx: WorkspaceContext): Promise<UpcomingBi
 }
 
 export async function getDashboardData(ctx: WorkspaceContext) {
-  const [used, seatsUsed, recent] = await Promise.all([
+  const [used, seatsUsed, recent, heldMailCount] = await Promise.all([
     storiesCreatedThisMonth(ctx.workspace.id),
     activeSeatCount(ctx.workspace.id),
     prisma.story.findMany({
@@ -82,6 +83,7 @@ export async function getDashboardData(ctx: WorkspaceContext) {
         createdAt: true,
       },
     }),
+    countVisibleQuarantine(ctx),
   ]);
 
   const upcoming = await getUpcomingBill(ctx);
@@ -98,6 +100,7 @@ export async function getDashboardData(ctx: WorkspaceContext) {
     upcoming,
     recent,
     verified: Boolean(ctx.emailVerified),
+    heldMailCount,
     invoices: await listInvoices(ctx),
     stripeReady: stripeConfigured(),
   };
@@ -112,6 +115,10 @@ async function listInvoices(ctx: WorkspaceContext) {
   return list.data.map((inv) => ({
     id: inv.id,
     number: inv.number,
+    description:
+      inv.lines?.data?.[0]?.description?.trim() ||
+      inv.description?.trim() ||
+      null,
     status: inv.status,
     amount: formatStripeAmount(inv.amount_paid || inv.amount_due, inv.currency),
     created: inv.created,

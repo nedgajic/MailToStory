@@ -10,7 +10,7 @@ import { ensureWorkspaceForUser, hashToken, newRawToken } from "@/lib/workspace"
 import { appUrl, sendVerifyEmail } from "@/lib/email/send";
 
 export async function POST(req: Request) {
-  let body: { name?: string; email?: string; password?: string };
+  let body: { name?: string; email?: string; password?: string; privacyConsent?: boolean };
   try {
     body = await req.json();
   } catch {
@@ -27,6 +27,12 @@ export async function POST(req: Request) {
   const passwordError = validatePassword(password);
   if (passwordError) {
     return NextResponse.json({ error: passwordError }, { status: 400 });
+  }
+  if (body.privacyConsent !== true) {
+    return NextResponse.json(
+      { error: "You must agree to the Terms and Privacy Policy." },
+      { status: 400 },
+    );
   }
 
   const existing = await prisma.user.findUnique({ where: { email } });

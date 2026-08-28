@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
+import { AuthModalTrigger } from "@/components/auth/auth-modal-trigger";
 
 function useMounted() {
   const [mounted, setMounted] = useState(false);
@@ -27,12 +28,12 @@ export function MarketingHeaderAuth() {
 
   return (
     <div className="mkt-header__auth">
-      <Link href="/login" className="mkt-btn mkt-btn--ghost">
+      <AuthModalTrigger mode="login" className="mkt-btn mkt-btn--ghost">
         Sign in
-      </Link>
-      <Link href="/signup" className="mkt-btn mkt-btn--cta">
+      </AuthModalTrigger>
+      <AuthModalTrigger mode="signup" className="mkt-btn mkt-btn--cta">
         Get started
-      </Link>
+      </AuthModalTrigger>
     </div>
   );
 }
@@ -54,12 +55,12 @@ export function MarketingMobileNavAuth() {
 
   return (
     <div className="mkt-header__auth">
-      <Link href="/login" className="mkt-btn mkt-btn--ghost">
+      <AuthModalTrigger mode="login" className="mkt-btn mkt-btn--ghost">
         Sign in
-      </Link>
-      <Link href="/signup" className="mkt-btn mkt-btn--cta">
+      </AuthModalTrigger>
+      <AuthModalTrigger mode="signup" className="mkt-btn mkt-btn--cta">
         Get started
-      </Link>
+      </AuthModalTrigger>
     </div>
   );
 }
@@ -81,13 +82,13 @@ export function MarketingHeroCta({ googleEnabled }: { googleEnabled: boolean }) 
 
   return (
     <div className="mkt-hero__ctas">
-      <Link href="/signup" className="mkt-btn mkt-btn--hero mkt-btn--lg">
+      <AuthModalTrigger mode="signup" className="mkt-btn mkt-btn--hero mkt-btn--lg">
         Get started free
-      </Link>
+      </AuthModalTrigger>
       {googleEnabled ? (
-        <Link href="/login" className="mkt-btn mkt-btn--outline-light mkt-btn--lg">
+        <AuthModalTrigger mode="login" className="mkt-btn mkt-btn--outline-light mkt-btn--lg">
           Sign in with Google
-        </Link>
+        </AuthModalTrigger>
       ) : null}
     </div>
   );

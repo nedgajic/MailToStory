@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/auth";
 import { getWorkspaceContext, isWorkspaceAdmin } from "@/lib/session";
 import { getStoryForWorkspace } from "@/lib/stories";
-import { getUpcomingBill } from "@/lib/dashboard-data";
+import type { PlanId } from "@/lib/billing/plans";
 import { AppTopBar, AppTopBarBackLink } from "@/components/app-top-bar";
 import { StoryDetail } from "./story-detail";
 
@@ -21,14 +21,13 @@ export default async function StoryPage({
   const { id } = await params;
   const story = await getStoryForWorkspace(ctx.workspace.id, id);
   if (!story) notFound();
-  const upcoming = await getUpcomingBill(ctx);
 
   return (
     <>
       <AppTopBar
         showNav
         canManageTeam={isWorkspaceAdmin(ctx.role)}
-        billingLabel={upcoming.label}
+        plan={ctx.workspace.plan as PlanId}
         contentMaxWidth="digest"
         startSlot={<AppTopBarBackLink />}
       />

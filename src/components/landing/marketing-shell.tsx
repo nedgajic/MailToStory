@@ -1,9 +1,9 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { BrandLogo } from "@/components/brand-logo";
 import { MarketingNavActions } from "@/components/landing/marketing-nav-actions";
 import { MarketingFooter } from "@/components/landing/marketing-footer";
-import { BRAND_ICON_PATH, BRAND_NAME } from "@/lib/brand";
+import { BRAND_LOGO_TEXT, BRAND_NAME } from "@/lib/brand";
 
 type MarketingShellProps = {
   children: ReactNode;
@@ -31,14 +31,12 @@ export function MarketingShell({
           }
         >
           <Link href="/" className="home-logo home-logo--nav">
-            <Image
-              src={BRAND_ICON_PATH}
-              alt=""
+            <BrandLogo
               width={32}
               height={32}
               className="home-logo__mark home-logo__mark--nav"
             />
-            <span className="home-logo__text">{BRAND_NAME}</span>
+            <span className="home-logo__text">{BRAND_LOGO_TEXT}</span>
           </Link>
           <MarketingNavActions showSignIn={showSignIn} />
         </div>

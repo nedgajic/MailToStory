@@ -20,6 +20,8 @@
     "@auth/prisma-adapter": "^2.11.2",
     "@google/generative-ai": "^0.24.1",
     "@prisma/client": "^5.22.0",
+    "@react-email/components": "^1.0.12",
+    "@react-email/render": "^2.1.0",
     "@react-pdf/renderer": "^4.5.1",
     "bcryptjs": "^3.0.3",
     "docx": "^9.6.1",

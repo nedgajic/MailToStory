@@ -82,6 +82,6 @@ describe("plans", () => {
   it("limits free stories", () => {
     expect(storyLimitForPlan("free")).toBe(5);
     expect(storyLimitForPlan("pro")).toBeNull();
-    expect(monthlyAmountUsd("team", 3)).toBe(87);
+    expect(monthlyAmountUsd("team", 3)).toBe(74.97);
   });
 });

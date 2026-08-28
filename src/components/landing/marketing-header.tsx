@@ -1,9 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import { useState } from "react";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { BRAND_ICON_PATH, BRAND_NAME } from "@/lib/brand";
+import { BrandLogo } from "@/components/brand-logo";
+import { BRAND_LOGO_TEXT, BRAND_NAME } from "@/lib/brand";
 import {
   MarketingHeaderAuth,
   MarketingMobileNavAuth,
@@ -39,15 +38,13 @@ export function MarketingHeader() {
           onClick={() => go("home")}
           aria-label={`${BRAND_NAME} home`}
         >
-          <Image
-            src={BRAND_ICON_PATH}
-            alt=""
-            width={40}
-            height={40}
+          <BrandLogo
+            width={56}
+            height={56}
             className="mkt-logo__img"
             priority
           />
-          <span className="mkt-logo__word">{BRAND_NAME}</span>
+          <span className="mkt-logo__word">{BRAND_LOGO_TEXT}</span>
         </button>
 
         <nav className="mkt-nav sn-site-header__nav-pill" aria-label="Primary">
@@ -64,7 +61,6 @@ export function MarketingHeader() {
         </nav>
 
         <div className="mkt-header__cta">
-          <ThemeToggle />
           <MarketingHeaderAuth />
         </div>
 
@@ -102,9 +98,6 @@ export function MarketingHeader() {
                 {label}
               </button>
             ))}
-            <div className="mkt-mobile-nav__theme">
-              <ThemeToggle />
-            </div>
             <MarketingMobileNavAuth />
           </div>
         </div>

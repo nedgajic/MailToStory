@@ -8,6 +8,8 @@ import {
 } from "@/components/app-top-bar";
 import { isAdminEmail } from "@/lib/admin";
 import { getAdminUserSummary, listAdminUsers } from "@/lib/adminUsers";
+import { getAdminStorageReport } from "@/lib/admin/storage-metrics";
+import { AdminStoragePanel } from "@/components/admin/admin-storage-panel";
 
 export const metadata = {
   title: "Admin — MailToStory",
@@ -33,9 +35,10 @@ export default async function AdminPage() {
     redirect("/dashboard");
   }
 
-  const [summary, users] = await Promise.all([
+  const [summary, users, storage] = await Promise.all([
     getAdminUserSummary(),
     listAdminUsers(),
+    getAdminStorageReport(),
   ]);
 
   return (
@@ -73,6 +76,11 @@ export default async function AdminPage() {
               <span className="admin-summary__label">Cached digests</span>
             </div>
           </div>
+
+          <AdminStoragePanel
+            metrics={storage.metrics}
+            suggestions={storage.suggestions}
+          />
 
           <div className="admin-table-wrap">
             <table className="admin-table">

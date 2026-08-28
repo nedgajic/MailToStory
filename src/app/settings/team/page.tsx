@@ -2,10 +2,12 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/auth";
 import { getWorkspaceContext, isWorkspaceAdmin } from "@/lib/session";
-import { getUpcomingBill } from "@/lib/dashboard-data";
+import type { PlanId } from "@/lib/billing/plans";
 import prisma from "@/lib/prisma";
 import { AppTopBar } from "@/components/app-top-bar";
 import { TeamManager } from "@/components/team/team-manager";
+import { TeamNameForm } from "@/components/team/team-name-form";
+import { inboundAddress } from "@/lib/workspace";
 
 export const metadata = { title: "Team — MailToStory" };
 
@@ -15,7 +17,6 @@ export default async function TeamSettingsPage() {
   const ctx = await getWorkspaceContext(session.user.id);
   if (!ctx) redirect("/login");
   if (!isWorkspaceAdmin(ctx.role)) redirect("/dashboard");
-  const upcoming = await getUpcomingBill(ctx);
 
   const [members, invites] = await Promise.all([
     prisma.workspaceMember.findMany({
@@ -33,16 +34,21 @@ export default async function TeamSettingsPage() {
       <AppTopBar
         showNav
         canManageTeam
-        billingLabel={upcoming.label}
+        plan={ctx.workspace.plan as PlanId}
         contentMaxWidth="app"
       />
       <main className="dash">
         <div className="dash__inner">
           <header className="dash__header">
-            <p className="home-kicker">Team</p>
-            <h1>Seats and people</h1>
+            <p className="home-kicker">Settings</p>
+            <h1>Team</h1>
             <p>Assign a seat by inviting an email. Unassign to free a seat.</p>
           </header>
+          <TeamNameForm
+            initialName={ctx.workspace.name}
+            inbound={inboundAddress(ctx.workspace.inboundLocalPart)}
+            plan={ctx.workspace.plan}
+          />
           <TeamManager
             seatQuantity={ctx.workspace.seatQuantity}
             members={members.map((m) => ({

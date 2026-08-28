@@ -4,7 +4,8 @@ import { authOptions } from "@/auth";
 import { getWorkspaceContext } from "@/lib/session";
 import prisma from "@/lib/prisma";
 import { generateAndSaveStory } from "@/lib/inbound/ingest";
-import { canGenerateStory } from "@/lib/billing/entitlements";
+import { evaluateGenerationGate } from "@/lib/billing/generation-limits";
+import { parsePlanId } from "@/lib/billing/plans";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -33,16 +34,19 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  if (!conversation.story) {
-    const quota = await canGenerateStory(ctx.workspace.plan, ctx.workspace.id);
-    if (!quota.allowed) {
-      return NextResponse.json(
-        {
-          error: `Free plan includes ${quota.limit} stories this month. Upgrade to generate more.`,
-        },
-        { status: 402 },
-      );
-    }
+  const hasExistingStory = Boolean(conversation.story);
+
+  const gate = await evaluateGenerationGate({
+    plan: parsePlanId(ctx.workspace.plan),
+    workspaceId: ctx.workspace.id,
+    conversationId,
+    seatQuantity: ctx.workspace.seatQuantity,
+    hasExistingStory,
+    manualRefresh: true,
+  });
+  if (!gate.allowed) {
+    const status = gate.reason === "free_story_quota" ? 402 : 429;
+    return NextResponse.json({ error: gate.message ?? "Generation blocked." }, { status });
   }
 
   try {

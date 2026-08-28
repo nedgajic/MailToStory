@@ -1,157 +1,8 @@
-/* Day = :root, night = html[data-theme="dark"] */
+/* Dark theme tokens (app default) */
 
 :root {
-  color-scheme: light;
-  --digest-export-bar-height: 2.75rem;
-  --app-top-bar-gradient: linear-gradient(
-    180deg,
-    #e2dcd4 0%,
-    #d4cdc4 100%
-  );
-  --app-top-bar-gradient-frosted: linear-gradient(
-    180deg,
-    rgba(226, 220, 212, 0.97) 0%,
-    rgba(212, 205, 196, 0.95) 100%
-  );
-  --app-top-bar-inbox-gradient: linear-gradient(
-    180deg,
-    #e4e9f1 0%,
-    #d4dbe6 100%
-  );
-  --app-top-bar-inbox-gradient-frosted: linear-gradient(
-    180deg,
-    rgba(228, 233, 241, 0.97) 0%,
-    rgba(212, 219, 230, 0.95) 100%
-  );
-  --app-top-bar-shadow: 0 1px 3px rgba(29, 53, 87, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.42);
-  --app-top-bar-border: rgba(29, 53, 87, 0.14);
-  --app-bg: #f2ede6;
-  --app-text: #171717;
-  --app-text-muted: #444;
-  --app-text-soft: #777;
-  --app-kicker: #888;
-  --app-btn-bg: #1a1a1a;
-  --app-btn-fg: #ffffff;
-  --app-accent: #1a73e8;
-  --text-primary: #202124;
-  --text-secondary: #3c4043;
-  --text-muted: #5f6368;
-  --focus-ring: #1a73e8;
-  --surface-muted: #ffffff;
-  --surface-muted-border: #e8eaed;
-  --code-block-bg: #f1f3f4;
-  --code-block-border: #dadce0;
-  --spinner-track: #e8eaed;
-  --spinner-accent: #1a73e8;
-  --theme-toggle-glyph: #4f5b93;
-  --theme-toggle-glyph-hover: #1a73e8;
-  --theme-toggle-bg: #ffffff;
-  --theme-toggle-border: #dadce0;
-  --theme-toggle-hover-ring: rgba(26, 115, 232, 0.16);
-
-  --digest-prose: #1a1a1a;
-  --digest-prose-soft: #555;
-  --digest-prose-softer: #666;
-  --digest-prose-faint: #888;
-  --digest-muted: #999;
-  --digest-title: #0f0f0f;
-  --digest-title-sub: #999;
-  --digest-participants-meta: #999;
-  --digest-border: #e8e3da;
-  --digest-border-strong: #e0dbd2;
-  --digest-surface: #f7f5f0;
-  --digest-surface-2: #f0ede7;
-  --digest-surface-3: #fafaf8;
-  --digest-surface-card: #fdfcfa;
-  --digest-modal-bg: #fdfcfa;
-  --digest-timeline-line: #d9d4cb;
-  --digest-progress-track: #e0dbd2;
-  --digest-recap-meta-border: #ebe6dd;
-  --digest-recap-kicker: #4a5568;
-  --digest-recap-summary: #1a1a1a;
-  --digest-recap-empty: #6b6560;
-  --digest-tab-bg-1: #f2efe9;
-  --digest-tab-bg-2: #e8e4dd;
-  --digest-tab-bg-3: #e0dbd4;
-  --digest-tab-border: #d2ccc2;
-  --digest-avatar-border: #d0c9bf;
-  --digest-avatar-bg-1: #f3eee6;
-  --digest-avatar-bg-2: #e8e2d8;
-  --digest-avatar-initials: #4a4540;
-  --digest-pdf-fg: #0f2844;
-  --digest-copy-fg: #1d3557;
-
-  /* Story speaker turn panels */
-  --digest-speaker-0-bg: #e6f4ea;
-  --digest-speaker-0-accent: #1b5e20;
-  --digest-speaker-1-bg: #fdecea;
-  --digest-speaker-1-accent: #b71c1c;
-  --digest-speaker-2-bg: #fff9e6;
-  --digest-speaker-2-accent: #f57c00;
-  --digest-speaker-3-bg: #fff0e0;
-  --digest-speaker-3-accent: #e65100;
-  --digest-speaker-4-bg: #f3e5f5;
-  --digest-speaker-4-accent: #6a1b9a;
-  --digest-attachment-on-panel-inner: rgba(255, 255, 255, 0.55);
-
-  --inbox-shell-bg: #f6f8fc;
-  --inbox-text: #202124;
-  --inbox-text-secondary: #5f6368;
-  --inbox-title: #202124;
-  --inbox-error: #c5221f;
-  --inbox-toolbar-bg: #ffffff;
-  --inbox-toolbar-border: #dadce0;
-  --inbox-filter-bg: #ffffff;
-  --inbox-filter-border: #dadce0;
-  --inbox-search-border: #dadce0;
-  --inbox-search-bg: #ffffff;
-  --inbox-search-placeholder: #80868b;
-  --inbox-search-focus: #1a73e8;
-  --inbox-list-border: #dadce0;
-  --inbox-list-bg: #ffffff;
-  --inbox-list-header-bg: #f1f3f4;
-  --inbox-row-bg: #ffffff;
-  --inbox-row-stripe-bg: #f6f9fe;
-  --inbox-row-hover-bg: #f2f6fc;
-  --inbox-row-unread-bg: #f2f6fc;
-  --inbox-row-unread-hover: #e8f0fe;
-  --inbox-border-row: #e8eaed;
-  --inbox-gutter-icon: #5f6368;
-  --inbox-tool-hover: rgba(32, 33, 36, 0.06);
-  --inbox-tool-active-fg: #202124;
-  --inbox-subject: #202124;
-  --inbox-snippet: #5f6368;
-  --inbox-dash: #80868b;
-  --inbox-date: #5f6368;
-  --inbox-header-label: #5f6368;
-  --inbox-count: #5f6368;
-  --inbox-count-multi-fg: #174ea6;
-  --inbox-count-multi-bg: rgba(26, 115, 232, 0.14);
-  --inbox-multi-border: #1a73e8;
-  --inbox-multi-grad-a: rgba(26, 115, 232, 0.12);
-  --inbox-multi-grad-b: rgba(255, 255, 255, 0);
-  --inbox-multi-hover-end: #f2f6fc;
-  --inbox-multi-unread-grad-b: rgba(241, 243, 244, 1);
-  --inbox-multi-unread-hover-end: #e8f0fe;
-  --inbox-pagination-border: #dadce0;
-  --inbox-pagination-btn-border: #dadce0;
-  --inbox-pagination-btn-bg: #ffffff;
-  --inbox-pagination-btn-fg: #1a73e8;
-  --inbox-pagination-btn-hover: #f8f9fa;
-  --inbox-accent-blue: #1a73e8;
-  --inbox-accent-green: #34a853;
-  --inbox-accent-violet: #7c4dff;
-
-  --inbox-g-multi-0: rgba(26, 115, 232, 0.12);
-  --inbox-g-multi-hover-0: rgba(26, 115, 232, 0.2);
-  --inbox-g-multi-unread-0: rgba(26, 115, 232, 0.14);
-  --inbox-g-multi-unread-hover-0: rgba(26, 115, 232, 0.22);
-  --inbox-multi-border-unread: #174ea6;
-}
-
-html[data-theme="dark"] {
   color-scheme: dark;
+  --digest-export-bar-height: 2.75rem;
   --app-top-bar-gradient: linear-gradient(
     180deg,
     #2c2d30 0%,
@@ -193,11 +44,6 @@ html[data-theme="dark"] {
   --code-block-border: #5f6368;
   --spinner-track: #3c4043;
   --spinner-accent: #8ab4f8;
-  --theme-toggle-glyph: #fdd663;
-  --theme-toggle-glyph-hover: #ffe082;
-  --theme-toggle-bg: #303134;
-  --theme-toggle-border: #5f6368;
-  --theme-toggle-hover-ring: rgba(253, 214, 99, 0.22);
 
   --digest-prose: #e8eaed;
   --digest-prose-soft: #bdc1c6;
@@ -231,7 +77,18 @@ html[data-theme="dark"] {
   --digest-pdf-fg: #e8eaed;
   --digest-copy-fg: #8ab4f8;
 
-  /* Story speaker turn panels (dark hues + light prose via --digest-prose) */
+  /* Plan colors — Free blue, Pro green, Team gold (Staynio-style) */
+  --plan-free: 205 70% 62%;
+  --plan-free-soft: 205 70% 62% / 0.16;
+  --plan-free-border: 205 70% 58% / 0.5;
+  --plan-pro: 155 48% 48%;
+  --plan-pro-soft: 155 48% 48% / 0.16;
+  --plan-pro-border: 155 48% 44% / 0.5;
+  --plan-team: 43 88% 56%;
+  --plan-team-soft: 43 88% 56% / 0.18;
+  --plan-team-border: 43 84% 52% / 0.55;
+
+  /* Story speaker turn panels */
   --digest-speaker-0-bg: #1a2820;
   --digest-speaker-0-accent: #81c995;
   --digest-speaker-1-bg: #2a1f22;

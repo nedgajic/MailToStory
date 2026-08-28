@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { DM_Mono, Lora } from "next/font/google";
-import { BRAND_NAME, BRAND_URL } from "@/lib/brand";
+import { BRAND_ICON_PATH, BRAND_NAME, BRAND_URL } from "@/lib/brand";
+import { googleAuthEnabled } from "@/lib/google-auth-enabled";
 import "./theme-tokens.css";
 import "./globals.css";
-import { GoogleAnalytics } from "@/components/google-analytics";
+import "./cookie-consent.css";
+import "./auth-modal.css";
 import { Providers } from "@/components/providers";
-import { THEME_INIT_SCRIPT } from "@/lib/theme";
 
 const lora = Lora({
   subsets: ["latin"],
@@ -25,6 +26,10 @@ export const metadata: Metadata = {
   title: `${BRAND_NAME} — Forward a thread, read the story`,
   description:
     "Sign up with any email. Forward threads to a private address and get structured stories, timelines, and action lists.",
+  icons: {
+    icon: [{ url: BRAND_ICON_PATH, type: "image/png" }],
+    apple: [{ url: "/apple-touch-icon.png", type: "image/png" }],
+  },
 };
 
 export default function RootLayout({
@@ -35,20 +40,10 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      suppressHydrationWarning
-      data-theme="light"
       className={`${lora.variable} ${dmMono.variable}`}
     >
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: THEME_INIT_SCRIPT,
-          }}
-        />
-      </head>
       <body>
-        <GoogleAnalytics />
-        <Providers>{children}</Providers>
+        <Providers googleEnabled={googleAuthEnabled()}>{children}</Providers>
       </body>
     </html>
   );

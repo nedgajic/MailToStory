@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { BRAND_PRIVACY_URL, BRAND_TERMS_URL, BRAND_URL } from "@/lib/brand";
+import { BRAND_COOKIE_URL, BRAND_DATA_REQUEST_URL, BRAND_PRIVACY_URL, BRAND_TERMS_URL, BRAND_URL } from "@/lib/brand";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const lastModified = new Date();
@@ -21,6 +21,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified,
       changeFrequency: "yearly",
       priority: 0.5,
+    },
+    {
+      url: BRAND_COOKIE_URL,
+      lastModified,
+      changeFrequency: "yearly",
+      priority: 0.5,
+    },
+    {
+      url: BRAND_DATA_REQUEST_URL,
+      lastModified,
+      changeFrequency: "yearly",
+      priority: 0.4,
     },
   ];
 }

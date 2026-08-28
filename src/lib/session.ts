@@ -26,6 +26,7 @@ export type WorkspaceContext = {
     currentPeriodStart: Date | null;
   };
   role: MemberRole;
+  notifyStoryReady: boolean;
 };
 
 export async function getSessionUserId(): Promise<string | null> {
@@ -104,6 +105,7 @@ function toContext(
   },
   membership: {
     role: string;
+    notifyStoryReady: boolean;
     workspace: {
       id: string;
       name: string;
@@ -143,6 +145,7 @@ function toContext(
       currentPeriodStart: membership.workspace.currentPeriodStart,
     },
     role,
+    notifyStoryReady: membership.notifyStoryReady,
   };
 }
 
