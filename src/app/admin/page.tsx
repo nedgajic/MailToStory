@@ -2,10 +2,6 @@ import Link from "next/link";
 import { getServerSession } from "next-auth/next";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/auth";
-import {
-  AppTopBar,
-  AppTopBarBackLink,
-} from "@/components/app-top-bar";
 import { isAdminEmail } from "@/lib/admin";
 import { getAdminUserSummary, listAdminUsers } from "@/lib/adminUsers";
 import { getAdminStorageReport } from "@/lib/admin/storage-metrics";
@@ -45,7 +41,6 @@ export default async function AdminPage() {
 
   return (
     <>
-      <AppTopBar startSlot={<AppTopBarBackLink />} contentMaxWidth="digest" />
       <main className="admin-page">
         <div className="admin-page__inner">
           <header className="admin-page__header">

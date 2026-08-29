@@ -16,6 +16,10 @@ import {
   validateSeatChange,
 } from "@/lib/billing/seats";
 import { updateWorkspaceIdentity } from "@/lib/workspace";
+import {
+  applyPlatformAdminPlanChange,
+  isPlatformAdmin,
+} from "@/lib/billing/platform-admin-billing";
 
 async function applyTeamNameIfNeeded(
   workspaceId: string,
@@ -36,9 +40,6 @@ export async function POST(req: Request) {
   if (!isWorkspaceAdmin(ctx.role)) {
     return NextResponse.json({ error: "Only owners and admins can change plans." }, { status: 403 });
   }
-  if (!stripeConfigured() || !ctx.workspace.stripeSubscriptionId) {
-    return NextResponse.json({ error: "No active subscription." }, { status: 400 });
-  }
 
   let body: {
     plan?: PlanId;
@@ -52,6 +53,22 @@ export async function POST(req: Request) {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  if (isPlatformAdmin(session.user.email)) {
+    try {
+      const result = await applyPlatformAdminPlanChange(ctx, body);
+      return NextResponse.json({ ok: true, adminBypass: true, ...result });
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "Could not change plan." },
+        { status: 400 },
+      );
+    }
+  }
+
+  if (!stripeConfigured() || !ctx.workspace.stripeSubscriptionId) {
+    return NextResponse.json({ error: "No active subscription." }, { status: 400 });
   }
 
   const plan = parsePlanId(body.plan);

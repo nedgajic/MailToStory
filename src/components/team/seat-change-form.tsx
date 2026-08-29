@@ -27,6 +27,7 @@ export function SeatChangeForm({
   seatsUsed,
   interval,
   stripeReady,
+  platformAdminBilling = false,
   members,
   invites,
   compact = false,
@@ -36,6 +37,7 @@ export function SeatChangeForm({
   seatsUsed: number;
   interval: BillingInterval;
   stripeReady: boolean;
+  platformAdminBilling?: boolean;
   members: Member[];
   invites: Invite[];
   compact?: boolean;
@@ -66,6 +68,7 @@ export function SeatChangeForm({
   const pricePerSeat = planUnitAmountUsd("team", interval);
   const currentTotal = billingAmountUsd("team", interval, seatQuantity);
   const nextTotal = billingAmountUsd("team", interval, targetSeats);
+  const canChangeSeats = stripeReady || platformAdminBilling;
 
   useEffect(() => {
     if (requiredRemovals > 0) {
@@ -220,7 +223,7 @@ export function SeatChangeForm({
         type="submit"
         disabled={
           busy ||
-          !stripeReady ||
+          !canChangeSeats ||
           unchanged ||
           (requiredRemovals > 0 && removeMemberIds.length < requiredRemovals)
         }

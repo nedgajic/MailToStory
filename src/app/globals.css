@@ -1164,6 +1164,10 @@ button.home-nav__signin {
   padding: 2.5rem 1.5rem 4rem;
 }
 
+.home--marketing-header .home-legal {
+  padding-top: calc(var(--mkt-header-height, 4.75rem) + 1.5rem);
+}
+
 .home-legal__inner {
   max-width: 42rem;
   margin: 0 auto;
@@ -1337,7 +1341,7 @@ button.home-nav__signin {
 }
 
 /* Sticky app chrome — solid fallbacks; frosted layer only inside @supports */
-.app-top-bar {
+.app-top-bar:not(.app-top-bar--shell) {
   position: fixed;
   top: 0;
   left: 0;
@@ -1360,7 +1364,7 @@ button.home-nav__signin {
 }
 
 @supports (backdrop-filter: blur(12px)) {
-  .app-top-bar:not(.app-top-bar--inbox) {
+  .app-top-bar:not(.app-top-bar--inbox):not(.app-top-bar--shell) {
     background: var(--app-top-bar-gradient-frosted);
     backdrop-filter: blur(14px) saturate(1.05);
     -webkit-backdrop-filter: blur(14px) saturate(1.05);
@@ -5507,10 +5511,8 @@ a:focus-visible {
 /* ── Admin dashboard ── */
 
 .admin-page {
-  padding: 1.5rem 1rem 3rem;
-  color: var(--app-text);
-  background: var(--app-bg);
-  min-height: calc(100vh - 3.5rem);
+  padding: calc(var(--mkt-header-height, 4.75rem) + 1.5rem) 1rem 3rem;
+  min-height: 100dvh;
 }
 
 .admin-page__inner {
@@ -6341,15 +6343,16 @@ a:focus-visible {
   align-items: center;
   gap: 0.5rem 0.75rem;
   padding: 0.65rem 0.85rem;
-  border: 1px solid var(--app-border, rgba(0, 0, 0, 0.08));
+  border: 1px solid rgb(138 180 248 / 0.12);
   border-radius: 0.5rem;
-  background: var(--app-surface, #fff);
+  background: rgb(255 255 255 / 0.04);
+  color: var(--app-text);
 }
 
 .dash-forwarding__badge {
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--app-text-muted);
+  color: var(--app-text-soft);
   text-transform: uppercase;
   letter-spacing: 0.02em;
 }
@@ -6365,8 +6368,14 @@ a:focus-visible {
   flex: 1 1 12rem;
   min-width: 0;
   padding: 0.55rem 0.75rem;
-  border: 1px solid var(--app-border, rgba(0, 0, 0, 0.12));
+  border: 1px solid rgb(138 180 248 / 0.12);
   border-radius: 0.45rem;
+  background: rgb(255 255 255 / 0.04);
+  color: var(--app-text);
+}
+
+.dash-forwarding__add input::placeholder {
+  color: var(--app-text-soft);
 }
 
 .dash-forwarding__add button,
@@ -6391,7 +6400,7 @@ a:focus-visible {
   padding: 0.35rem 0.65rem;
   border: none;
   background: transparent;
-  color: var(--app-text-muted);
+  color: var(--app-text-soft);
   font-size: 0.85rem;
   cursor: pointer;
   text-decoration: underline;
@@ -6401,7 +6410,7 @@ a:focus-visible {
   padding: 0.35rem 0.65rem;
   border: none;
   background: transparent;
-  color: var(--app-accent, #1d3557);
+  color: var(--app-accent);
   font-size: 0.85rem;
   cursor: pointer;
   text-decoration: underline;
@@ -6416,14 +6425,15 @@ a:focus-visible {
 
 .dash-forwarding__quarantine {
   padding-top: 0.5rem;
-  border-top: 1px solid var(--app-border, rgba(0, 0, 0, 0.08));
+  border-top: 1px solid rgb(138 180 248 / 0.12);
 }
 
 .dash-forwarding__held {
   margin-top: 0.85rem;
   padding: 0.85rem;
-  border: 1px dashed var(--app-border, rgba(0, 0, 0, 0.15));
+  border: 1px dashed rgb(138 180 248 / 0.2);
   border-radius: 0.5rem;
+  background: rgb(255 255 255 / 0.02);
 }
 
 .dash-forwarding__held-head {

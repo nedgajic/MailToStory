@@ -7,7 +7,10 @@
   },
   "scripts": {
     "doctor": "node scripts/preflight.mjs",
-    "dev": "NODE_OPTIONS='--disable-warning=DEP0108' next dev --webpack",
+    "db:migrate": "node scripts/ensure-migrations.mjs",
+    "postinstall": "prisma generate",
+    "prepare": "node scripts/install-git-hooks.mjs",
+    "dev": "node scripts/ensure-migrations.mjs && NODE_OPTIONS='--disable-warning=DEP0108' next dev --webpack -p 3001",
     "build": "NODE_OPTIONS='--disable-warning=DEP0108' next build",
     "start": "NODE_OPTIONS='--disable-warning=DEP0108' next start",
     "deploy": "./deploy.sh",

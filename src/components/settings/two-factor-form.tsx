@@ -31,7 +31,9 @@ export function TwoFactorForm({
       const res = await fetch("/api/account/2fa/setup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ currentPassword }),
+        body: JSON.stringify(
+          hasPassword ? { currentPassword } : {},
+        ),
       });
       const data = (await res.json()) as {
         error?: string;
@@ -88,7 +90,10 @@ export function TwoFactorForm({
       const res = await fetch("/api/account/2fa/disable", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ currentPassword, code }),
+        body: JSON.stringify({
+          ...(hasPassword ? { currentPassword } : {}),
+          code,
+        }),
       });
       const data = (await res.json()) as { error?: string; message?: string; reauth?: boolean };
       if (!res.ok) {
@@ -104,15 +109,6 @@ export function TwoFactorForm({
     } finally {
       setBusy(false);
     }
-  }
-
-  if (!hasPassword) {
-    return (
-      <p className="dash-muted">
-        Set a password first if you want to protect email sign-in with an authenticator app.
-        Google sign-in is not affected.
-      </p>
-    );
   }
 
   if (backupCodes && backupCodes.length > 0) {
@@ -143,19 +139,21 @@ export function TwoFactorForm({
     return (
       <form className="auth-form" onSubmit={(e) => void disableTwoFactor(e)}>
         <p className="dash-muted">
-          Two-factor authentication is enabled for email sign-in. You will need your
-          authenticator app or a backup code when signing in with password.
+          Two-factor authentication is enabled. You will need your authenticator app or a
+          backup code whenever you sign in with Google or email and password.
         </p>
-        <label className="auth-form__field">
-          Current password
-          <input
-            type="password"
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            autoComplete="current-password"
-            required
-          />
-        </label>
+        {hasPassword ? (
+          <label className="auth-form__field">
+            Current password
+            <input
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              autoComplete="current-password"
+              required
+            />
+          </label>
+        ) : null}
         <label className="auth-form__field">
           Authenticator or backup code
           <input
@@ -209,18 +207,20 @@ export function TwoFactorForm({
     <div className="dash-panel__stack">
       <p className="dash-muted">
         Add an authenticator app (Google Authenticator, 1Password, Authy, etc.) for extra
-        protection when signing in with email and password.
+        protection on every sign-in — Google or email and password.
       </p>
-      <label className="auth-form__field">
-        Current password
-        <input
-          type="password"
-          value={currentPassword}
-          onChange={(e) => setCurrentPassword(e.target.value)}
-          autoComplete="current-password"
-          required
-        />
-      </label>
+      {hasPassword ? (
+        <label className="auth-form__field">
+          Current password
+          <input
+            type="password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            autoComplete="current-password"
+            required
+          />
+        </label>
+      ) : null}
       {error ? <p className="auth-form__error">{error}</p> : null}
       {message ? <p className="dash-banner__feedback">{message}</p> : null}
       <button

@@ -34,17 +34,16 @@ export async function POST(req: Request) {
       twoFactorEnabled: true,
     },
   });
-  if (!user?.passwordHash) {
-    return NextResponse.json(
-      { error: "Set a password before enabling two-factor authentication." },
-      { status: 400 },
-    );
+  if (!user) {
+    return NextResponse.json({ error: "Account not found." }, { status: 400 });
   }
   if (user.twoFactorEnabled) {
     return NextResponse.json({ error: "Two-factor authentication is already enabled." }, { status: 400 });
   }
-  if (!(await verifyPassword(body.currentPassword ?? "", user.passwordHash))) {
-    return NextResponse.json({ error: "Current password is incorrect." }, { status: 400 });
+  if (user.passwordHash) {
+    if (!(await verifyPassword(body.currentPassword ?? "", user.passwordHash))) {
+      return NextResponse.json({ error: "Current password is incorrect." }, { status: 400 });
+    }
   }
 
   const secret = generateTotpSecret();

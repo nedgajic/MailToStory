@@ -5,6 +5,7 @@ import { getWorkspaceContext, isWorkspaceAdmin } from "@/lib/session";
 import type { PlanId } from "@/lib/billing/plans";
 import { intervalFromStripePriceId } from "@/lib/billing/plans";
 import { stripeConfigured } from "@/lib/billing/stripe";
+import { isPlatformAdmin } from "@/lib/billing/platform-admin-billing";
 import prisma from "@/lib/prisma";
 import { AppTopBar } from "@/components/app-top-bar";
 import { TeamManager } from "@/components/team/team-manager";
@@ -67,6 +68,7 @@ export default async function TeamSettingsPage() {
               seatsUsed={seatsUsed}
               interval={billingInterval}
               stripeReady={stripeConfigured()}
+              platformAdminBilling={isPlatformAdmin(session.user.email)}
               members={members.map((m) => ({
                 id: m.id,
                 email: m.user.email,

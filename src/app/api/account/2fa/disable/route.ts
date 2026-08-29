@@ -31,11 +31,13 @@ export async function POST(req: Request) {
       twoFactorBackupCodes: true,
     },
   });
-  if (!user?.passwordHash || !user.twoFactorEnabled || !user.twoFactorSecret) {
+  if (!user?.twoFactorEnabled || !user.twoFactorSecret) {
     return NextResponse.json({ error: "Two-factor authentication is not enabled." }, { status: 400 });
   }
-  if (!(await verifyPassword(body.currentPassword ?? "", user.passwordHash))) {
-    return NextResponse.json({ error: "Current password is incorrect." }, { status: 400 });
+  if (user.passwordHash) {
+    if (!(await verifyPassword(body.currentPassword ?? "", user.passwordHash))) {
+      return NextResponse.json({ error: "Current password is incorrect." }, { status: 400 });
+    }
   }
 
   const email = user.email ?? ctx.email;

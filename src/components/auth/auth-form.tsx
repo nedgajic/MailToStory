@@ -2,20 +2,25 @@
 
 import { signIn } from "next-auth/react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { GoogleSignInButton } from "@/components/google-sign-in-button";
+import { nextAuthErrorMessage } from "@/lib/auth-errors";
 import { BRAND_PRIVACY_PATH, BRAND_TERMS_PATH } from "@/lib/brand";
 
 export function AuthForm({
   mode,
   googleEnabled,
   callbackUrl = "/dashboard",
+  authError,
+  twoFactorToken,
   variant = "page",
   onSwitchMode,
 }: {
   mode: "login" | "signup";
   googleEnabled: boolean;
   callbackUrl?: string;
+  authError?: string | null;
+  twoFactorToken?: string | null;
   variant?: "page" | "modal";
   onSwitchMode?: (mode: "login" | "signup") => void;
 }) {
@@ -29,6 +34,32 @@ export function AuthForm({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const isModal = variant === "modal";
+
+  useEffect(() => {
+    setError(nextAuthErrorMessage(authError));
+  }, [authError]);
+
+  async function completeOAuthTwoFactor(e: React.FormEvent) {
+    e.preventDefault();
+    if (!twoFactorToken) return;
+    setError(null);
+    setBusy(true);
+    try {
+      const result = await signIn("credentials", {
+        twoFactorLoginToken: twoFactorToken,
+        totpCode,
+        redirect: false,
+        callbackUrl,
+      });
+      if (result?.error) {
+        setError("Incorrect authentication code.");
+        return;
+      }
+      window.location.href = callbackUrl;
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -81,6 +112,61 @@ export function AuthForm({
     } finally {
       setBusy(false);
     }
+  }
+
+  if (twoFactorToken && mode === "login") {
+    const twoFactorBody = (
+      <form className={isModal ? "auth-modal-form" : "auth-form"} onSubmit={(e) => void completeOAuthTwoFactor(e)}>
+        <label className={isModal ? "auth-modal-form__field" : "auth-form__field"}>
+          Authentication code
+          <input
+            value={totpCode}
+            onChange={(e) => setTotpCode(e.target.value)}
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            pattern="\d{6}"
+            required
+            placeholder="6-digit code"
+            autoFocus
+          />
+        </label>
+        {error ? (
+          <p className={isModal ? "auth-modal-form__error" : "auth-form__error"}>{error}</p>
+        ) : null}
+        <button
+          className={isModal ? "auth-modal-form__submit" : "home-cta home-cta--primary"}
+          type="submit"
+          disabled={busy}
+        >
+          {busy ? "Verifying…" : "Continue"}
+        </button>
+      </form>
+    );
+
+    if (isModal) {
+      return (
+        <>
+          <p className="auth-modal-form__kicker">Almost there</p>
+          <h2 className="auth-modal-form__title" id="authModalTitle">
+            Two-factor authentication
+          </h2>
+          <p className="auth-modal-form__lead">
+            Enter the 6-digit code from your authenticator app to finish signing in.
+          </p>
+          {twoFactorBody}
+        </>
+      );
+    }
+
+    return (
+      <div className="auth-card">
+        <h1 className="auth-card__title">Two-factor authentication</h1>
+        <p className="auth-card__lead">
+          Enter the 6-digit code from your authenticator app to finish signing in.
+        </p>
+        {twoFactorBody}
+      </div>
+    );
   }
 
   if (isModal) {

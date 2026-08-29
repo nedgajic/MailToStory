@@ -2,29 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { BrandLogo } from "@/components/brand-logo";
-import { BRAND_NAME, BRAND_LOGO_TEXT, HELP_NAV_LINK, LEGAL_NAV_LINKS } from "@/lib/brand";
-import { isAdminEmail } from "@/lib/admin";
-import { createPortal } from "react-dom";
+import { AppUserMenu } from "@/components/app-user-menu";
+import { BRAND_NAME, BRAND_LOGO_TEXT } from "@/lib/brand";
 import {
   useEffect,
-  useLayoutEffect,
   useRef,
   useState,
   type ReactNode,
 } from "react";
 import type { PlanId } from "@/lib/billing/plans";
 import "@/app/marketing-home.css";
-
-function getInitials(name: string) {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-}
 
 const APP_NAV = [
   { href: "/dashboard", label: "Overview" },
@@ -65,53 +54,13 @@ export function AppTopBar({
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [userDropdownPos, setUserDropdownPos] = useState<{ top: number; right: number } | null>(
-    null,
-  );
-  const userMenuRef = useRef<HTMLDivElement>(null);
-  const userDropdownRef = useRef<HTMLDivElement>(null);
   const settingsRef = useRef<HTMLDivElement>(null);
-  const { data: session, status: sessionStatus } = useSession();
-
-  useLayoutEffect(() => {
-    if (!userMenuOpen) {
-      setUserDropdownPos(null);
-      return;
-    }
-    const menuRoot = userMenuRef.current;
-    if (!menuRoot || !menuRoot.querySelector(".app-top-bar__user-trigger")) return;
-
-    function updatePosition() {
-      const root = userMenuRef.current;
-      if (!root) return;
-      const btn = root.querySelector<HTMLButtonElement>(".app-top-bar__user-trigger");
-      if (!btn) return;
-      const r = btn.getBoundingClientRect();
-      setUserDropdownPos({
-        top: r.bottom + 6,
-        right: window.innerWidth - r.right,
-      });
-    }
-
-    updatePosition();
-    window.addEventListener("scroll", updatePosition, true);
-    window.addEventListener("resize", updatePosition);
-    return () => {
-      window.removeEventListener("scroll", updatePosition, true);
-      window.removeEventListener("resize", updatePosition);
-    };
-  }, [userMenuOpen]);
+  const { data: session } = useSession();
 
   useEffect(() => {
-    if (!userMenuOpen && !settingsOpen) return;
+    if (!settingsOpen) return;
     function onDocMouseDown(e: MouseEvent) {
       const t = e.target as Node;
-      if (userMenuOpen) {
-        if (userMenuRef.current?.contains(t)) return;
-        if (userDropdownRef.current?.contains(t)) return;
-        setUserMenuOpen(false);
-      }
       if (settingsOpen) {
         if (settingsRef.current?.contains(t)) return;
         setSettingsOpen(false);
@@ -119,7 +68,6 @@ export function AppTopBar({
     }
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
-        setUserMenuOpen(false);
         setSettingsOpen(false);
       }
     }
@@ -129,115 +77,17 @@ export function AppTopBar({
       document.removeEventListener("mousedown", onDocMouseDown);
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [userMenuOpen, settingsOpen]);
+  }, [settingsOpen]);
 
   useEffect(() => {
     setSettingsOpen(false);
     setMenuOpen(false);
   }, [pathname]);
 
-  const accountUser = session?.user;
-  const accountLabel =
-    accountUser?.name?.trim() ||
-    accountUser?.email?.split("@")[0]?.trim() ||
-    "Account";
-  const accountInitials = getInitials(
-    accountUser?.name?.trim() || accountUser?.email || "?",
-  );
-  const showAdminLink = isAdminEmail(accountUser?.email);
+  const showAdminLink = session?.user?.isAdmin === true;
 
   const userMenu = (
-    <>
-      <div className="app-top-bar__user-menu" ref={userMenuRef}>
-        <button
-          type="button"
-          className="app-top-bar__user-trigger app-top-bar__user-trigger--shell"
-          aria-label={`Account menu for ${accountLabel}`}
-          aria-haspopup="menu"
-          aria-expanded={userMenuOpen}
-          disabled={sessionStatus === "loading"}
-          onClick={() => setUserMenuOpen((o) => !o)}
-        >
-          {accountUser?.image ? (
-            <img
-              src={accountUser.image}
-              alt=""
-              width={32}
-              height={32}
-              className="app-top-bar__user-img"
-              referrerPolicy="no-referrer"
-            />
-          ) : (
-            <span className="app-top-bar__user-initials" aria-hidden>
-              {sessionStatus === "loading" ? "…" : accountInitials}
-            </span>
-          )}
-        </button>
-      </div>
-      {userMenuOpen && userDropdownPos && typeof document !== "undefined"
-        ? createPortal(
-            <div
-              ref={userDropdownRef}
-              className="app-top-bar__user-dropdown app-top-bar__user-dropdown--fixed"
-              style={{
-                top: userDropdownPos.top,
-                right: userDropdownPos.right,
-              }}
-              role="menu"
-            >
-              <a
-                href={HELP_NAV_LINK.path}
-                role="menuitem"
-                className="app-top-bar__user-item app-top-bar__user-item--link"
-                onClick={() => setUserMenuOpen(false)}
-              >
-                {HELP_NAV_LINK.label}
-              </a>
-              {LEGAL_NAV_LINKS.map((link) => (
-                <a
-                  key={link.path}
-                  href={link.path}
-                  role="menuitem"
-                  className="app-top-bar__user-item app-top-bar__user-item--link"
-                  onClick={() => setUserMenuOpen(false)}
-                >
-                  {link.label}
-                </a>
-              ))}
-              <Link
-                href="/settings/profile"
-                role="menuitem"
-                className="app-top-bar__user-item app-top-bar__user-item--link"
-                onClick={() => setUserMenuOpen(false)}
-              >
-                Profile
-              </Link>
-              {showAdminLink ? (
-                <Link
-                  href="/admin"
-                  role="menuitem"
-                  className="app-top-bar__user-item app-top-bar__user-item--link"
-                  onClick={() => setUserMenuOpen(false)}
-                >
-                  Admin dashboard
-                </Link>
-              ) : null}
-              <button
-                type="button"
-                role="menuitem"
-                className="app-top-bar__user-item"
-                onClick={() => {
-                  setUserMenuOpen(false);
-                  void signOut({ callbackUrl: "/" });
-                }}
-              >
-                Log out
-              </button>
-            </div>,
-            document.body,
-          )
-        : null}
-    </>
+    <AppUserMenu triggerClassName="app-top-bar__user-trigger--shell" />
   );
 
   if (showNav) {
@@ -250,7 +100,10 @@ export function AppTopBar({
     const settingsActive = isSettingsActive(pathname);
 
     return (
-      <header className="mkt-header sn-site-header app-top-bar app-top-bar--shell" role="banner">
+      <header
+        className="mkt-header mkt-header--scrolled sn-site-header app-top-bar app-top-bar--shell"
+        role="banner"
+      >
         <div className="mkt-container mkt-header__inner">
           <Link href="/" className="mkt-logo" aria-label={`${BRAND_NAME} home`}>
             <BrandLogo
@@ -315,11 +168,19 @@ export function AppTopBar({
                 </div>
               ) : null}
             </div>
+
+            {showAdminLink ? (
+              <Link href="/admin" className={navClass("/admin")}>
+                Admin
+              </Link>
+            ) : null}
           </nav>
 
-          <div className="mkt-header__cta app-top-bar__shell-end">{userMenu}</div>
+          <div className="mkt-header__cta app-top-bar__shell-end app-top-bar__shell-user app-top-bar__shell-user--desktop">
+            {userMenu}
+          </div>
 
-          <div className="mkt-header__end">
+          <div className="mkt-header__end app-top-bar__shell-mobile-end">
             <button
               type="button"
               className="mkt-header__menu-btn"
@@ -337,6 +198,9 @@ export function AppTopBar({
                 </svg>
               )}
             </button>
+            <div className="app-top-bar__shell-user app-top-bar__shell-user--mobile">
+              {userMenu}
+            </div>
           </div>
         </div>
 
@@ -368,6 +232,19 @@ export function AppTopBar({
                   {label}
                 </Link>
               ))}
+              {showAdminLink ? (
+                <Link
+                  href="/admin"
+                  className={
+                    (isNavActive(pathname, "/admin")
+                      ? "mkt-nav__btn mkt-nav__btn--active"
+                      : "mkt-nav__btn") + " mkt-nav__btn--mobile"
+                  }
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Admin
+                </Link>
+              ) : null}
             </div>
           </div>
         ) : null}

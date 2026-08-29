@@ -35,7 +35,7 @@ The privacy link on the homepage footer and in the app account menu must match t
 https://mailtostory.com
 ```
 
-(Optional for local dev on the same client: `http://localhost:3000`)
+(Optional for local dev on the same client: `http://localhost:3001`)
 
 **Authorized redirect URIs**
 
@@ -43,7 +43,7 @@ https://mailtostory.com
 https://mailtostory.com/api/auth/callback/google
 ```
 
-(Optional for local dev: `http://localhost:3000/api/auth/callback/google`)
+(Optional for local dev: `http://localhost:3001/api/auth/callback/google`)
 
 ## Authorized domains
 

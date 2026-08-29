@@ -5,6 +5,7 @@ import { getWorkspaceContext, isWorkspaceAdmin } from "@/lib/session";
 import type { PlanId } from "@/lib/billing/plans";
 import { intervalFromStripePriceId } from "@/lib/billing/plans";
 import { getDashboardData } from "@/lib/dashboard-data";
+import { isPlatformAdmin } from "@/lib/billing/platform-admin-billing";
 import prisma from "@/lib/prisma";
 import { AppTopBar } from "@/components/app-top-bar";
 import { BillingPanel } from "@/components/dashboard/billing-panel";
@@ -96,6 +97,7 @@ export default async function BillingSettingsPage({
             seatsUsed={data.seatsUsed}
             cancelAtPeriodEnd={ctx.workspace.cancelAtPeriodEnd}
             stripeReady={data.stripeReady}
+            platformAdminBilling={isPlatformAdmin(session.user.email)}
             upcoming={data.upcoming}
             billingFlash={billingFlash}
             invoices={data.invoices}

@@ -9,11 +9,20 @@ import {
 
 export function MarketingHomeFooter({
   privacyUrl,
+  hashPrefix = "",
+  variant = "marketing",
 }: {
   privacyUrl?: string;
+  /** Use "/" in the logged-in app so product anchors open the homepage sections. */
+  hashPrefix?: "" | "/";
+  variant?: "marketing" | "app";
 }) {
   return (
-    <footer className="mkt-footer">
+    <footer
+      className={
+        variant === "app" ? "mkt-footer mkt-footer--app" : "mkt-footer"
+      }
+    >
       <div className="mkt-container mkt-footer__grid">
         <div className="mkt-footer__brand">
           <div className="mkt-footer__logo">
@@ -33,16 +42,16 @@ export function MarketingHomeFooter({
           <h3 className="mkt-footer__heading">Product</h3>
           <ul className="mkt-footer__links">
             <li>
-              <a href="#features">Features</a>
+              <a href={`${hashPrefix}#features`}>Features</a>
             </li>
             <li>
-              <a href="#how-it-works">How it works</a>
+              <a href={`${hashPrefix}#how-it-works`}>How it works</a>
             </li>
             <li>
-              <a href="#pricing">Pricing</a>
+              <a href={`${hashPrefix}#pricing`}>Pricing</a>
             </li>
             <li>
-              <a href="#faq">FAQ</a>
+              <a href={`${hashPrefix}#faq`}>FAQ</a>
             </li>
           </ul>
         </div>

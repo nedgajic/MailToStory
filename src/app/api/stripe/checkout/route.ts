@@ -7,6 +7,10 @@ import { parsePlanId, parseBillingInterval, stripePriceIdForPlan, type PlanId } 
 import { appUrl } from "@/lib/email/send";
 import { updateWorkspaceIdentity } from "@/lib/workspace";
 import { loadWorkspaceMembers, validateSeatChange } from "@/lib/billing/seats";
+import {
+  applyPlatformAdminPlanChange,
+  isPlatformAdmin,
+} from "@/lib/billing/platform-admin-billing";
 
 async function applyTeamNameIfNeeded(
   workspaceId: string,
@@ -27,12 +31,6 @@ export async function POST(req: NextRequest) {
   if (!isWorkspaceAdmin(ctx.role)) {
     return NextResponse.json({ error: "Only owners and admins can change billing." }, { status: 403 });
   }
-  if (!stripeConfigured()) {
-    return NextResponse.json(
-      { error: "Stripe is not configured yet." },
-      { status: 503 },
-    );
-  }
 
   let body: { plan?: PlanId; seats?: number; teamName?: string; interval?: string };
   try {
@@ -40,6 +38,32 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
+
+  if (isPlatformAdmin(session.user.email)) {
+    try {
+      const result = await applyPlatformAdminPlanChange(ctx, body);
+      return NextResponse.json({ ok: true, adminBypass: true, ...result });
+    } catch (error) {
+      if (error instanceof Error && error.message === "INVALID_WORKSPACE_NAME") {
+        return NextResponse.json(
+          { error: "Use at least 2 letters or numbers for the team name." },
+          { status: 400 },
+        );
+      }
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "Could not change plan." },
+        { status: 400 },
+      );
+    }
+  }
+
+  if (!stripeConfigured()) {
+    return NextResponse.json(
+      { error: "Stripe is not configured yet." },
+      { status: 503 },
+    );
+  }
+
   const plan = parsePlanId(body.plan);
   if (plan === "free") {
     return NextResponse.json({ error: "Use cancel to return to Free." }, { status: 400 });

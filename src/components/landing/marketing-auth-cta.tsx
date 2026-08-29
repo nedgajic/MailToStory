@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
+import { AppUserMenu } from "@/components/app-user-menu";
 import { AuthModalTrigger } from "@/components/auth/auth-modal-trigger";
 
 function useMounted() {
@@ -18,10 +19,11 @@ export function MarketingHeaderAuth() {
 
   if (signedIn) {
     return (
-      <div className="mkt-header__auth">
-        <Link href="/dashboard" className="mkt-btn mkt-btn--cta">
+      <div className="mkt-header__auth mkt-header__auth--signed-in">
+        <Link href="/dashboard" className="mkt-btn mkt-btn--ghost">
           Dashboard
         </Link>
+        <AppUserMenu triggerClassName="app-top-bar__user-trigger--shell" />
       </div>
     );
   }

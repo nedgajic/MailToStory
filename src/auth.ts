@@ -5,6 +5,10 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import prisma from "@/lib/prisma";
 import { normalizeEmail, verifyPassword } from "@/lib/password";
 import { ensureWorkspaceForUser } from "@/lib/workspace";
+import { isAdminEmail } from "@/lib/admin";
+import { authorizeTwoFactorLogin } from "@/lib/auth/authorize-two-factor-login";
+import { createPendingTwoFactorLogin } from "@/lib/auth/two-factor-login";
+import { appUrl } from "@/lib/email/send";
 import { verifyLoginTotp } from "@/lib/auth/totp";
 
 const googleId = process.env.GOOGLE_CLIENT_ID?.trim();
@@ -19,11 +23,17 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
         totpCode: { label: "Authentication code", type: "text" },
+        twoFactorLoginToken: { label: "Login token", type: "text" },
       },
       async authorize(credentials) {
+        const loginToken = credentials?.twoFactorLoginToken?.trim() ?? "";
+        const totpCode = credentials?.totpCode?.trim() ?? "";
+        if (loginToken) {
+          return authorizeTwoFactorLogin(loginToken, totpCode);
+        }
+
         const email = normalizeEmail(credentials?.email ?? "");
         const password = credentials?.password ?? "";
-        const totpCode = credentials?.totpCode?.trim() ?? "";
         if (!email || !password) return null;
         const user = await prisma.user.findUnique({
           where: { email },
@@ -92,9 +102,32 @@ export const authOptions: NextAuthOptions = {
     signIn: "/login",
   },
   callbacks: {
+    async signIn({ user, account }) {
+      if (account?.provider === "google" && user.id) {
+        await prisma.user.updateMany({
+          where: { id: user.id, emailVerified: null },
+          data: { emailVerified: new Date() },
+        });
+
+        const dbUser = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { twoFactorEnabled: true },
+        });
+        if (dbUser?.twoFactorEnabled) {
+          const token = await createPendingTwoFactorLogin(user.id);
+          return appUrl(
+            `/login?twoFactorToken=${encodeURIComponent(token)}`,
+          );
+        }
+      }
+      return true;
+    },
     async jwt({ token, user }) {
       if (user?.id) {
         token.sub = user.id;
+        token.email = user.email;
+        token.name = user.name;
+        token.picture = user.image;
         const changedAt =
           "credentialsChangedAt" in user && user.credentialsChangedAt instanceof Date
             ? user.credentialsChangedAt.getTime()
@@ -114,8 +147,18 @@ export const authOptions: NextAuthOptions = {
       if (token.sub) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.sub },
-          select: { credentialsChangedAt: true },
+          select: {
+            email: true,
+            name: true,
+            image: true,
+            credentialsChangedAt: true,
+          },
         });
+        if (dbUser) {
+          token.email = dbUser.email ?? token.email;
+          token.name = dbUser.name ?? token.name;
+          token.picture = dbUser.image ?? token.picture;
+        }
         const currentVersion = dbUser?.credentialsChangedAt?.getTime() ?? 0;
         if ((token.credentialsVersion ?? 0) !== currentVersion) {
           return {};
@@ -126,7 +169,13 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (!token.sub) return session;
-      if (session.user) session.user.id = token.sub;
+      if (session.user) {
+        session.user.id = token.sub;
+        session.user.email = (token.email as string | null | undefined) ?? null;
+        session.user.name = (token.name as string | null | undefined) ?? null;
+        session.user.image = (token.picture as string | null | undefined) ?? null;
+        session.user.isAdmin = isAdminEmail(session.user.email);
+      }
       return session;
     },
   },
@@ -138,14 +187,6 @@ export const authOptions: NextAuthOptions = {
         name: user.name,
         email: user.email,
       });
-    },
-    async signIn({ user, account }) {
-      if (account?.provider === "google" && user.id) {
-        await prisma.user.updateMany({
-          where: { id: user.id, emailVerified: null },
-          data: { emailVerified: new Date() },
-        });
-      }
     },
   },
   secret: process.env.NEXTAUTH_SECRET,

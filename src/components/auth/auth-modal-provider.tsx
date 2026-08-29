@@ -40,6 +40,8 @@ function AuthModalPanel({
   open,
   mode,
   callbackUrl,
+  authError,
+  twoFactorToken,
   onClose,
   onSwitchMode,
 }: {
@@ -47,6 +49,8 @@ function AuthModalPanel({
   open: boolean;
   mode: AuthMode;
   callbackUrl: string;
+  authError: string | null;
+  twoFactorToken: string | null;
   onClose: () => void;
   onSwitchMode: (mode: AuthMode) => void;
 }) {
@@ -102,6 +106,8 @@ function AuthModalPanel({
             mode={mode}
             googleEnabled={googleEnabled}
             callbackUrl={callbackUrl}
+            authError={authError}
+            twoFactorToken={twoFactorToken}
             onSwitchMode={onSwitchMode}
           />
         </div>
@@ -122,9 +128,13 @@ function AuthModalProviderInner({
   const searchParams = useSearchParams();
 
   const auth = searchParams.get("auth");
-  const open = auth === "login" || auth === "signup";
-  const mode: AuthMode = auth === "signup" ? "signup" : "login";
+  const twoFactorToken = searchParams.get("twoFactorToken");
+  const open =
+    auth === "login" || auth === "signup" || Boolean(twoFactorToken);
+  const mode: AuthMode =
+    auth === "signup" && !twoFactorToken ? "signup" : "login";
   const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard";
+  const authError = searchParams.get("error");
 
   const syncUrl = useCallback(
     (nextMode: AuthMode | null, nextCallbackUrl?: string) => {
@@ -139,6 +149,8 @@ function AuthModalProviderInner({
       } else {
         params.delete("auth");
         params.delete("callbackUrl");
+        params.delete("error");
+        params.delete("twoFactorToken");
       }
       const qs = params.toString();
       router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
@@ -184,6 +196,8 @@ function AuthModalProviderInner({
         open={open}
         mode={mode}
         callbackUrl={callbackUrl}
+        authError={authError}
+        twoFactorToken={twoFactorToken}
         onClose={closeAuth}
         onSwitchMode={switchMode}
       />

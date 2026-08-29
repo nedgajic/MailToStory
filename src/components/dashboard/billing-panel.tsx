@@ -38,6 +38,7 @@ function PlanCardsGrid({
   seatQuantity,
   seatsUsed,
   stripeReady,
+  platformAdminBilling = false,
   teamName,
   setTeamName,
   seats,
@@ -53,6 +54,7 @@ function PlanCardsGrid({
   seatQuantity: number;
   seatsUsed: number;
   stripeReady: boolean;
+  platformAdminBilling?: boolean;
   teamName: string;
   setTeamName: (value: string) => void;
   seats: number;
@@ -64,6 +66,7 @@ function PlanCardsGrid({
   onUpdateTeamSeats: (interval: BillingInterval) => void;
 }) {
   const interval = pricingIntervalFromAnnual(annual);
+  const canChangePlan = stripeReady || platformAdminBilling;
 
   return (
     <>
@@ -152,7 +155,7 @@ function PlanCardsGrid({
                 <button
                   type="button"
                   className="dash-billing__cta dash-billing__cta--primary"
-                  disabled={Boolean(busy) || !stripeReady}
+                  disabled={Boolean(busy) || !canChangePlan}
                   onClick={() => onStartPaidPlan(card.id, interval)}
                 >
                   {plan === "free" ? `Start ${card.name}` : `Switch to ${card.name}`}
@@ -189,6 +192,7 @@ export function BillingPanel({
   seatsUsed,
   cancelAtPeriodEnd,
   stripeReady,
+  platformAdminBilling = false,
   workspaceName,
   upcoming,
   billingFlash,
@@ -205,6 +209,7 @@ export function BillingPanel({
   seatsUsed: number;
   cancelAtPeriodEnd: boolean;
   stripeReady: boolean;
+  platformAdminBilling?: boolean;
   workspaceName?: string;
   upcoming: UpcomingBill;
   billingFlash: boolean;
@@ -232,6 +237,7 @@ export function BillingPanel({
 
   const isPaid = plan !== "free";
   const currentCard = PLAN_CARDS.find((c) => c.id === plan);
+  const canChangePlan = stripeReady || platformAdminBilling;
 
   async function post(url: string, body?: unknown) {
     setError(null);
@@ -353,6 +359,7 @@ export function BillingPanel({
       seatQuantity={seatQuantity}
       seatsUsed={seatsUsed}
       stripeReady={stripeReady}
+      platformAdminBilling={platformAdminBilling}
       teamName={teamName}
       setTeamName={setTeamName}
       seats={seats}
@@ -375,7 +382,21 @@ export function BillingPanel({
         </div>
       ) : null}
 
-      {!stripeReady && canBill ? (
+      {platformAdminBilling && canBill ? (
+        <div className="dash-billing-banner dash-billing-banner--dev" role="status">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 16v-4M12 8h.01" />
+          </svg>
+          <div>
+            <p className="dash-billing-banner__title">Platform admin mode</p>
+            <p className="dash-billing-banner__text">
+              Plan and seat changes apply instantly here — no Stripe checkout or card
+              required.
+            </p>
+          </div>
+        </div>
+      ) : !stripeReady && canBill ? (
         <div className="dash-billing-banner dash-billing-banner--dev" role="status">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
             <circle cx="12" cy="12" r="10" />
@@ -452,21 +473,23 @@ export function BillingPanel({
 
             {canBill ? (
               <div className="dash-billing-card__actions">
-                <button
-                  type="button"
-                  className="dash-billing__cta dash-billing__cta--primary dash-billing-card__btn"
-                  disabled={Boolean(busy) || !stripeReady}
-                  onClick={() => void post("/api/stripe/portal")}
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
-                    <rect x="2" y="5" width="20" height="14" rx="2" />
-                    <path d="M2 10h20M6 15h4" />
-                  </svg>
-                  <span>{busy === "/api/stripe/portal" ? "Opening…" : "Manage subscription"}</span>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="dash-billing-card__btn-ext" aria-hidden>
-                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3" />
-                  </svg>
-                </button>
+                {stripeReady ? (
+                  <button
+                    type="button"
+                    className="dash-billing__cta dash-billing__cta--primary dash-billing-card__btn"
+                    disabled={Boolean(busy)}
+                    onClick={() => void post("/api/stripe/portal")}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
+                      <rect x="2" y="5" width="20" height="14" rx="2" />
+                      <path d="M2 10h20M6 15h4" />
+                    </svg>
+                    <span>{busy === "/api/stripe/portal" ? "Opening…" : "Manage subscription"}</span>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="dash-billing-card__btn-ext" aria-hidden>
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3" />
+                    </svg>
+                  </button>
+                ) : null}
 
                 <div className="dash-billing-card__secondary-actions">
                   {cancelAtPeriodEnd ? (
@@ -485,7 +508,9 @@ export function BillingPanel({
                       disabled={Boolean(busy)}
                       onClick={() => void post("/api/stripe/cancel", { resume: false })}
                     >
-                      Cancel at period end
+                      {platformAdminBilling && !stripeReady
+                        ? "Switch to Free"
+                        : "Cancel at period end"}
                     </button>
                   )}
                 </div>
@@ -500,6 +525,7 @@ export function BillingPanel({
               seatsUsed={seatsUsed}
               interval={billingInterval}
               stripeReady={stripeReady}
+              platformAdminBilling={platformAdminBilling}
               members={teamMembers}
               invites={teamInvites}
             />

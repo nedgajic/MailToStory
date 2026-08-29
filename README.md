@@ -65,7 +65,7 @@ npm run doctor
    Fill in / adjust:
 
    - `DATABASE_URL` – use the Docker URL above, or your hosted DB URL
-   - `NEXTAUTH_URL` – e.g. `http://localhost:3000` (production: `https://mailtostory.com`)
+   - `NEXTAUTH_URL` – `http://localhost:3001` for local dev (production: `https://mailtostory.com`)
    - `NEXTAUTH_SECRET` – `openssl rand -base64 32`
    - `GEMINI_API_KEY` – Google AI Studio key
    - Optional `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` – identity-only Google sign-in (no Gmail scopes)
@@ -73,13 +73,15 @@ npm run doctor
 
    If you enable Google sign-in, OAuth redirect URI:
 
-   - Local: `http://localhost:3000/api/auth/callback/google`
+   - Local: `http://localhost:3001/api/auth/callback/google`
    - Production: `https://mailtostory.com/api/auth/callback/google`
 
 4. **Database schema**
 
+   Migrations run automatically when you start the dev server (`npm run dev`) and after `git pull` when `prisma/` changed. First-time setup (or manual):
+
    ```bash
-   npx prisma migrate deploy
+   npm run db:migrate
    ```
 
 5. **Run**
@@ -88,7 +90,7 @@ npm run doctor
    npm run dev
    ```
 
-   Open [http://localhost:3000](http://localhost:3000), create an account, then open **Dashboard** for your inbound address.
+   Open [http://localhost:3001](http://localhost:3001), create an account, then open **Dashboard** for your inbound address.
 
 ## What only you can provide (secrets and cloud)
 
@@ -99,14 +101,15 @@ Nobody else can create these for you on your machine:
 - **Gemini API key**
 - Optional: Google **OAuth Client ID / Secret** (identity only), Postmark tokens, Stripe keys
 
-Everything else is either in the repo or one command away (`npm install`, `npx prisma migrate deploy`, `npm run dev`).
+Everything else is either in the repo or one command away (`npm install`, `npm run dev` — migrations apply automatically).
 
 ## Scripts
 
-| Command           | Purpose                |
-| ----------------- | ---------------------- |
-| `npm run doctor`  | Node version + quick file checks |
-| `npm run dev`     | Dev server             |
+| Command              | Purpose                |
+| -------------------- | ---------------------- |
+| `npm run doctor`     | Node version + quick file checks |
+| `npm run db:migrate` | Apply pending Prisma migrations |
+| `npm run dev`        | Apply migrations, then dev server on http://localhost:3001 |
 | `npm run build`   | Production build       |
 | `npm run test`    | Vitest (unit tests)    |
 | `npm run lint`    | ESLint                 |

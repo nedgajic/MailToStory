@@ -10,6 +10,10 @@ import {
 } from "@/lib/billing/plans";
 import prisma from "@/lib/prisma";
 import {
+  applyPlatformAdminSeatChange,
+  isPlatformAdmin,
+} from "@/lib/billing/platform-admin-billing";
+import {
   applySeatReduction,
   loadWorkspaceMembers,
   validateSeatChange,
@@ -55,15 +59,28 @@ export async function POST(req: Request) {
   if (parsePlanId(ctx.workspace.plan) !== "team") {
     return NextResponse.json({ error: "Seat changes are only available on the Team plan." }, { status: 400 });
   }
-  if (!stripeConfigured() || !ctx.workspace.stripeSubscriptionId) {
-    return NextResponse.json({ error: "No active Team subscription." }, { status: 400 });
-  }
 
   let body: { seats?: number; removeMemberIds?: string[]; revokeInviteIds?: string[] };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  if (isPlatformAdmin(session.user.email)) {
+    try {
+      const result = await applyPlatformAdminSeatChange(ctx, body);
+      return NextResponse.json({ ok: true, adminBypass: true, ...result });
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "Could not update seats." },
+        { status: 400 },
+      );
+    }
+  }
+
+  if (!stripeConfigured() || !ctx.workspace.stripeSubscriptionId) {
+    return NextResponse.json({ error: "No active Team subscription." }, { status: 400 });
   }
 
   const targetSeats = Math.max(1, Number(body.seats) || ctx.workspace.seatQuantity);
