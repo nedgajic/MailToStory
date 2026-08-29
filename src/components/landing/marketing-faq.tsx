@@ -13,6 +13,10 @@ const FAQ_ITEMS = [
     a: "Any app that can forward mail — Gmail, Outlook, Apple Mail, and others. Forward the whole thread as one message when possible.",
   },
   {
+    q: "What happens if I forward the same thread again after new replies?",
+    a: `When we recognize it as the same conversation (reply headers or the same subject from you within a few days), we add the new forward to that thread and regenerate the whole story from everything we've stored — not just the latest message. You keep one story in your library; the recap, timeline, and action items are rebuilt so they reflect the full thread.\n\nOn the Free plan, updating an existing story doesn't use another of your five monthly "new story" slots. Updates can be delayed briefly if a story was just regenerated, or if you've hit rate limits — your mail is still saved, and you can refresh the story from Stories when ready.\n\nFor best results, forward the full updated thread when you can, and forward from the same address you used before so we can match the conversation.`,
+  },
+  {
     q: "What happens on the Free plan?",
     a: "You get a private inbound address and five stories per calendar month. Forwarded mail is stored until you delete the story.",
   },

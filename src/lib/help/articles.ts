@@ -66,6 +66,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
           "Replies in the same thread usually attach automatically when headers are intact.",
         ],
       },
+      {
+        heading: "When the thread grows",
+        paragraphs: [
+          `If new replies arrive after you already have a story, forward the updated thread again. When ${BRAND_NAME} can match it to the same conversation, we store the new forward and regenerate the entire story from all mail we hold for that thread — recap, narrative, timeline, and action items are rebuilt together, not patched message by message.`,
+          "Updating an existing story does not use another of your Free-plan monthly story slots. Automatic regeneration may wait a short period after a recent update, or pause if you hit rate limits; forwarded mail is still saved, and you can generate or refresh from Stories when you are ready.",
+        ],
+        bullets: [
+          "Forward the full updated thread when possible.",
+          "Use the same forwarding address as before so we can match the conversation.",
+          "Reply headers (In-Reply-To / References) help us attach mail to the right story.",
+        ],
+      },
     ],
   },
   {

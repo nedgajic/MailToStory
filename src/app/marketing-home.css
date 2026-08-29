@@ -1850,6 +1850,7 @@ a.mkt-nav__btn {
   font-size: 0.92rem;
   line-height: 1.65;
   color: var(--app-text-muted);
+  white-space: pre-line;
 }
 
 /* Final CTA */
