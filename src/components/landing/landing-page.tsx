@@ -1,3 +1,5 @@
+import { MarketingStoryDemo } from "@/components/landing/marketing-story-demo";
+import { MarketingHeroBackground } from "@/components/landing/marketing-hero-background";
 import { PricingCards } from "@/components/landing/pricing-cards";
 import { MarketingHeader } from "@/components/landing/marketing-header";
 import { MarketingHeroCta } from "@/components/landing/marketing-auth-cta";
@@ -6,6 +8,7 @@ import { MarketingHomeFooter } from "@/components/landing/marketing-home-footer"
 import { AuthModalTrigger } from "@/components/auth/auth-modal-trigger";
 import { BRAND_NAME, BRAND_PRIVACY_PATH } from "@/lib/brand";
 import { googleAuthEnabled } from "@/lib/google-auth-enabled";
+import { MARKETING_SAMPLE_DIGEST } from "@/lib/marketing-sample-thread";
 import "@/app/marketing-home.css";
 
 const features = [
@@ -119,13 +122,7 @@ export function LandingPage() {
 
       <main>
         <section className="mkt-hero mkt-wave-bottom" id="home">
-          <div className="mkt-hero__bg" aria-hidden="true">
-            <div className="mkt-hero__mesh" />
-            <div className="mkt-hero__orb mkt-hero__orb--1" />
-            <div className="mkt-hero__orb mkt-hero__orb--2" />
-            <div className="mkt-hero__orb mkt-hero__orb--3" />
-            <div className="mkt-hero__grain" />
-          </div>
+          <MarketingHeroBackground />
           <div className="mkt-container mkt-hero__inner">
             <div className="mkt-hero__copy">
               <div className="mkt-badge">
@@ -161,12 +158,14 @@ export function LandingPage() {
                 </div>
                 <div className="mkt-preview-card__body">
                   <p className="mkt-preview-card__kicker">Thread story</p>
-                  <h3>Vendor negotiation — Q3 terms</h3>
-                  <p className="mkt-preview-card__status">Resolved · 4 participants</p>
+                  <h3>{MARKETING_SAMPLE_DIGEST.title}</h3>
+                  <p className="mkt-preview-card__status">
+                    Pending action · {MARKETING_SAMPLE_DIGEST.participants.length} participants
+                  </p>
                   <ul>
-                    <li>Ada agreed to net-30 starting October</li>
-                    <li>Legal review scheduled for the revised MSA</li>
-                    <li>Finance to confirm updated pricing by Friday</li>
+                    {MARKETING_SAMPLE_DIGEST.action_items.slice(0, 3).map((item) => (
+                      <li key={item.action}>{item.action}</li>
+                    ))}
                   </ul>
                 </div>
               </div>
@@ -200,6 +199,8 @@ export function LandingPage() {
             </ul>
           </div>
         </section>
+
+        <MarketingStoryDemo />
 
         <section className="mkt-section mkt-section--steps mkt-wave-bottom mkt-wave-overlap" id="how-it-works">
           <div className="mkt-container">

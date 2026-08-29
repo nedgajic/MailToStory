@@ -1,5 +1,7 @@
 /* Marketing homepage — Staynio-inspired layout, Mail To Story brand */
 
+@import "./marketing-hero-slideshow.css";
+
 :root {
   --mkt-header-top: #1d3557;
   --mkt-header-bottom: #0c1424;
@@ -20,36 +22,12 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .mkt-hero__orb {
-    animation: mkt-float 14s ease-in-out infinite;
-  }
-
-  .mkt-hero__orb--2 {
-    animation-delay: -4s;
-    animation-duration: 18s;
-  }
-
-  .mkt-hero__orb--3 {
-    animation-delay: -8s;
-    animation-duration: 16s;
-  }
-
   .mkt-preview-card {
     animation: mkt-preview-float 8s ease-in-out infinite;
   }
 
   .mkt-feature-card:hover {
     transform: translateY(-4px);
-  }
-}
-
-@keyframes mkt-float {
-  0%,
-  100% {
-    transform: translate(0, 0) scale(1);
-  }
-  50% {
-    transform: translate(12px, -18px) scale(1.04);
   }
 }
 
@@ -500,6 +478,7 @@ a.mkt-nav__btn {
   align-items: center;
   padding: calc(var(--mkt-header-height) + 2rem) 0 6rem;
   color: #f8fafc;
+  overflow: hidden;
 }
 
 .mkt-hero__bg {
@@ -509,56 +488,86 @@ a.mkt-nav__btn {
   pointer-events: none;
 }
 
-.mkt-hero__mesh {
+.mkt-hero__slides {
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(ellipse 70% 55% at 20% 0%, rgb(69 123 157 / 0.42), transparent 58%),
-    radial-gradient(ellipse 55% 45% at 90% 15%, rgb(138 180 248 / 0.28), transparent 52%),
-    radial-gradient(ellipse 40% 35% at 60% 85%, rgb(29 78 160 / 0.2), transparent 50%),
-    linear-gradient(165deg, #1d3557 0%, #152a45 45%, #0c1424 100%);
+  z-index: 0;
 }
 
-.mkt-hero__orb {
+.mkt-hero__slide {
   position: absolute;
-  border-radius: 50%;
-  filter: blur(48px);
-  pointer-events: none;
+  inset: 0;
+  opacity: 0;
+  animation-name: mkt-hero-slideshow;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  will-change: opacity, transform;
 }
 
-.mkt-hero__orb--1 {
-  width: 22rem;
-  height: 22rem;
-  top: 12%;
-  right: 8%;
-  background: rgb(138 180 248 / 0.22);
+@keyframes mkt-hero-slideshow {
+  0% {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+
+  4% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  20% {
+    opacity: 1;
+    transform: scale(1.035);
+  }
+
+  24% {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.06);
+  }
 }
 
-.mkt-hero__orb--2 {
-  width: 16rem;
-  height: 16rem;
-  bottom: 18%;
-  left: 6%;
-  background: rgb(69 123 157 / 0.28);
+.mkt-hero__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    radial-gradient(ellipse 70% 55% at 20% 0%, rgb(69 123 157 / 0.22), transparent 58%),
+    linear-gradient(
+      165deg,
+      rgb(8 14 26 / 0.9) 0%,
+      rgb(12 20 36 / 0.84) 42%,
+      rgb(8 14 26 / 0.88) 100%
+    );
 }
 
-.mkt-hero__orb--3 {
-  width: 10rem;
-  height: 10rem;
-  top: 38%;
-  left: 42%;
-  background: rgb(129 201 149 / 0.12);
+.mkt-hero__grad {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: linear-gradient(
+    to top,
+    rgb(12 20 36 / 0.95) 0%,
+    rgb(12 20 36 / 0.55) 28%,
+    transparent 62%
+  );
 }
 
 .mkt-hero__grain {
   position: absolute;
   inset: 0;
-  opacity: 0.25;
+  z-index: 3;
+  opacity: 0.22;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
 }
 
 .mkt-hero__inner {
   position: relative;
+  z-index: 4;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 2.5rem;
@@ -1952,4 +1961,16 @@ a.mkt-nav__btn {
   border-top: 1px solid rgb(255 255 255 / 0.08);
   font-size: 0.78rem;
   color: rgb(255 255 255 / 0.45);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mkt-hero__slide {
+    animation: none;
+    opacity: 0;
+    transform: none;
+  }
+
+  .mkt-hero__slide:first-child {
+    opacity: 1;
+  }
 }
