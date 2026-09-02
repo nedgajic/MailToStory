@@ -2538,7 +2538,7 @@ button.gmail-inbox-row--simple {
   flex: 1 1 100%;
 }
 
-.digest-embedded-toolbar .app-top-bar__exports {
+.digest-embedded-toolbar .story-export-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
@@ -6972,10 +6972,218 @@ a:focus-visible {
   border-bottom: 1px solid color-mix(in srgb, var(--app-text) 10%, transparent);
 }
 
-.story-detail__actions {
-  max-width: 980px;
-  margin: 4.8rem auto 0;
-  padding: 0 1rem;
+/* Story detail page — toolbar sits below the marketing app header */
+:root {
+  --story-page-toolbar-height: 2.85rem;
+}
+
+.story-page {
+  padding-top: var(--mkt-header-height, 4.75rem);
+}
+
+.story-page-toolbar {
+  position: sticky;
+  top: var(--mkt-header-height, 4.75rem);
+  z-index: 2400;
+  border-bottom: 1px solid rgb(255 255 255 / 0.08);
+  background: linear-gradient(
+    180deg,
+    rgb(18 28 48 / 0.96) 0%,
+    rgb(12 20 36 / 0.94) 100%
+  );
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.story-page-toolbar__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  max-width: min(56rem, calc(100vw - 2rem));
+  margin: 0 auto;
+  padding: 0.45rem 1rem;
+  min-height: var(--story-page-toolbar-height);
+}
+
+.story-page-toolbar__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: rgb(255 255 255 / 0.78);
+  text-decoration: none;
+  padding: 0.35rem 0.5rem 0.35rem 0.15rem;
+  border-radius: 8px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.story-page-toolbar__back:hover {
+  color: #fff;
+  background: rgb(255 255 255 / 0.06);
+}
+
+.story-page-toolbar__cluster {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  flex: 1 1 auto;
+  justify-content: flex-end;
+}
+
+.story-export-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.story-export-actions__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.38rem 0.72rem;
+  border-radius: 8px;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  background: rgb(255 255 255 / 0.04);
+  color: rgb(255 255 255 / 0.82);
+  font-family: inherit;
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.story-export-actions__btn:hover:not(:disabled) {
+  background: rgb(255 255 255 / 0.1);
+  border-color: rgb(255 255 255 / 0.18);
+  color: #fff;
+}
+
+.story-export-actions__btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.story-export-actions__btn--loading {
+  min-width: 5.5rem;
+}
+
+.story-export-actions__spinner {
+  width: 0.75rem;
+  height: 0.75rem;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  opacity: 0.85;
+  animation: thread-preview-spin 0.75s linear infinite;
+  flex-shrink: 0;
+}
+
+.story-page-toolbar__menu-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.story-page-toolbar__menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 8px;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  background: rgb(255 255 255 / 0.04);
+  color: rgb(255 255 255 / 0.78);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.story-page-toolbar__menu-trigger:hover {
+  background: rgb(255 255 255 / 0.1);
+  border-color: rgb(255 255 255 / 0.18);
+  color: #fff;
+}
+
+.story-page-toolbar__menu {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  z-index: 50;
+  min-width: 10.5rem;
+  padding: 0.35rem;
+  border-radius: 10px;
+  border: 1px solid rgb(138 180 248 / 0.18);
+  background: rgb(16 22 36 / 0.98);
+  box-shadow: 0 12px 36px rgb(0 0 0 / 0.35);
+  backdrop-filter: blur(12px);
+}
+
+.story-page-toolbar__menu-item {
+  display: block;
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: rgb(232 234 237 / 0.92);
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.story-page-toolbar__menu-item:hover {
+  background: rgb(255 255 255 / 0.06);
+}
+
+.story-page-toolbar__menu-item--danger {
+  color: #f4a9a2;
+}
+
+.story-page-toolbar__menu-item--danger:hover {
+  background: rgb(198 40 40 / 0.14);
+  color: #ffc9c5;
+}
+
+.digest-wrap--story-page .digest-page-split--sticky-bar {
+  top: calc(var(--mkt-header-height, 4.75rem) + var(--story-page-toolbar-height));
+  background: rgb(14 20 36 / 0.92);
+  border-bottom-color: rgb(255 255 255 / 0.08);
+}
+
+@media (max-width: 640px) {
+  .story-page-toolbar__inner {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    padding-block: 0.55rem;
+  }
+
+  .story-page-toolbar__cluster {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .story-export-actions__btn {
+    font-size: 0.72rem;
+    padding: 0.34rem 0.58rem;
+  }
 }
 
 .dash-stat,

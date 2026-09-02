@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import DigestRenderer from "@/components/digest/DigestRenderer";
+import { StoryPageToolbar } from "@/components/stories/story-page-toolbar";
 import type { Digest } from "@/lib/digest-schema";
 
 export function StoryDetail({
@@ -40,13 +41,10 @@ export function StoryDetail({
   }
 
   return (
-    <div className="story-detail">
-      <div className="story-detail__actions">
-        <button type="button" className="home-cta dash-danger" onClick={() => void onDelete()}>
-          Delete story
-        </button>
-      </div>
+    <div className="story-page">
+      <StoryPageToolbar digest={digest} onDelete={onDelete} />
       <DigestRenderer
+        hideAppTopBar
         digest={digest}
         threadId={conversationId}
         messageIdsInOrder={messageIdsInOrder}

@@ -4,7 +4,7 @@ import { authOptions } from "@/auth";
 import { getWorkspaceContext, isWorkspaceAdmin } from "@/lib/session";
 import { getStoryForWorkspace } from "@/lib/stories";
 import type { PlanId } from "@/lib/billing/plans";
-import { AppTopBar, AppTopBarBackLink } from "@/components/app-top-bar";
+import { AppTopBar } from "@/components/app-top-bar";
 import { StoryDetail } from "./story-detail";
 
 import { BRAND_NAME } from "@/lib/brand";
@@ -30,8 +30,6 @@ export default async function StoryPage({
         showNav
         canManageTeam={isWorkspaceAdmin(ctx.role)}
         plan={ctx.workspace.plan as PlanId}
-        contentMaxWidth="digest"
-        startSlot={<AppTopBarBackLink />}
       />
       <StoryDetail
         storyId={id}
