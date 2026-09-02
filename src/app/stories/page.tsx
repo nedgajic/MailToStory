@@ -8,20 +8,26 @@ import { AppTopBar } from "@/components/app-top-bar";
 import { StoriesLibrary } from "@/components/stories/stories-library";
 import { PendingStories } from "@/components/stories/pending-stories";
 import { inboundAddress } from "@/lib/workspace";
+import { ACTIVE_STORY_WHERE, DELETED_STORY_WHERE } from "@/lib/story-retention";
 
 import { BRAND_NAME } from "@/lib/brand";
 
 export const metadata = { title: `Stories — ${BRAND_NAME}` };
 
-export default async function StoriesPage() {
+export default async function StoriesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ deleted?: string }>;
+}) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login");
   const ctx = await getWorkspaceContext(session.user.id);
   if (!ctx) redirect("/login");
+  const sp = await searchParams;
 
-  const [stories, pending] = await Promise.all([
+  const [stories, pending, deletedCount] = await Promise.all([
     prisma.story.findMany({
-      where: { workspaceId: ctx.workspace.id },
+      where: { workspaceId: ctx.workspace.id, ...ACTIVE_STORY_WHERE },
       orderBy: { createdAt: "desc" },
       take: 200,
       select: {
@@ -44,6 +50,9 @@ export default async function StoriesPage() {
         lastMessageAt: true,
       },
     }),
+    prisma.story.count({
+      where: { workspaceId: ctx.workspace.id, ...DELETED_STORY_WHERE },
+    }),
   ]);
 
   return (
@@ -59,7 +68,7 @@ export default async function StoriesPage() {
           <header className="dash__header">
             <p className="home-kicker">Library</p>
             <h1>Stories</h1>
-            <p>Search, group by month or year, and delete old reports.</p>
+            <p>Search, group by month or year, and manage your story library.</p>
           </header>
           <PendingStories
             initial={pending.map((item) => ({
@@ -71,6 +80,9 @@ export default async function StoriesPage() {
             inbound={inboundAddress(ctx.workspace.inboundLocalPart)}
             isFree={ctx.workspace.plan === "free"}
             verified={Boolean(ctx.emailVerified)}
+            deletedCount={deletedCount}
+            showDeletedBanner={sp.deleted === "1"}
+            initialLibraryView={sp.view === "deleted" ? "deleted" : "active"}
             initial={stories.map((s) => ({
               ...s,
               createdAt: s.createdAt.toISOString(),

@@ -3,31 +3,39 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { Digest } from "@/lib/digest-schema";
+import type { StoryReadingTheme } from "@/lib/story-reading-theme";
 import { StoryExportActions } from "@/components/stories/story-export-actions";
+import { StoryReadingThemeToggle } from "@/components/stories/story-reading-theme-toggle";
 
 export function StoryPageToolbar({
   digest,
+  readingTheme,
+  onReadingThemeChange,
   onDelete,
+  hideDelete = false,
 }: {
   digest: Digest;
+  readingTheme: StoryReadingTheme;
+  onReadingThemeChange: (theme: StoryReadingTheme) => void;
   onDelete: () => void | Promise<void>;
+  hideDelete?: boolean;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!menuOpen) return;
-    function onDocMouseDown(e: MouseEvent) {
+    function onDocPointerDown(e: PointerEvent) {
       if (menuRef.current?.contains(e.target as Node)) return;
       setMenuOpen(false);
     }
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") setMenuOpen(false);
     }
-    document.addEventListener("mousedown", onDocMouseDown);
+    document.addEventListener("pointerdown", onDocPointerDown);
     document.addEventListener("keydown", onKeyDown);
     return () => {
-      document.removeEventListener("mousedown", onDocMouseDown);
+      document.removeEventListener("pointerdown", onDocPointerDown);
       document.removeEventListener("keydown", onKeyDown);
     };
   }, [menuOpen]);
@@ -45,6 +53,12 @@ export function StoryPageToolbar({
         <div className="story-page-toolbar__cluster">
           <StoryExportActions digest={digest} />
 
+          <StoryReadingThemeToggle
+            theme={readingTheme}
+            onChange={onReadingThemeChange}
+          />
+
+          {hideDelete ? null : (
           <div className="story-page-toolbar__menu-wrap" ref={menuRef}>
             <button
               type="button"
@@ -72,11 +86,12 @@ export function StoryPageToolbar({
                     void onDelete();
                   }}
                 >
-                  Delete story
+                  Move to Recently deleted
                 </button>
               </div>
             ) : null}
           </div>
+          )}
         </div>
       </div>
     </div>

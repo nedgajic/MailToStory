@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import { ACTIVE_STORY_WHERE } from "@/lib/story-retention";
 import {
   formatBillDate,
   formatStripeAmount,
@@ -78,7 +79,7 @@ export async function getDashboardData(ctx: WorkspaceContext) {
       generationsThisMonth(ctx.workspace.id),
       activeSeatCount(ctx.workspace.id),
       prisma.story.findMany({
-        where: { workspaceId: ctx.workspace.id },
+        where: { workspaceId: ctx.workspace.id, ...ACTIVE_STORY_WHERE },
         orderBy: { createdAt: "desc" },
         take: 8,
         select: {

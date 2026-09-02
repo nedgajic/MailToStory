@@ -171,22 +171,27 @@ model ConversationAttachment {
 }
 
 model Story {
-  id                String   @id @default(cuid())
-  conversationId    String   @unique
+  id                String    @id @default(cuid())
+  conversationId    String    @unique
   workspaceId       String
   title             String
-  subject           String   @default("")
+  subject           String    @default("")
   status            String
-  resolutionSummary String   @db.Text
-  searchText        String   @db.Text
+  resolutionSummary String    @db.Text
+  searchText        String    @db.Text
   digest            Json
   messageIdsInOrder Json
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  deletedAt         DateTime?
+  purgeAt           DateTime?
+  deletedById       String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([workspaceId, createdAt])
+  @@index([workspaceId, deletedAt])
+  @@index([purgeAt])
 }
 
 model StoryAccessToken {

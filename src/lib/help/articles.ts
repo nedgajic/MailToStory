@@ -37,7 +37,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
       {
         heading: "What gets stored",
         paragraphs: [
-          "We store the forwarded messages, attachments we accept, and the generated story. Original provider mail stays in your inbox — we only see what you forward.",
+          "We store the forwarded messages, attachments we accept, and the generated story. Original provider mail stays in your inbox — we only see what you forward. When you delete a story, it moves to Recently deleted for 30 days before permanent removal.",
         ],
       },
     ],
@@ -76,6 +76,34 @@ export const HELP_ARTICLES: HelpArticle[] = [
           "Forward the full updated thread when possible.",
           "Use the same forwarding address as before so we can match the conversation.",
           "Reply headers (In-Reply-To / References) help us attach mail to the right story.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "recently-deleted-stories",
+    title: "Recently deleted stories",
+    summary: "What happens when you delete a story and how to restore it within 30 days.",
+    sections: [
+      {
+        paragraphs: [
+          `When you delete a story, it is moved to Recently deleted instead of being removed immediately. The story and the forwarded email we stored for it stay recoverable for 30 days.`,
+        ],
+      },
+      {
+        heading: "Restore a story",
+        bullets: [
+          "Open Stories and switch to the Recently deleted tab.",
+          "Choose Restore on the story you want back.",
+          "Or open the deleted story and choose Restore story from the banner.",
+        ],
+      },
+      {
+        heading: "Permanent deletion",
+        paragraphs: [
+          "You can delete a story permanently at any time from Recently deleted. Permanent deletion removes the story and forwarded email immediately.",
+          `Otherwise, stories in Recently deleted are automatically removed after ${30} days, including the forwarded email and attachments we stored. Deleting your entire account removes your data immediately.`,
+          "Free-plan quota for the month is not refunded when you delete a story, and restoring a deleted story does not use another monthly slot.",
         ],
       },
     ],
@@ -176,6 +204,15 @@ export const HELP_ARTICLES: HelpArticle[] = [
       {
         paragraphs: [
           "Enable two-factor authentication in Settings → Profile to protect every sign-in method. Export or delete your account from the same page. GDPR requests are available from the Data Request page linked in the footer.",
+        ],
+      },
+      {
+        heading: "Deleting stories",
+        bullets: [
+          "Deleting a story moves it to Recently deleted for 30 days.",
+          "You can restore a story from Recently deleted during that period.",
+          "After 30 days, or if you delete permanently, the story and forwarded email are removed.",
+          "Deleting your entire account removes your data immediately.",
         ],
       },
     ],

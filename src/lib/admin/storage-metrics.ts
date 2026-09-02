@@ -2,6 +2,7 @@ import { readdir, stat } from "node:fs/promises";
 import path from "node:path";
 import prisma from "@/lib/prisma";
 import { uploadRoot } from "@/lib/inbound/storage";
+import { ACTIVE_STORY_WHERE, DELETED_STORY_WHERE } from "@/lib/story-retention";
 
 export type StorageSuggestionLevel = "ok" | "watch" | "action" | "urgent";
 
@@ -30,6 +31,9 @@ export type StorageMetrics = {
     users: number;
     workspaces: number;
     stories: number;
+    storiesActive: number;
+    storiesRecentlyDeleted: number;
+    storiesDeletedPastPurge: number;
     conversations: number;
     messages: number;
     quarantineActive: number;
@@ -125,6 +129,9 @@ export async function collectStorageMetrics(): Promise<StorageMetrics> {
     users,
     workspaces,
     stories,
+    storiesActive,
+    storiesRecentlyDeleted,
+    storiesDeletedPastPurge,
     conversations,
     messages,
     quarantineActive,
@@ -145,6 +152,19 @@ export async function collectStorageMetrics(): Promise<StorageMetrics> {
     prisma.user.count(),
     prisma.workspace.count(),
     prisma.story.count(),
+    prisma.story.count({ where: ACTIVE_STORY_WHERE }),
+    prisma.story.count({
+      where: {
+        ...DELETED_STORY_WHERE,
+        purgeAt: { gt: new Date() },
+      },
+    }),
+    prisma.story.count({
+      where: {
+        ...DELETED_STORY_WHERE,
+        purgeAt: { lte: new Date() },
+      },
+    }),
     prisma.conversation.count(),
     prisma.conversationMessage.count(),
     prisma.quarantinedInbound.count({ where: { expiresAt: { gt: new Date() } } }),
@@ -172,7 +192,7 @@ export async function collectStorageMetrics(): Promise<StorageMetrics> {
 
   const mailAndDigestBytes = conversationMessageBytes + storyBytes;
   const avgStoryFootprintBytes =
-    stories > 0 ? Math.round(mailAndDigestBytes / stories) : 0;
+    storiesActive > 0 ? Math.round(mailAndDigestBytes / storiesActive) : 0;
   const attachmentBytesOnDisk = uploadStats.bytes;
   const attachmentCount = attachmentAgg._count;
   const avgAttachmentBytes =
@@ -185,7 +205,9 @@ export async function collectStorageMetrics(): Promise<StorageMetrics> {
     storiesLast30Days * avgStoryFootprintBytes * 1.1,
   );
   const estimatedMonthlyDiskGrowthBytes = Math.round(
-    storiesLast30Days * (attachmentCount / Math.max(stories, 1)) * avgAttachmentBytes,
+    storiesLast30Days *
+      (attachmentCount / Math.max(storiesActive, 1)) *
+      avgAttachmentBytes,
   );
 
   return {
@@ -206,6 +228,9 @@ export async function collectStorageMetrics(): Promise<StorageMetrics> {
       users,
       workspaces,
       stories,
+      storiesActive,
+      storiesRecentlyDeleted,
+      storiesDeletedPastPurge,
       conversations,
       messages,
       quarantineActive,
@@ -286,6 +311,15 @@ export function buildStorageSuggestions(
       level: "watch",
       title: "Database growth is accelerating",
       detail: `Estimated ~${formatStorageBytes(metrics.estimates.estimatedMonthlyDbGrowthBytes)}/month from ${metrics.counts.storiesLast30Days} new stories (avg ${formatStorageBytes(metrics.estimates.avgStoryFootprintBytes)} mail+digest per story).`,
+    });
+  }
+
+  if (metrics.counts.storiesDeletedPastPurge > 0) {
+    suggestions.push({
+      id: "deleted-stories-cleanup",
+      level: "watch",
+      title: "Purge expired Recently deleted stories",
+      detail: `${metrics.counts.storiesDeletedPastPurge} story row(s) passed their purge date but still remain. Schedule GET /api/cron/maintenance daily${metrics.env.cronSecretConfigured ? "" : " and set CRON_SECRET in .env"}.`,
     });
   }
 

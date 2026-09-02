@@ -26,6 +26,9 @@ function baseMetrics(overrides: Partial<StorageMetrics> = {}): StorageMetrics {
       users: 400,
       workspaces: 400,
       stories: 8000,
+      storiesActive: 7900,
+      storiesRecentlyDeleted: 95,
+      storiesDeletedPastPurge: 0,
       conversations: 8000,
       messages: 12000,
       quarantineActive: 2,
@@ -83,6 +86,20 @@ describe("buildStorageSuggestions", () => {
       }),
     );
     expect(suggestions.some((s) => s.id === "quarantine-cleanup")).toBe(true);
+  });
+
+  it("flags recently deleted stories past purge date", () => {
+    const suggestions = buildStorageSuggestions(
+      baseMetrics({
+        counts: {
+          ...baseMetrics().counts,
+          storiesDeletedPastPurge: 3,
+        },
+      }),
+    );
+    expect(suggestions.some((s) => s.id === "deleted-stories-cleanup")).toBe(
+      true,
+    );
   });
 
   it("returns ok when footprint is small", () => {

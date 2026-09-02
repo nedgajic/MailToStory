@@ -66,9 +66,13 @@ export function AdminStoragePanel({
           hint={`${metrics.counts.storiesLast30Days} stories / ${metrics.counts.generationLogLast30Days} generations`}
         />
         <MetricCard
-          label="Stories total"
-          value={String(metrics.counts.stories)}
-          hint={`Avg ${formatStorageBytes(metrics.estimates.avgStoryFootprintBytes)} mail+digest`}
+          label="Active stories"
+          value={String(metrics.counts.storiesActive)}
+          hint={`${metrics.counts.storiesRecentlyDeleted} in Recently deleted${
+            metrics.counts.storiesDeletedPastPurge > 0
+              ? ` · ${metrics.counts.storiesDeletedPastPurge} past purge`
+              : ""
+          }`}
         />
       </div>
 
@@ -81,6 +85,14 @@ export function AdminStoragePanel({
           </li>
           <li>
             Story <strong>{formatStorageBytes(metrics.tableBytes.story)}</strong>
+            {" "}({metrics.counts.storiesActive} active
+            {metrics.counts.storiesRecentlyDeleted > 0
+              ? `, ${metrics.counts.storiesRecentlyDeleted} recently deleted`
+              : ""}
+            {metrics.counts.storiesDeletedPastPurge > 0
+              ? `, ${metrics.counts.storiesDeletedPastPurge} past purge`
+              : ""}
+            )
           </li>
           <li>
             QuarantinedInbound{" "}

@@ -18,7 +18,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "What happens on the Free plan?",
-    a: "You get a private inbound address and five stories per calendar month. Forwarded mail is stored until you delete the story.",
+    a: "You get a private inbound address and five stories per calendar month. Forwarded mail is stored until you delete the story. Deleted stories stay in Recently deleted for 30 days before permanent removal.",
   },
   {
     q: "What happens if I hit the monthly limit?",

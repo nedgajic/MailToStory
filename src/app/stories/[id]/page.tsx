@@ -37,6 +37,8 @@ export default async function StoryPage({
         digest={story.digest}
         messageIdsInOrder={story.messageIdsInOrder}
         isFree={ctx.workspace.plan === "free"}
+        deletedAt={story.deletedAt?.toISOString() ?? null}
+        purgeAt={story.purgeAt?.toISOString() ?? null}
       />
     </>
   );

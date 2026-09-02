@@ -141,7 +141,7 @@ ADMIN_EMAILS="nedgajic@gmail.com"
 # SENTRY_DSN="https://...@sentry.io/..."   # optional
 ```
 
-Daily maintenance (quarantine cleanup, expired story-access tokens, generation logs older than 90 days):
+Daily maintenance (quarantine cleanup, expired story-access tokens, generation logs older than 90 days, and permanently removing stories from Recently deleted after 30 days):
 
 ```bash
 crontab -e

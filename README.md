@@ -139,4 +139,4 @@ MailToStory runs on **port 3010** (`mailtostory` PM2 app). dt-wellness (5173), S
 
 ## Privacy note
 
-Forwarded mail and generated stories are stored in your workspace until you delete them. We never connect to your inbox. See the in-app [Privacy Policy](https://mailtostory.com/privacy).
+Forwarded mail and generated stories are stored until you delete them. Deleted stories stay in Recently deleted for 30 days before permanent removal. We never connect to your inbox. See the in-app [Privacy Policy](https://mailtostory.com/privacy).

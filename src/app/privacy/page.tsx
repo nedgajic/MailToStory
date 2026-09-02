@@ -137,12 +137,15 @@ export default function PrivacyPage() {
         <ul>
           <li>
             Delete any story in the library (including a month or year at a
-            time). That removes the stored mail and attachments for those
-            conversations.
+            time). Deleted stories move to <strong>Recently deleted</strong> for
+            30 days, where you can restore them. After 30 days, or if you choose
+            to delete permanently, we remove the stored mail and attachments for
+            those conversations.
           </li>
           <li>
             Delete your account in Settings. We cancel a paid subscription
-            immediately, remove workspaces you own, and delete stored mail.
+            immediately, remove workspaces you own, and delete stored mail and
+            stories without a recovery period.
           </li>
           <li>
             Quarantined mail from unknown senders is kept for a limited period

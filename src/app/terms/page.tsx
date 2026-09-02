@@ -59,8 +59,11 @@ export default function TermsPage() {
         <p>
           You are responsible for your password and for activity under your
           account. You may delete stories or your entire account in the
-          dashboard. Paid plans are billed by Stripe; cancel anytime. Account
-          deletion cancels a subscription immediately.
+          dashboard. Deleted stories stay in Recently deleted for 30 days before
+          permanent removal unless you delete them permanently sooner. Paid
+          plans are billed by Stripe; cancel anytime. Account deletion cancels a
+          subscription immediately and removes your data without a recovery
+          period.
         </p>
         <p>
           Prices are shown in USD.{" "}

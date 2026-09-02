@@ -1730,7 +1730,7 @@ export default function DigestRenderer({
           textAlign: "center",
         }}
       >
-        Generated live · mail stays in your workspace until you delete the story
+        Generated live · forwarded email is saved until you delete this story (restorable for 30 days)
       </div>
 
       {attachmentPreview ? (

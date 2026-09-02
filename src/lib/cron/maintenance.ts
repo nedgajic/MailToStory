@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { cleanupExpiredQuarantine } from "@/lib/inbound/quarantine";
+import { purgeExpiredDeletedStories } from "@/lib/stories-delete";
 
 const DEFAULT_GENERATION_LOG_RETENTION_DAYS = 90;
 
@@ -20,10 +21,12 @@ export type MaintenanceResult = {
   quarantineDeleted: number;
   accessTokensDeleted: number;
   generationLogDeleted: number;
+  deletedStoriesPurged: number;
 };
 
 export async function runMaintenance(): Promise<MaintenanceResult> {
-  const [quarantineDeleted, accessTokens, generationLog] = await Promise.all([
+  const [quarantineDeleted, accessTokens, generationLog, deletedStoriesPurged] =
+    await Promise.all([
     cleanupExpiredQuarantine(),
     prisma.storyAccessToken.deleteMany({
       where: { expiresAt: { lte: new Date() } },
@@ -37,11 +40,13 @@ export async function runMaintenance(): Promise<MaintenanceResult> {
         },
       },
     }),
+    purgeExpiredDeletedStories(),
   ]);
 
   return {
     quarantineDeleted,
     accessTokensDeleted: accessTokens.count,
     generationLogDeleted: generationLog.count,
+    deletedStoriesPurged,
   };
 }

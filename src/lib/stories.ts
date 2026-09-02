@@ -9,6 +9,8 @@ export type StoryListItem = {
   status: string;
   resolutionSummary: string;
   createdAt: Date;
+  deletedAt: Date | null;
+  purgeAt: Date | null;
 };
 
 export async function getStoryForWorkspace(
@@ -19,6 +21,8 @@ export async function getStoryForWorkspace(
   messageIdsInOrder: string[];
   conversationId: string;
   title: string;
+  deletedAt: Date | null;
+  purgeAt: Date | null;
 } | null> {
   const story = await prisma.story.findFirst({
     where: { id: storyId, workspaceId },
@@ -34,5 +38,7 @@ export async function getStoryForWorkspace(
     messageIdsInOrder: ids,
     conversationId: story.conversationId,
     title: story.title,
+    deletedAt: story.deletedAt,
+    purgeAt: story.purgeAt,
   };
 }
