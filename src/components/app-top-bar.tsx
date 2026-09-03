@@ -17,7 +17,7 @@ import "@/app/marketing-home.css";
 
 const APP_NAV = [
   { href: "/dashboard", label: "Overview" },
-  { href: "/stories", label: "Stories" },
+  { href: "/stories", label: "Stories", featured: true },
 ] as const;
 
 const SETTINGS_NAV = [
@@ -91,10 +91,11 @@ export function AppTopBar({
   );
 
   if (showNav) {
-    function navClass(href: string) {
-      return isNavActive(pathname, href)
-        ? "mkt-nav__btn mkt-nav__btn--active"
-        : "mkt-nav__btn";
+    function navClass(href: string, featured?: boolean) {
+      const classes = ["mkt-nav__btn"];
+      if (featured) classes.push("mkt-nav__btn--featured");
+      if (isNavActive(pathname, href)) classes.push("mkt-nav__btn--active");
+      return classes.join(" ");
     }
 
     const settingsActive = isSettingsActive(pathname);
@@ -116,8 +117,8 @@ export function AppTopBar({
           </Link>
 
           <nav className="mkt-nav sn-site-header__nav-pill" aria-label="App">
-            {APP_NAV.map(({ href, label }) => (
-              <Link key={href} href={href} className={navClass(href)}>
+            {APP_NAV.map(({ href, label, featured }) => (
+              <Link key={href} href={href} className={navClass(href, featured)}>
                 {label}
               </Link>
             ))}
@@ -207,11 +208,11 @@ export function AppTopBar({
         {menuOpen ? (
           <div className="mkt-container">
             <div className="mkt-mobile-nav">
-              {APP_NAV.map(({ href, label }) => (
+              {APP_NAV.map(({ href, label, featured }) => (
                 <Link
                   key={`mobile-${href}`}
                   href={href}
-                  className={navClass(href) + " mkt-nav__btn--mobile"}
+                  className={`${navClass(href, featured)} mkt-nav__btn--mobile`}
                   onClick={() => setMenuOpen(false)}
                 >
                   {label}

@@ -30,8 +30,8 @@ export const STORY_SPEAKER_PALETTES: Record<
 > = {
   dossier: {
     light: {
-      speakerBg: ["#edf5ef", "#fef2f2", "#eff6ff", "#fffbeb", "#f5f3ff", "#f0fdfa"],
-      speakerAccent: ["#2d6a4f", "#c1121f", "#1d4ed8", "#b45309", "#7c3aed", "#0f766e"],
+      speakerBg: ["#d4f5e2", "#ffd4d4", "#d4e4ff", "#ffe0ad", "#e4d9ff", "#c4f4eb"],
+      speakerAccent: ["#059669", "#e11d48", "#2563eb", "#d97706", "#7c3aed", "#0d9488"],
       recapAccentHints: ["#1d4f91", "#2c2c30", "#4a4a4f", "#d4cec4"],
     },
     dark: {
@@ -42,8 +42,8 @@ export const STORY_SPEAKER_PALETTES: Record<
   },
   moonletter: {
     light: {
-      speakerBg: ["#eff6ff", "#ecfdf5", "#fff7ed", "#fdf4ff", "#fdf2f8", "#fffbeb"],
-      speakerAccent: ["#2563eb", "#059669", "#ea580c", "#9333ea", "#db2777", "#ca8a04"],
+      speakerBg: ["#93c5fd", "#5eead4", "#fdba74", "#c4b5fd", "#f0abfc", "#fcd34d"],
+      speakerAccent: ["#1d4ed8", "#047857", "#ea580c", "#7c3aed", "#db2777", "#d97706"],
       recapAccentHints: ["#b44d78", "#8a5068", "#f0d4df", "#4a3040"],
     },
     dark: {
@@ -54,8 +54,8 @@ export const STORY_SPEAKER_PALETTES: Record<
   },
   wayfarer: {
     light: {
-      speakerBg: ["#fde8e8", "#e0ead8", "#dce4f0", "#faf0d4", "#f3e0f0", "#e0f2f4"],
-      speakerAccent: ["#991b1b", "#166534", "#1e40af", "#a16207", "#86198f", "#0e7490"],
+      speakerBg: ["#ffd0d0", "#cce8b0", "#b8d4ff", "#ffe08a", "#e8b8f8", "#a8eef0"],
+      speakerAccent: ["#dc2626", "#15803d", "#1d4ed8", "#d97706", "#a21caf", "#0d9488"],
       recapAccentHints: ["#8a5820", "#c4a574", "#3a2c18", "#efe4cc"],
     },
     dark: {

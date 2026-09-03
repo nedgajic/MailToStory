@@ -11,6 +11,9 @@ import { StoriesSearchEmptyGlyph } from "@/components/stories/stories-search-emp
 import { useAppToast } from "@/components/ui/app-toast";
 import { deletedStoryRetentionDays } from "@/lib/story-retention";
 import { formatPurgeDetail } from "@/lib/story-purge-label";
+import { DIGEST_STATUS_LABEL } from "@/lib/digestExportContent";
+import type { Digest } from "@/lib/digest-schema";
+import { storyCardExcerpt } from "@/lib/story-card-excerpt";
 
 export type StoryCardData = {
   id: string;
@@ -47,6 +50,13 @@ function monthLabel(key: string): string {
 
 function formatPurgeLabel(purgeAt: string): string {
   return formatPurgeDetail(purgeAt);
+}
+
+function storyStatusLabel(status: string): string {
+  return (
+    DIGEST_STATUS_LABEL[status as Digest["status"]] ??
+    status.replace(/_/g, " ")
+  );
 }
 
 function SectionSelectAllCheckbox({
@@ -538,19 +548,35 @@ export function StoriesLibrary({
                         }
                       />
                     </label>
-                    <Link href={`/stories/${story.id}`}>
-                      <h3>{story.title}</h3>
-                      <p className="story-card__meta">
-                        {story.subject} ·{" "}
-                        {libraryView === "deleted" && story.deletedAt
-                          ? `Deleted ${new Date(story.deletedAt).toLocaleDateString()}`
-                          : new Date(story.createdAt).toLocaleDateString()}
-                      </p>
+                    <Link href={`/stories/${story.id}`} className="story-card__link">
+                      <h3 className="story-card__title">{story.title}</h3>
+                      <div className="story-card__meta-row">
+                        {libraryView === "active" ? (
+                          <span
+                            className="story-card__status"
+                            data-status={story.status}
+                          >
+                            {storyStatusLabel(story.status)}
+                          </span>
+                        ) : null}
+                        <p className="story-card__meta">
+                          {libraryView === "deleted" && story.deletedAt
+                            ? `Deleted ${new Date(story.deletedAt).toLocaleDateString()}`
+                            : new Date(story.createdAt).toLocaleDateString()}
+                          {story.subject
+                            ? ` · ${storyCardExcerpt(story.subject, 52)}`
+                            : null}
+                        </p>
+                      </div>
                       {libraryView === "deleted" && story.purgeAt ? (
-                        <p className="story-card__purge-meta">{formatPurgeLabel(story.purgeAt)}</p>
-                      ) : (
-                        <p>{story.resolutionSummary}</p>
-                      )}
+                        <p className="story-card__purge-meta">
+                          {formatPurgeLabel(story.purgeAt)}
+                        </p>
+                      ) : libraryView === "active" && story.resolutionSummary ? (
+                        <p className="story-card__excerpt">
+                          {storyCardExcerpt(story.resolutionSummary)}
+                        </p>
+                      ) : null}
                     </Link>
                     {libraryView === "deleted" ? (
                       <div className="story-card__deleted-actions">
@@ -612,7 +638,12 @@ export function StoriesLibrary({
                         />
                       </td>
                       <td>
-                        <Link href={`/stories/${story.id}`}>{story.title}</Link>
+                        <Link
+                          href={`/stories/${story.id}`}
+                          className="story-table__title-link"
+                        >
+                          {story.title}
+                        </Link>
                       </td>
                       <td>{new Date(story.createdAt).toLocaleDateString()}</td>
                       <td>{story.status.replace("_", " ")}</td>

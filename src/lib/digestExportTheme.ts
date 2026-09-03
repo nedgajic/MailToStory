@@ -1,6 +1,39 @@
 import type { StoryColorMode, StoryDisplayTheme } from "@/lib/story-reading-theme";
 import { getStorySpeakerPalette } from "@/lib/storySpeakerPalettes";
 
+/** Matches web `border-radius` — uniform px or per-corner (e.g. Moonletter recap). */
+export type ExportBorderRadius =
+  | number
+  | {
+      topLeft: number;
+      topRight: number;
+      bottomRight: number;
+      bottomLeft: number;
+    };
+
+export function pdfBorderRadius(
+  radius: ExportBorderRadius,
+): Record<string, number> {
+  if (typeof radius === "number") {
+    return { borderRadius: radius };
+  }
+  return {
+    borderTopLeftRadius: radius.topLeft,
+    borderTopRightRadius: radius.topRight,
+    borderBottomRightRadius: radius.bottomRight,
+    borderBottomLeftRadius: radius.bottomLeft,
+  };
+}
+
+export function exportStatusPillBorderRadius(
+  recapBorderRadius: ExportBorderRadius,
+): number {
+  if (typeof recapBorderRadius === "number") {
+    return recapBorderRadius > 8 ? 10 : 2;
+  }
+  return 10;
+}
+
 export type DigestExportThemeConfig = {
   pageBg: string;
   prose: string;
@@ -32,11 +65,13 @@ export type DigestExportThemeConfig = {
   recapItalic: boolean;
   speakerCaps: boolean;
   speakerLetterSpacing: number;
-  panelBorderRadius: number;
+  panelBorderRadius: ExportBorderRadius;
   panelBorderLeftWidth: number;
   panelUseRightAccent: boolean;
-  recapBorderRadius: number;
+  recapBorderRadius: ExportBorderRadius;
   recapBorderStyle: "solid" | "dashed";
+  recapBorderWidth: number;
+  recapBorderLeftAccentWidth: number;
   sectionLetterSpacing: number;
 };
 
@@ -73,8 +108,10 @@ const DOSSIER_LIGHT: DigestExportThemeConfig = {
   panelBorderRadius: 2,
   panelBorderLeftWidth: 3,
   panelUseRightAccent: false,
-  recapBorderRadius: 4,
+  recapBorderRadius: 2,
   recapBorderStyle: "solid",
+  recapBorderWidth: 1,
+  recapBorderLeftAccentWidth: 3,
   sectionLetterSpacing: 1.6,
 };
 
@@ -130,11 +167,18 @@ const MOONLETTER_LIGHT: DigestExportThemeConfig = {
   recapItalic: true,
   speakerCaps: false,
   speakerLetterSpacing: 0.4,
-  panelBorderRadius: 14,
+  panelBorderRadius: 23,
   panelBorderLeftWidth: 0,
   panelUseRightAccent: false,
-  recapBorderRadius: 18,
+  recapBorderRadius: {
+    topLeft: 26,
+    topRight: 26,
+    bottomRight: 26,
+    bottomLeft: 7,
+  },
   recapBorderStyle: "solid",
+  recapBorderWidth: 1,
+  recapBorderLeftAccentWidth: 0,
   sectionLetterSpacing: 1.2,
 };
 
@@ -190,11 +234,13 @@ const WAYFARER_LIGHT: DigestExportThemeConfig = {
   recapItalic: false,
   speakerCaps: true,
   speakerLetterSpacing: 0.8,
-  panelBorderRadius: 1,
+  panelBorderRadius: 2,
   panelBorderLeftWidth: 3,
   panelUseRightAccent: true,
-  recapBorderRadius: 1,
+  recapBorderRadius: 14,
   recapBorderStyle: "dashed",
+  recapBorderWidth: 2,
+  recapBorderLeftAccentWidth: 0,
   sectionLetterSpacing: 2.2,
 };
 

@@ -31,6 +31,12 @@ import {
 import { DIGEST_STATUS_LABEL } from "@/lib/digestExportContent";
 import {
   buildParticipantColorMap,
+  buildParticipantLaneMap,
+  participantLaneIndex,
+  wayfarerPanelOffsetPercent,
+  moonletterParticipantPanelLayout,
+  moonletterPanelWidthCss,
+  moonletterPanelOffsetCss,
   participantColorIndex,
   speakerColorKey,
 } from "@/lib/participantColors";
@@ -49,6 +55,61 @@ function speakerLane(speaker?: string | null): "a" | "b" {
     h = (h * 33 + s.charCodeAt(i)) | 0;
   }
   return Math.abs(h) % 2 === 0 ? "a" : "b";
+}
+
+function storyTurnLayout(
+  displayTheme: StoryDisplayTheme,
+  speaker: string | null | undefined,
+  email: string | null,
+  participants: ParticipantLite[],
+  participantLaneMap: Map<string, number>,
+  participantLaneCount: number,
+  motion: React.CSSProperties,
+) {
+  const who = speaker?.trim();
+  const resolvedEmail = who
+    ? email ?? resolveSpeakerToEmail(who, participants)
+    : null;
+  const stableParticipantKey = who
+    ? speakerColorKey(who, resolvedEmail)
+    : null;
+
+  const lane =
+    displayTheme === "wayfarer" || displayTheme === "moonletter"
+      ? undefined
+      : speakerLane(speaker);
+  const laneSlot =
+    displayTheme === "wayfarer" || displayTheme === "moonletter"
+      ? participantLaneIndex(
+          participants,
+          speaker,
+          resolvedEmail,
+          participantLaneMap,
+        )
+      : null;
+
+  const moonletterPanel =
+    displayTheme === "moonletter" && stableParticipantKey
+      ? moonletterParticipantPanelLayout(stableParticipantKey)
+      : null;
+
+  return {
+    lane,
+    laneSlot,
+    moonletterPanel,
+    panelOptions: {
+      displayTheme,
+      lane,
+      laneSlot,
+      participantCount: participantLaneCount,
+    },
+    proseStyle: {
+      ...motion,
+      ...(displayTheme === "wayfarer" && laneSlot != null
+        ? { marginLeft: wayfarerPanelOffsetPercent(laneSlot, participantLaneCount) }
+        : {}),
+    },
+  };
 }
 
 function formatDate(iso: string) {
@@ -109,6 +170,8 @@ function speakerPanelStyle(
   options?: {
     displayTheme?: StoryDisplayTheme;
     lane?: "a" | "b";
+    laneSlot?: number | null;
+    participantCount?: number;
   },
 ): React.CSSProperties | null {
   const s = speaker?.trim();
@@ -119,7 +182,11 @@ function speakerPanelStyle(
   const bg = `var(--digest-speaker-${idx}-bg)`;
   const accent = `var(--digest-speaker-${idx}-accent)`;
   const useRightAccent =
-    options?.displayTheme === "wayfarer" && options?.lane === "b";
+    options?.displayTheme === "wayfarer" &&
+    options?.laneSlot != null &&
+    options.participantCount != null &&
+    options.participantCount > 1 &&
+    options.laneSlot === options.participantCount - 1;
 
   if (useRightAccent) {
     return {
@@ -142,16 +209,24 @@ function speakerPanelStyle(
 function turnPanelWrapperStyle(
   panel: React.CSSProperties | null,
   colorIdx: number | null,
+  moonletterPanel?: { widthRatio: number; offsetRatio: number } | null,
 ): React.CSSProperties | undefined {
-  if (!panel?.background) return undefined;
-  const vars: Record<string, string> = {
-    "--digest-turn-panel-bg": String(panel.background),
-  };
+  if (!panel?.background && !moonletterPanel) return undefined;
+  const vars: Record<string, string> = {};
+  if (panel?.background) {
+    vars["--digest-turn-panel-bg"] = String(panel.background);
+  }
   if (colorIdx != null) {
     vars["--digest-turn-panel-accent"] =
       `var(--digest-speaker-${colorIdx}-accent)`;
   }
-  return vars as React.CSSProperties;
+  const style: React.CSSProperties = vars as React.CSSProperties;
+  if (moonletterPanel) {
+    style.width = moonletterPanelWidthCss(moonletterPanel.widthRatio);
+    style.maxWidth = style.width;
+    style.marginLeft = moonletterPanelOffsetCss(moonletterPanel.offsetRatio);
+  }
+  return style;
 }
 
 function speakerColorIndex(
@@ -176,7 +251,7 @@ function SpeakerAvatar({
   colorIndex?: number | null;
   size?: number;
 }) {
-  const [useFallback, setUseFallback] = useState(!email);
+  const [showPhoto, setShowPhoto] = useState(false);
   const resolvedName = participants
     ? resolveParticipantDisplayName(displayName, participants, email)
     : displayName;
@@ -188,6 +263,10 @@ function SpeakerAvatar({
       ? `var(--digest-speaker-${colorIndex}-accent)`
       : undefined;
 
+  useEffect(() => {
+    setShowPhoto(false);
+  }, [email]);
+
   return (
     <div
       className="digest-speaker-avatar"
@@ -198,25 +277,28 @@ function SpeakerAvatar({
       }}
       title={resolvedName}
     >
-      {email && !useFallback ? (
+      <span
+        className="digest-speaker-avatar-initials"
+        style={{ fontSize: `clamp(0.5rem, ${size * 0.32}px, 0.75rem)` }}
+      >
+        {initials}
+      </span>
+      {email ? (
         // eslint-disable-next-line @next/next/no-img-element -- Gravatar per-email, no Image optimizer benefit at this size
         <img
+          className="digest-speaker-avatar-photo"
           src={gravatarAvatarUrl(email, size * 2)}
           alt=""
           width={size}
           height={size}
           loading="lazy"
           decoding="async"
-          onError={() => setUseFallback(true)}
+          referrerPolicy="no-referrer"
+          style={{ display: showPhoto ? "block" : "none" }}
+          onLoad={() => setShowPhoto(true)}
+          onError={() => setShowPhoto(false)}
         />
-      ) : (
-        <span
-          className="digest-speaker-avatar-initials"
-          style={{ fontSize: `clamp(0.5rem, ${size * 0.32}px, 0.75rem)` }}
-        >
-          {initials}
-        </span>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -575,6 +657,8 @@ function StoryBlock({
   participants,
   actorMessageMap,
   participantColorMap,
+  participantLaneMap,
+  participantLaneCount,
   displayTheme,
   onOpenOriginal,
   onPreviewAttachment,
@@ -586,6 +670,8 @@ function StoryBlock({
   participants: Digest["participants"];
   actorMessageMap: Map<string, number>;
   participantColorMap: Map<string, number>;
+  participantLaneMap: Map<string, number>;
+  participantLaneCount: number;
   displayTheme: StoryDisplayTheme;
   onOpenOriginal: (messageId: string) => void;
   onPreviewAttachment: (messageId: string, filename: string) => void;
@@ -615,8 +701,6 @@ function StoryBlock({
     transition: `opacity 0.5s ease ${visualIndex * 0.06}s, transform 0.5s ease ${visualIndex * 0.06}s`,
   } as const;
 
-  const lane = speakerLane(item.block.speaker);
-
   const resolveSourceId = (input: {
     messageIndex?: number | null;
     speaker?: string | null;
@@ -643,12 +727,21 @@ function StoryBlock({
       participants,
       participantColorMap,
     );
+    const layout = storyTurnLayout(
+      displayTheme,
+      block.speaker,
+      resolvedEmail,
+      participants,
+      participantLaneMap,
+      participantLaneCount,
+      motion,
+    );
     const panel = speakerPanelStyle(
       block.speaker,
       resolvedEmail,
       participants,
       participantColorMap,
-      { displayTheme, lane },
+      layout.panelOptions,
     );
     const msgId = resolveSourceId({
       messageIndex: block.message_index,
@@ -657,12 +750,19 @@ function StoryBlock({
     const context = stripTrackingNoiseFromProse(block.context?.trim() ?? "");
 
     return (
-      <div className="digest-story-turn-root" data-lane={lane}>
-        <div ref={ref} className="digest-story-turn__prose" style={{ ...motion }}>
+      <div
+        className="digest-story-turn-root"
+        data-lane={layout.lane}
+        data-participant-slot={layout.laneSlot ?? undefined}
+        data-participant-count={
+          displayTheme === "wayfarer" ? participantLaneCount : undefined
+        }
+      >
+        <div ref={ref} className="digest-story-turn__prose" style={layout.proseStyle}>
           {panel ? (
             <div
               className="digest-story-turn__panel"
-              style={turnPanelWrapperStyle(panel, colorIdx)}
+              style={turnPanelWrapperStyle(panel, colorIdx, layout.moonletterPanel)}
             >
               <div
                 className="digest-story-bubble"
@@ -730,12 +830,21 @@ function StoryBlock({
     participants,
     participantColorMap,
   );
+  const layout = storyTurnLayout(
+    displayTheme,
+    block.speaker,
+    resolvedEmail,
+    participants,
+    participantLaneMap,
+    participantLaneCount,
+    motion,
+  );
   const panel = speakerPanelStyle(
     block.speaker,
     resolvedEmail,
     participants,
     participantColorMap,
-    { displayTheme, lane },
+    layout.panelOptions,
   );
   const msgId = resolveSourceId({
     messageIndex: block.message_index,
@@ -768,11 +877,18 @@ function StoryBlock({
 
   if (panel) {
     return (
-      <div className="digest-story-turn-root" data-lane={lane}>
-        <div ref={ref} className="digest-story-turn__prose" style={{ ...motion }}>
+      <div
+        className="digest-story-turn-root"
+        data-lane={layout.lane}
+        data-participant-slot={layout.laneSlot ?? undefined}
+        data-participant-count={
+          displayTheme === "wayfarer" ? participantLaneCount : undefined
+        }
+      >
+        <div ref={ref} className="digest-story-turn__prose" style={layout.proseStyle}>
           <div
             className="digest-story-turn__panel"
-            style={turnPanelWrapperStyle(panel, colorIdx)}
+            style={turnPanelWrapperStyle(panel, colorIdx, layout.moonletterPanel)}
           >
             <div
               className="digest-story-bubble"
@@ -800,8 +916,15 @@ function StoryBlock({
   }
 
   return (
-    <div className="digest-story-turn-root" data-lane={lane}>
-      <div ref={ref} className="digest-story-turn__prose" style={{ ...motion }}>
+    <div
+      className="digest-story-turn-root"
+      data-lane={layout.lane}
+      data-participant-slot={layout.laneSlot ?? undefined}
+      data-participant-count={
+        displayTheme === "wayfarer" ? participantLaneCount : undefined
+      }
+    >
+      <div ref={ref} className="digest-story-turn__prose" style={layout.proseStyle}>
         {textEl}
         {evidenceFooter}
       </div>
@@ -812,13 +935,15 @@ function StoryBlock({
 function ResolutionBanner({
   summary,
   status,
+  panelRef,
 }: {
   summary: string;
   status: Digest["status"];
+  panelRef?: React.Ref<HTMLDivElement>;
 }) {
   const summaryTrim = stripTrackingNoiseFromProse(summary?.trim() ?? "");
   return (
-    <div className="digest-recap-panel">
+    <div ref={panelRef} className="digest-recap-panel">
       <div className="digest-recap-meta-row">
         <span className="digest-recap-kicker">Recap</span>
         <span className="digest-recap-status-pill" data-status={status}>
@@ -1725,6 +1850,54 @@ export default function DigestRenderer({
       }),
     [digest.participants, displayTheme, colorMode, firstTurnParticipantKey],
   );
+  const participantLaneMap = useMemo(
+    () => buildParticipantLaneMap(digest.participants),
+    [digest.participants],
+  );
+  const participantLaneCount = participantLaneMap.size;
+  const recapPanelRef = useRef<HTMLDivElement>(null);
+  const digestWrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (displayTheme !== "wayfarer" && displayTheme !== "moonletter") return;
+
+    const panel = recapPanelRef.current;
+    const wrap = digestWrapRef.current;
+    if (!panel || !wrap) return;
+
+    let raf = 0;
+
+    const syncRecapPanelWidths = () => {
+      const width = panel.getBoundingClientRect().width;
+      if (width <= 0) return;
+      if (displayTheme === "wayfarer") {
+        wrap.style.setProperty("--wayfarer-recap-panel-width", `${width}px`);
+        wrap.style.setProperty("--wayfarer-turn-panel-width", `${width * 0.8}px`);
+      }
+      if (displayTheme === "moonletter") {
+        wrap.style.setProperty("--moonletter-recap-panel-width", `${width}px`);
+      }
+    };
+
+    const scheduleSync = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(syncRecapPanelWidths);
+    };
+
+    scheduleSync();
+    const observer = new ResizeObserver(scheduleSync);
+    observer.observe(panel);
+    window.addEventListener("resize", scheduleSync);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      observer.disconnect();
+      window.removeEventListener("resize", scheduleSync);
+      wrap.style.removeProperty("--wayfarer-recap-panel-width");
+      wrap.style.removeProperty("--wayfarer-turn-panel-width");
+      wrap.style.removeProperty("--moonletter-recap-panel-width");
+    };
+  }, [displayTheme, digest.resolution_summary, digest.status]);
 
   return (
     <>
@@ -1748,20 +1921,14 @@ export default function DigestRenderer({
           }
         />
       )}
-      <div className={`digest-wrap${embedded ? " digest-wrap--embedded" : ""}${hideAppTopBar ? " digest-wrap--story-page" : ""}`}>
-      <div className="digest-page-split digest-page-split--sticky-bar">
-        <div className="digest-page-split__tabs">
-          <DigestTabStrip
-            tabs={tabs}
-            activeTab={activeTab}
-            onTabChange={handleTabChange}
-            animated={hideAppTopBar}
-          />
-        </div>
-      </div>
-
+      <div
+        ref={digestWrapRef}
+        className={`digest-wrap${embedded ? " digest-wrap--embedded" : ""}${hideAppTopBar ? " digest-wrap--story-page" : ""}`}
+      >
+      <div className="digest-story-recap-zone">
+      <div className="digest-story-header-block">
       <section
-        className="digest-story-recap-section digest-story-section-wave-bottom"
+        className="digest-story-recap-section"
         aria-label="Recap"
       >
         <div className="digest-story-section__head">
@@ -1787,9 +1954,29 @@ export default function DigestRenderer({
             <ResolutionBanner
               summary={digest.resolution_summary}
               status={digest.status}
+              panelRef={recapPanelRef}
             />
           </div>
           <div className="digest-recap-align__rail" aria-hidden="true" />
+        </div>
+      </section>
+      </div>
+      </div>
+
+      <section
+        className="digest-story-tabs-section digest-story-section-wave-bottom"
+        data-display-theme={displayTheme}
+        aria-label="Story sections"
+      >
+        <div
+          className={`digest-story-tabs-section__inner${hideAppTopBar ? " digest-story-tabs-section__inner--story-page" : " digest-story-tabs-section__inner--embedded"}`}
+        >
+          <DigestTabStrip
+            tabs={tabs}
+            activeTab={activeTab}
+            onTabChange={handleTabChange}
+            animated={hideAppTopBar}
+          />
         </div>
       </section>
 
@@ -1817,6 +2004,8 @@ export default function DigestRenderer({
               participants={digest.participants}
               actorMessageMap={actorMessageMap}
               participantColorMap={participantColorMap}
+              participantLaneMap={participantLaneMap}
+              participantLaneCount={participantLaneCount}
               displayTheme={displayTheme}
               onOpenOriginal={setOriginalMessageId}
               onPreviewAttachment={(mid, fn) =>

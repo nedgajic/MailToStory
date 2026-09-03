@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 48" preserveAspectRatio="none">
+  <!-- Organic ocean swell — irregular amplitude, spacing, asymmetric crests -->
+  <path
+    fill="#000"
+    d="M0 0h1440v23C1382 39 1310 7 1260 26C1220 41 1155 13 1095 28C1040 44 965 5 895 27C845 38 790 14 725 24C675 43 610 6 540 29C485 36 420 11 355 26C300 41 230 8 165 27C120 37 60 16 0 23Z"
+  />
+</svg>

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
 import { createPortal } from "react-dom";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -89,7 +88,6 @@ export function AppUserMenu({
   const accountInitials = getInitials(
     accountUser?.name?.trim() || accountUser?.email || "?",
   );
-  const showAdminLink = accountUser?.isAdmin === true;
   const triggerClasses = [
     "app-top-bar__user-trigger",
     triggerClassName,
@@ -139,14 +137,6 @@ export function AppUserMenu({
               }}
               role="menu"
             >
-              <Link
-                href="/dashboard"
-                role="menuitem"
-                className="app-top-bar__user-item app-top-bar__user-item--link"
-                onClick={() => setUserMenuOpen(false)}
-              >
-                Dashboard
-              </Link>
               <a
                 href={HELP_NAV_LINK.path}
                 role="menuitem"
@@ -155,24 +145,6 @@ export function AppUserMenu({
               >
                 {HELP_NAV_LINK.label}
               </a>
-              <Link
-                href="/settings/profile"
-                role="menuitem"
-                className="app-top-bar__user-item app-top-bar__user-item--link"
-                onClick={() => setUserMenuOpen(false)}
-              >
-                Profile
-              </Link>
-              {showAdminLink ? (
-                <Link
-                  href="/admin"
-                  role="menuitem"
-                  className="app-top-bar__user-item app-top-bar__user-item--link"
-                  onClick={() => setUserMenuOpen(false)}
-                >
-                  Admin dashboard
-                </Link>
-              ) : null}
               <button
                 type="button"
                 role="menuitem"

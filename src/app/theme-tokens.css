@@ -3,28 +3,42 @@
 :root {
   color-scheme: dark;
   --digest-export-bar-height: 2.75rem;
-  --app-top-bar-gradient: linear-gradient(
+  --mkt-header-top: #000000;
+  --mkt-header-mid: #0a0a0a;
+  --mkt-header-bottom: #141414;
+  --site-chrome-gradient: linear-gradient(
     180deg,
-    #2c2d30 0%,
-    #18191b 100%
+    var(--mkt-header-top) 0%,
+    var(--mkt-header-mid) 42%,
+    var(--mkt-header-bottom) 100%
   );
+  --app-top-bar-gradient: var(--site-chrome-gradient);
   --app-top-bar-gradient-frosted: linear-gradient(
     180deg,
-    rgba(44, 45, 48, 0.97) 0%,
-    rgba(24, 25, 27, 0.96) 100%
+    rgb(0 0 0 / 0.97) 0%,
+    rgb(10 10 10 / 0.96) 42%,
+    rgb(20 20 20 / 0.96) 100%
   );
-  --app-top-bar-inbox-gradient: linear-gradient(
+  --app-top-bar-inbox-gradient: var(--site-chrome-gradient);
+  --app-top-bar-inbox-gradient-frosted: var(--app-top-bar-gradient-frosted);
+  --site-chrome-edge-shadow:
+    0 4px 20px rgb(0 0 0 / 0.24),
+    inset 0 1px 0 rgb(255 255 255 / 0.05);
+  --site-chrome-glass-line: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgb(255 255 255 / 0.05) 18%,
+    rgb(255 255 255 / 0.13) 50%,
+    rgb(255 255 255 / 0.05) 82%,
+    transparent 100%
+  );
+  --site-chrome-glass-fade: linear-gradient(
     180deg,
-    #343538 0%,
-    #1e1f22 100%
+    rgb(255 255 255 / 0.04) 0%,
+    rgb(255 255 255 / 0.015) 50%,
+    transparent 100%
   );
-  --app-top-bar-inbox-gradient-frosted: linear-gradient(
-    180deg,
-    rgba(52, 53, 56, 0.97) 0%,
-    rgba(30, 31, 34, 0.96) 100%
-  );
-  --app-top-bar-shadow: 0 1px 4px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --app-top-bar-shadow: var(--site-chrome-edge-shadow);
   --app-top-bar-border: rgba(255, 255, 255, 0.1);
   --app-bg: #121212;
   --app-text: #e8eaed;

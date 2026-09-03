@@ -23,7 +23,9 @@ import {
   type ProseBlock,
 } from "@/lib/digestExportContent";
 import {
+  exportStatusPillBorderRadius,
   getDigestExportTheme,
+  pdfBorderRadius,
   type DigestExportThemeConfig,
 } from "@/lib/digestExportTheme";
 import type { StoryColorMode, StoryDisplayTheme } from "@/lib/story-reading-theme";
@@ -60,7 +62,7 @@ function speakerPanelPdf(
     paddingRight: 10,
     paddingVertical: 9,
     marginBottom: 12,
-    borderRadius: theme.panelBorderRadius,
+    ...pdfBorderRadius(theme.panelBorderRadius),
   };
 
   if (theme.panelBorderLeftWidth === 0) {
@@ -86,7 +88,35 @@ function speakerPanelPdf(
   };
 }
 
+function recapPanelBorderStyle(theme: DigestExportThemeConfig) {
+  const edgeStyle = theme.recapBorderStyle;
+  const edgeColor = theme.borderStrong;
+  const width = theme.recapBorderWidth;
+
+  if (theme.recapBorderLeftAccentWidth > 0) {
+    return {
+      borderStyle: edgeStyle,
+      borderTopWidth: width,
+      borderRightWidth: width,
+      borderBottomWidth: width,
+      borderLeftWidth: theme.recapBorderLeftAccentWidth,
+      borderTopColor: edgeColor,
+      borderRightColor: edgeColor,
+      borderBottomColor: edgeColor,
+      borderLeftColor: theme.copyFg,
+    };
+  }
+
+  return {
+    borderStyle: edgeStyle,
+    borderWidth: width,
+    borderColor: edgeColor,
+  };
+}
+
 function createPdfStyles(theme: DigestExportThemeConfig) {
+  const statusPillRadius = exportStatusPillBorderRadius(theme.recapBorderRadius);
+
   return StyleSheet.create({
     page: {
       paddingTop: 42,
@@ -133,13 +163,10 @@ function createPdfStyles(theme: DigestExportThemeConfig) {
       paddingTop: 12,
       paddingBottom: 12,
       paddingLeft: 12,
-      paddingRight: 4,
-      borderTopWidth: 1,
-      borderTopColor: theme.recapRule,
-      borderLeftWidth: 1,
-      borderLeftColor: theme.recapRuleStrong,
+      paddingRight: 12,
+      ...recapPanelBorderStyle(theme),
       backgroundColor: theme.recapTint,
-      borderRadius: theme.recapBorderRadius,
+      ...pdfBorderRadius(theme.recapBorderRadius),
     },
     recapMetaRow: {
       flexDirection: "row",
@@ -163,7 +190,7 @@ function createPdfStyles(theme: DigestExportThemeConfig) {
       textTransform: "uppercase",
       paddingVertical: 3,
       paddingHorizontal: 7,
-      borderRadius: theme.recapBorderRadius > 8 ? 10 : 2,
+      borderRadius: statusPillRadius,
     },
     recapBody: {
       fontFamily: theme.serifFont,
@@ -197,7 +224,7 @@ function createPdfStyles(theme: DigestExportThemeConfig) {
       backgroundColor: theme.surface2,
       borderWidth: 1,
       borderColor: theme.border,
-      borderRadius: theme.panelBorderRadius,
+      ...pdfBorderRadius(theme.panelBorderRadius),
     },
     resourcesLabel: {
       fontFamily: theme.monoFont,

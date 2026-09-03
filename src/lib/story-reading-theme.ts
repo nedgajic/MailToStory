@@ -11,6 +11,51 @@ export type StoryDisplayThemeOption = {
   hint: string;
 };
 
+export type StoryDisplayThemePreview = {
+  itemBackground: string;
+  accent: string;
+  border: string;
+  labelColor: string;
+  hintColor: string;
+  radius?: string;
+  borderStyle?: "solid" | "dashed";
+};
+
+/** Full menu-item preview styling for the theme picker. */
+export const STORY_DISPLAY_THEME_PREVIEWS: Record<
+  StoryDisplayTheme,
+  StoryDisplayThemePreview
+> = {
+  dossier: {
+    itemBackground: "linear-gradient(168deg, #eef4fb 0%, #e3edf8 100%)",
+    accent: "#6b9bd4",
+    border: "rgb(138 180 248 / 0.38)",
+    labelColor: "#2a4a72",
+    hintColor: "rgb(42 74 114 / 0.72)",
+    radius: "2px",
+  },
+  moonletter: {
+    itemBackground: "linear-gradient(168deg, oklch(89.5% 0.048 36) 0%, oklch(96.5% 0.048 36) 100%)",
+    accent: "#c47868",
+    border: "rgb(220 168 152 / 0.48)",
+    labelColor: "#5a3428",
+    hintColor: "rgb(74 56 88 / 0.72)",
+    radius: "10px",
+  },
+  wayfarer: {
+    itemBackground: "linear-gradient(168deg, #f7eed8 0%, #ede4cc 100%)",
+    accent: "#c4954a",
+    border: "rgb(196 149 74 / 0.38)",
+    labelColor: "#6a5028",
+    hintColor: "rgb(106 80 40 / 0.72)",
+    radius: "2px",
+    borderStyle: "dashed",
+  },
+};
+
+/** @deprecated Use STORY_DISPLAY_THEME_PREVIEWS */
+export const STORY_DISPLAY_THEME_SWATCHES = STORY_DISPLAY_THEME_PREVIEWS;
+
 export const STORY_DISPLAY_THEMES: readonly StoryDisplayThemeOption[] = [
   { id: "dossier", label: "Dossier", hint: "Clean briefing — precise and professional" },
   { id: "moonletter", label: "Moonletter", hint: "Soft correspondence — a little romantic" },

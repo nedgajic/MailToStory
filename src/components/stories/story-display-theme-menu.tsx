@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   STORY_DISPLAY_THEMES,
+  STORY_DISPLAY_THEME_PREVIEWS,
   type StoryDisplayTheme,
 } from "@/lib/story-reading-theme";
 
@@ -75,20 +76,31 @@ export function StoryDisplayThemeMenu({
         >
           {STORY_DISPLAY_THEMES.map((option) => {
             const selected = option.id === theme;
+            const preview = STORY_DISPLAY_THEME_PREVIEWS[option.id];
             return (
               <button
                 key={option.id}
                 type="button"
                 role="menuitemradio"
                 aria-checked={selected}
+                data-theme={option.id}
                 className={`story-page-toolbar__menu-item story-export-actions__menu-item story-display-theme__item${selected ? " story-display-theme__item--selected" : ""}`}
+                style={
+                  {
+                    "--theme-item-bg": preview.itemBackground,
+                    "--theme-item-accent": preview.accent,
+                    "--theme-item-border": preview.border,
+                    "--theme-item-label": preview.labelColor,
+                    "--theme-item-radius": preview.radius ?? "8px",
+                    "--theme-item-border-style": preview.borderStyle ?? "solid",
+                  } as React.CSSProperties
+                }
                 onClick={() => {
                   onChange(option.id);
                   setMenuOpen(false);
                 }}
               >
                 <span className="story-display-theme__item-label">{option.label}</span>
-                <span className="story-display-theme__item-hint">{option.hint}</span>
               </button>
             );
           })}

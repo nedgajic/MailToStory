@@ -28,8 +28,8 @@
   background:
     linear-gradient(
       155deg,
-      var(--mkt-header-top, #1d3557) 0%,
-      var(--mkt-header-bottom, #0c1424) 100%
+      var(--mkt-header-top, #000000) 0%,
+      var(--mkt-header-bottom, #141414) 100%
     );
   box-shadow:
     0 1px 0 rgb(255 255 255 / 0.1) inset,
