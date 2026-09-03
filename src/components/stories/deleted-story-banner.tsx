@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useAppToast } from "@/components/ui/app-toast";
 import { PermanentDeleteStoryModal } from "@/components/stories/permanent-delete-story-modal";
+import { StoryDeleteIconButton } from "@/components/stories/story-delete-icon-button";
 import { formatPurgeDetail } from "@/lib/story-purge-label";
 
 export function DeletedStoryBanner({
@@ -64,14 +65,12 @@ export function DeletedStoryBanner({
           <Link href="/stories?view=deleted" className="story-deleted-banner__link">
             View all
           </Link>
-          <button
-            type="button"
+          <StoryDeleteIconButton
+            label="Permanently delete story"
             className="story-deleted-banner__purge"
             disabled={busy}
             onClick={() => setPurgeOpen(true)}
-          >
-            Delete permanently
-          </button>
+          />
           <button
             type="button"
             className="story-deleted-banner__restore"

@@ -66,6 +66,14 @@
   --digest-recap-kicker: #9aa0a6;
   --digest-recap-summary: #e8eaed;
   --digest-recap-empty: #9aa0a6;
+  --digest-status-resolved-fg: #81c995;
+  --digest-status-resolved-bg: rgb(30 58 42 / 0.55);
+  --digest-status-ongoing-fg: #fdd663;
+  --digest-status-ongoing-bg: rgb(58 48 24 / 0.55);
+  --digest-status-pending-fg: #8ab4f8;
+  --digest-status-pending-bg: rgb(29 53 87 / 0.45);
+  --digest-status-no-conclusion-fg: #9aa0a6;
+  --digest-status-no-conclusion-bg: rgb(60 64 67 / 0.55);
   --digest-tab-bg-1: #2d2d2d;
   --digest-tab-bg-2: #353536;
   --digest-tab-bg-3: #3c4043;
@@ -89,16 +97,18 @@
   --plan-team-border: 43 84% 52% / 0.55;
 
   /* Story speaker turn panels */
-  --digest-speaker-0-bg: #1a2820;
+  --digest-speaker-0-bg: #1e3a2f;
   --digest-speaker-0-accent: #81c995;
-  --digest-speaker-1-bg: #2a1f22;
-  --digest-speaker-1-accent: #f28b82;
-  --digest-speaker-2-bg: #2a2618;
-  --digest-speaker-2-accent: #fdd663;
-  --digest-speaker-3-bg: #2b2216;
-  --digest-speaker-3-accent: #fbbc04;
-  --digest-speaker-4-bg: #221a26;
-  --digest-speaker-4-accent: #d2a6ff;
+  --digest-speaker-1-bg: #3a2020;
+  --digest-speaker-1-accent: #f87171;
+  --digest-speaker-2-bg: #1e2a3a;
+  --digest-speaker-2-accent: #60a5fa;
+  --digest-speaker-3-bg: #3a3420;
+  --digest-speaker-3-accent: #fbbf24;
+  --digest-speaker-4-bg: #2e2438;
+  --digest-speaker-4-accent: #c084fc;
+  --digest-speaker-5-bg: #1a3330;
+  --digest-speaker-5-accent: #2dd4bf;
   --digest-attachment-on-panel-inner: #32363b;
 
   --inbox-shell-bg: #202124;

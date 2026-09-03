@@ -11,7 +11,7 @@ const proseBlock = z.object({
   type: z.literal("prose"),
   content: z.string(),
   /** Participant name (or From-style label) this section mainly reflects; omit for neutral/thread-voice. */
-  speaker: z.string().optional(),
+  speaker: z.string().nullish(),
   /** 1-based index matching [Message N | …] in RAW THREAD for this paragraph's source message. */
   message_index: z.number().int().min(1).optional().nullable(),
 });
@@ -20,7 +20,7 @@ const attachmentBlock = z.object({
   type: z.literal("attachment_reference"),
   filename: z.string(),
   context: z.string(),
-  speaker: z.string().optional(),
+  speaker: z.string().nullish(),
   message_index: z.number().int().min(1).optional().nullable(),
 });
 

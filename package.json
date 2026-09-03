@@ -17,7 +17,9 @@
     "deploy:dry-run": "./deploy.sh --dry-run",
     "deploy:bootstrap": "bash scripts/bootstrap-server.sh",
     "lint": "eslint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:threads": "node scripts/send-test-threads.mjs",
+    "ingest:threads": "tsx scripts/ingest-test-threads.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.2",
@@ -54,6 +56,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "prisma": "^5.22.0",
+    "tsx": "^4.23.13",
     "typescript": "^5",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.1.5"

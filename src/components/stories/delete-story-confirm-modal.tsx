@@ -28,13 +28,12 @@ export function DeleteStoryConfirmModal({
 
   if (!open) return null;
 
-  const title = count === 1 ? "Move to Recently deleted?" : `Move ${count} stories to Recently deleted?`;
+  const title = count === 1 ? "Delete story?" : `Delete ${count} stories?`;
   const body =
     count === 1
-      ? "The story and forwarded email will be removed from your library. You can restore them within 30 days."
-      : `These ${count} stories and their forwarded email will be removed from your library. You can restore them within 30 days.`;
-  const confirmLabel =
-    count === 1 ? "Move to Recently deleted" : `Move ${count} stories`;
+      ? "The story and forwarded email will be removed from your library. You can restore them within 30 days from Recently deleted."
+      : `These ${count} stories and their forwarded email will be removed from your library. You can restore them within 30 days from Recently deleted.`;
+  const confirmLabel = count === 1 ? "Delete" : `Delete ${count}`;
 
   return (
     <div
@@ -78,7 +77,7 @@ export function DeleteStoryConfirmModal({
             disabled={busy}
             onClick={() => void onConfirm()}
           >
-            {busy ? "Moving…" : confirmLabel}
+            {busy ? "Deleting…" : confirmLabel}
           </button>
         </div>
       </div>

@@ -5,8 +5,7 @@ import { getWorkspaceContext, isWorkspaceAdmin } from "@/lib/session";
 import type { PlanId } from "@/lib/billing/plans";
 import prisma from "@/lib/prisma";
 import { AppTopBar } from "@/components/app-top-bar";
-import { StoriesLibrary } from "@/components/stories/stories-library";
-import { PendingStories } from "@/components/stories/pending-stories";
+import { StoriesDashboard } from "@/components/stories/stories-dashboard";
 import { inboundAddress } from "@/lib/workspace";
 import { ACTIVE_STORY_WHERE, DELETED_STORY_WHERE } from "@/lib/story-retention";
 
@@ -70,22 +69,20 @@ export default async function StoriesPage({
             <h1>Stories</h1>
             <p>Search, group by month or year, and manage your story library.</p>
           </header>
-          <PendingStories
-            initial={pending.map((item) => ({
-              ...item,
-              lastMessageAt: item.lastMessageAt.toISOString(),
-            }))}
-          />
-          <StoriesLibrary
+          <StoriesDashboard
             inbound={inboundAddress(ctx.workspace.inboundLocalPart)}
             isFree={ctx.workspace.plan === "free"}
             verified={Boolean(ctx.emailVerified)}
             deletedCount={deletedCount}
             showDeletedBanner={sp.deleted === "1"}
             initialLibraryView={sp.view === "deleted" ? "deleted" : "active"}
-            initial={stories.map((s) => ({
+            initialStories={stories.map((s) => ({
               ...s,
               createdAt: s.createdAt.toISOString(),
+            }))}
+            initialPending={pending.map((item) => ({
+              ...item,
+              lastMessageAt: item.lastMessageAt.toISOString(),
             }))}
           />
         </div>

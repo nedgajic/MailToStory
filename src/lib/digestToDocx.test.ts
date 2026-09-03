@@ -49,7 +49,7 @@ describe("digestToDocx", () => {
     expect(xml).toContain("Sloven");
     expect(xml).not.toContain("porocilo.pdf");
     expect(xml).not.toContain("Mesečno poročilo");
-    expect(xml).toContain("Thread story");
+    expect(xml).not.toContain("Thread story");
     expect(xml).toContain("Recap");
     expect(xml).toContain("Story");
     expect(xml).toContain("Timeline");

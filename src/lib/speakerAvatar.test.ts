@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  getInitials,
   gravatarAvatarUrl,
+  initialsForSpeaker,
+  resolveParticipantDisplayName,
   resolveSpeakerToEmail,
 } from "@/lib/speakerAvatar";
 
@@ -34,5 +37,32 @@ describe("gravatarAvatarUrl", () => {
     expect(a).toBe(b);
     expect(a).toContain("gravatar.com/avatar/");
     expect(a).toContain("d=404");
+  });
+});
+
+describe("getInitials", () => {
+  it("uses first and last name initials", () => {
+    expect(getInitials("Ada Lovelace")).toBe("AL");
+  });
+
+  it("derives initials from email local part", () => {
+    expect(getInitials("ada.lovelace@example.com")).toBe("AL");
+  });
+});
+
+describe("resolveParticipantDisplayName", () => {
+  const people = [
+    { name: "Ada Lovelace", email: "ada@example.com" },
+    { name: "Craig McDowall", email: "craig@m.example" },
+  ];
+
+  it("uses full participant name when speaker is first name only", () => {
+    expect(resolveParticipantDisplayName("Craig", people, "craig@m.example")).toBe(
+      "Craig McDowall",
+    );
+  });
+
+  it("uses initials from resolved full name", () => {
+    expect(initialsForSpeaker("Craig", people, "craig@m.example")).toBe("CM");
   });
 });

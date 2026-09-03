@@ -6,7 +6,7 @@ import { MarketingHeroCta } from "@/components/landing/marketing-auth-cta";
 import { MarketingFaq } from "@/components/landing/marketing-faq";
 import { MarketingHomeFooter } from "@/components/landing/marketing-home-footer";
 import { AuthModalTrigger } from "@/components/auth/auth-modal-trigger";
-import { BRAND_NAME, BRAND_PRIVACY_PATH } from "@/lib/brand";
+import { BRAND_PRIVACY_PATH } from "@/lib/brand";
 import { googleAuthEnabled } from "@/lib/google-auth-enabled";
 import { MARKETING_SAMPLE_DIGEST } from "@/lib/marketing-sample-thread";
 import "@/app/marketing-home.css";
@@ -15,15 +15,15 @@ const features = [
   {
     title: "Story view",
     description:
-      "Long threads become clear narrative prose — who said what, in order, without signature noise or nested quotes.",
-    tag: "Read",
+      "Nested quotes and signatures disappear. What remains reads like a short article you can follow — and actually enjoy.",
+    tag: "Enjoy",
     accent: "see",
     glyph: "◈",
   },
   {
     title: "Timeline",
     description:
-      "See every turn at a glance with dates, speakers, and jumps back to the original message.",
+      "See every turn at a glance when you want the facts fast — dates, speakers, and one-click jumps to the original.",
     tag: "Trace",
     accent: "speak",
     glyph: "◎",
@@ -39,7 +39,7 @@ const features = [
   {
     title: "Export anywhere",
     description:
-      "Copy as Markdown, download PDF or Word, and share a polished summary with your team in seconds.",
+      "Copy as Markdown, download PDF or Word, and share a polished summary your team will want to read.",
     tag: "Share",
     accent: "see",
     glyph: "↗",
@@ -63,8 +63,8 @@ const steps = [
   },
   {
     num: "03",
-    title: "Read the story",
-    body: "Open your dashboard for the recap, timeline, open actions, and exports.",
+    title: "Enjoy the story",
+    body: "Open a flowing recap — story, timeline, and open actions — instead of scrolling through reply hell.",
     tone: "peach",
     scene: "story",
   },
@@ -127,25 +127,25 @@ export function LandingPage() {
             <div className="mkt-hero__copy">
               <div className="mkt-badge">
                 <span className="mkt-badge__dot" aria-hidden />
-                Forward it · Read the story
+                Finally — threads you&apos;ll want to read
               </div>
               <h1 className="mkt-hero__title">
-                Turn long email threads into{" "}
-                <span className="mkt-hero__title-accent">calm, structured reading</span>
+                Long email threads,{" "}
+                <span className="mkt-hero__title-accent">rewritten as stories you&apos;ll enjoy</span>
               </h1>
               <p className="mkt-lede mkt-hero__lead">
-                {BRAND_NAME} gives you a private address. Forward any thread and get a
-                clear story, timeline, and list of open actions — without connecting
-                to your inbox.
+                Stop dreading the scroll. Forward any thread to your private address and
+                get a clear, flowing narrative — who said what, in order — plus a timeline
+                and open actions. Reading long mail becomes surprisingly pleasant.
               </p>
               <MarketingHeroCta googleEnabled={google} />
               <p className="mkt-hero__note">
                 We never connect to your inbox · You choose what to forward
               </p>
               <ul className="mkt-trust-strip" aria-label="Product highlights">
-                <li>No inbox OAuth</li>
+                <li>Reads like a story, not a stack of replies</li>
                 <li>Private forwarding address</li>
-                <li>PDF & Markdown export</li>
+                <li>No inbox OAuth required</li>
               </ul>
             </div>
 
@@ -157,7 +157,7 @@ export function LandingPage() {
                   <span />
                 </div>
                 <div className="mkt-preview-card__body">
-                  <p className="mkt-preview-card__kicker">Thread story</p>
+                  <p className="mkt-preview-card__kicker">Pleasant to read</p>
                   <h3>{MARKETING_SAMPLE_DIGEST.title}</h3>
                   <p className="mkt-preview-card__status">
                     Pending action · {MARKETING_SAMPLE_DIGEST.participants.length} participants
@@ -177,9 +177,10 @@ export function LandingPage() {
           <div className="mkt-container">
             <div className="mkt-section__head">
               <p className="mkt-eyebrow mkt-eyebrow--pill">What you get</p>
-              <h2 className="mkt-h2">Everything you need to understand a thread</h2>
+              <h2 className="mkt-h2">A better way through every long thread</h2>
               <p className="mkt-lede">
-                One forward becomes a readable recap you can scan, share, and act on.
+                One forward becomes a recap you can skim, savor, share, and act on —
+                without wading through nested quotes and signatures.
               </p>
             </div>
             <ul className="mkt-feature-grid">
@@ -256,10 +257,10 @@ export function LandingPage() {
         <section className="mkt-section mkt-section--cta mkt-wave-bottom mkt-wave-overlap">
           <div className="mkt-container">
             <div className="mkt-cta-band">
-              <h2 className="mkt-h2">Ready for a calmer inbox?</h2>
+              <h2 className="mkt-h2">Ready to enjoy your next thread?</h2>
               <p className="mkt-lede">
-                Create your account, copy your private address, and forward your first
-                thread today.
+                Create your account, copy your private address, and forward the thread
+                you&apos;ve been putting off. You might actually look forward to reading it.
               </p>
               <AuthModalTrigger mode="signup" className="mkt-btn mkt-btn--hero mkt-btn--lg">
                 Get started free

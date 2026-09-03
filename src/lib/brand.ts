@@ -55,3 +55,4 @@ export const BRAND_OG_PATH = "/og.png";
 export const BRAND_OG_URL = `${BRAND_URL}/og.png`;
 
 export const BRAND_EXPORT_ATTRIBUTION = `Exported from ${BRAND_NAME} (${BRAND_URL}). Generated content — verify against originals.`;
+export const BRAND_EXPORT_FOOTER = `${BRAND_NAME} · ${BRAND_DOMAIN}`;

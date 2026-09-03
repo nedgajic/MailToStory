@@ -2,13 +2,21 @@ import { authOptions } from "@/auth";
 import { DigestPdfDocument } from "@/components/digest/DigestPdfDocument";
 import { digestPdfBaseFilename } from "@/lib/digestPdfFilename";
 import { digestSchema } from "@/lib/digest-schema";
+import { parseStoryColorModeInput, parseStoryDisplayThemeInput } from "@/lib/story-display-theme-schema";
 import { registerPdfFonts } from "@/lib/registerPdfFonts";
 import { getServerSession } from "next-auth/next";
 import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createElement } from "react";
+import { z } from "zod";
 
 type PdfDocumentRoot = Parameters<typeof renderToBuffer>[0];
+
+const bodySchema = z.object({
+  digest: digestSchema,
+  displayTheme: z.enum(["dossier", "moonletter", "wayfarer"]).optional(),
+  colorMode: z.enum(["light", "dark"]).optional(),
+});
 
 export const runtime = "nodejs";
 
@@ -25,25 +33,24 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const raw =
-    typeof body === "object" &&
-    body !== null &&
-    "digest" in body &&
-    (body as { digest: unknown }).digest;
-
-  const parsed = digestSchema.safeParse(raw);
+  const parsed = bodySchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid digest payload" }, { status: 400 });
   }
+
+  const displayTheme = parseStoryDisplayThemeInput(parsed.data.displayTheme);
+  const colorMode = parseStoryColorModeInput(parsed.data.colorMode);
 
   try {
     registerPdfFonts();
     const buffer = await renderToBuffer(
       createElement(DigestPdfDocument, {
-        digest: parsed.data,
+        digest: parsed.data.digest,
+        displayTheme,
+        colorMode,
       }) as PdfDocumentRoot,
     );
-    const base = digestPdfBaseFilename(parsed.data.title);
+    const base = digestPdfBaseFilename(parsed.data.digest.title);
     const filename = `${base}.pdf`;
 
     return new NextResponse(new Uint8Array(buffer), {

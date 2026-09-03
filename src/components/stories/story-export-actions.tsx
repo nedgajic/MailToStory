@@ -1,7 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Digest } from "@/lib/digest-schema";
+import type { StoryColorMode, StoryDisplayTheme } from "@/lib/story-reading-theme";
+import {
+  readExportAlwaysDayMode,
+  readStoryColorMode,
+  resolveExportColorMode,
+  writeExportAlwaysDayMode,
+} from "@/lib/story-reading-theme";
 import { DigestExportPdfOverlay } from "@/components/digest/DigestExportPdfOverlay";
 import { digestPdfBaseFilename } from "@/lib/digestPdfFilename";
 import { digestToMarkdown } from "@/lib/digestToMarkdown";
@@ -9,19 +16,35 @@ import { openPdfInNewTab } from "@/lib/openPdfInNewTab";
 
 export function StoryExportActions({
   digest,
+  displayTheme = "dossier",
+  colorMode,
   className,
 }: {
   digest: Digest;
+  displayTheme?: StoryDisplayTheme;
+  colorMode?: StoryColorMode;
   className?: string;
 }) {
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [wordLoading, setWordLoading] = useState(false);
   const [markdownCopied, setMarkdownCopied] = useState(false);
+  const [alwaysDayMode, setAlwaysDayMode] = useState(false);
   const [pdfPreview, setPdfPreview] = useState<{
     url: string;
     title: string;
     filename: string;
   } | null>(null);
+
+  useEffect(() => {
+    setAlwaysDayMode(readExportAlwaysDayMode());
+  }, []);
+
+  const exportColorMode = resolveExportColorMode(
+    colorMode ?? readStoryColorMode(),
+    alwaysDayMode,
+  );
 
   const closePdfPreview = useCallback(() => {
     setPdfPreview((current) => {
@@ -35,6 +58,26 @@ export function StoryExportActions({
       if (pdfPreview?.url) URL.revokeObjectURL(pdfPreview.url);
     };
   }, [pdfPreview?.url]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    function onDocMouseDown(e: MouseEvent) {
+      if (menuRef.current?.contains(e.target as Node)) return;
+      setMenuOpen(false);
+    }
+
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setMenuOpen(false);
+    }
+
+    document.addEventListener("mousedown", onDocMouseDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onDocMouseDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [menuOpen]);
 
   async function copyMarkdown() {
     const md = digestToMarkdown(digest);
@@ -69,7 +112,11 @@ export function StoryExportActions({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ digest }),
+        body: JSON.stringify({
+          digest,
+          displayTheme,
+          colorMode: exportColorMode,
+        }),
       });
       if (!res.ok) {
         const err = (await res.json().catch(() => ({}))) as { error?: string };
@@ -107,7 +154,11 @@ export function StoryExportActions({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ digest }),
+        body: JSON.stringify({
+          digest,
+          displayTheme,
+          colorMode: exportColorMode,
+        }),
       });
       if (!res.ok) {
         const err = (await res.json().catch(() => ({}))) as { error?: string };
@@ -133,55 +184,167 @@ export function StoryExportActions({
     }
   }
 
+  async function handleCopyMarkdown() {
+    await copyMarkdown();
+    setMenuOpen(false);
+  }
+
+  async function handleExportPdf() {
+    setMenuOpen(false);
+    await exportPdf();
+  }
+
+  async function handleExportWordDoc() {
+    setMenuOpen(false);
+    await exportWordDoc();
+  }
+
+  function toggleAlwaysDayMode() {
+    const next = !alwaysDayMode;
+    setAlwaysDayMode(next);
+    writeExportAlwaysDayMode(next);
+  }
+
+  const busy = pdfLoading || wordLoading;
+
   return (
     <>
-      <nav
-        className={["story-export-actions", className].filter(Boolean).join(" ")}
-        aria-label="Export story"
-        aria-busy={pdfLoading || wordLoading}
+      <div
+        ref={menuRef}
+        className={[
+          "story-export-actions",
+          "story-page-toolbar__menu-wrap",
+          className,
+        ]
+          .filter(Boolean)
+          .join(" ")}
       >
         <button
           type="button"
-          className="story-export-actions__btn"
-          title="Copy the full story as Markdown"
-          onClick={() => void copyMarkdown()}
+          className={`story-export-actions__btn story-export-actions__trigger${menuOpen ? " story-export-actions__trigger--open" : ""}${busy ? " story-export-actions__trigger--busy" : ""}`}
+          aria-label="Export story"
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          aria-busy={busy}
+          onClick={() => setMenuOpen((open) => !open)}
         >
-          {markdownCopied ? "Copied!" : "Copy Markdown"}
-        </button>
-        <button
-          type="button"
-          className={`story-export-actions__btn${pdfLoading ? " story-export-actions__btn--loading" : ""}`}
-          disabled={pdfLoading}
-          aria-live="polite"
-          onClick={() => void exportPdf()}
-        >
-          {pdfLoading ? (
+          {busy ? (
             <>
               <span className="story-export-actions__spinner" aria-hidden />
-              PDF…
+              Exporting…
             </>
           ) : (
-            "Export PDF"
-          )}
-        </button>
-        <button
-          type="button"
-          className={`story-export-actions__btn${wordLoading ? " story-export-actions__btn--loading" : ""}`}
-          disabled={wordLoading}
-          title="Download as Microsoft Word (.docx)"
-          aria-live="polite"
-          onClick={() => void exportWordDoc()}
-        >
-          {wordLoading ? (
             <>
-              <span className="story-export-actions__spinner" aria-hidden />
-              Word…
+              Export
+              <svg
+                className="story-export-actions__chevron"
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                aria-hidden
+              >
+                <path d="M6 9l6 6 6-6" />
+              </svg>
             </>
-          ) : (
-            "Export Word"
           )}
         </button>
-      </nav>
+
+        {menuOpen ? (
+          <div
+            className="story-page-toolbar__menu story-export-actions__menu"
+            role="menu"
+            aria-label="Export options"
+          >
+            <button
+              type="button"
+              role="menuitem"
+              className={`story-page-toolbar__menu-item story-export-actions__menu-item${pdfLoading ? " story-export-actions__menu-item--loading" : ""}`}
+              disabled={pdfLoading}
+              aria-live="polite"
+              onClick={() => void handleExportPdf()}
+            >
+              {pdfLoading ? (
+                <>
+                  <span className="story-export-actions__spinner" aria-hidden />
+                  Exporting to PDF…
+                </>
+              ) : (
+                "Export to PDF"
+              )}
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              className={`story-page-toolbar__menu-item story-export-actions__menu-item${wordLoading ? " story-export-actions__menu-item--loading" : ""}`}
+              disabled={wordLoading}
+              title="Download as Microsoft Word (.docx)"
+              aria-live="polite"
+              onClick={() => void handleExportWordDoc()}
+            >
+              {wordLoading ? (
+                <>
+                  <span className="story-export-actions__spinner" aria-hidden />
+                  Exporting to Word…
+                </>
+              ) : (
+                "Export to Word"
+              )}
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              className="story-page-toolbar__menu-item story-export-actions__menu-item"
+              title="Copy the full story as Markdown"
+              onClick={() => void handleCopyMarkdown()}
+            >
+              {markdownCopied ? "Copied!" : "Copy Markdown"}
+            </button>
+
+            <div
+              className="story-export-actions__menu-divider"
+              role="separator"
+              aria-hidden
+            />
+
+            <button
+              type="button"
+              role="menuitemcheckbox"
+              aria-checked={alwaysDayMode}
+              className="story-page-toolbar__menu-item story-export-actions__menu-toggle"
+              title="Force PDF and Word exports to use day mode for printing"
+              onClick={toggleAlwaysDayMode}
+            >
+              <span
+                className={`story-export-actions__menu-toggle-box${alwaysDayMode ? " story-export-actions__menu-toggle-box--checked" : ""}`}
+                aria-hidden
+              >
+                {alwaysDayMode ? (
+                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                    <path
+                      d="M2.5 6.2 5 8.7 9.5 3.8"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                ) : null}
+              </span>
+              <span className="story-export-actions__menu-toggle-copy">
+                <span className="story-export-actions__menu-toggle-label">
+                  Always day mode
+                </span>
+                <span className="story-export-actions__menu-toggle-hint">
+                  Printer-friendly exports
+                </span>
+              </span>
+            </button>
+          </div>
+        ) : null}
+      </div>
 
       {pdfPreview ? (
         <DigestExportPdfOverlay

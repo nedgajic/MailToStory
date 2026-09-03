@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CopyAddress } from "@/components/copy-address";
 import { DeleteStoryConfirmModal } from "@/components/stories/delete-story-confirm-modal";
 import { PermanentDeleteStoryModal } from "@/components/stories/permanent-delete-story-modal";
+import { StoryDeleteIconButton } from "@/components/stories/story-delete-icon-button";
+import { StoriesSearchEmptyGlyph } from "@/components/stories/stories-search-empty-glyph";
 import { useAppToast } from "@/components/ui/app-toast";
 import { deletedStoryRetentionDays } from "@/lib/story-retention";
 import { formatPurgeDetail } from "@/lib/story-purge-label";
@@ -47,8 +49,52 @@ function formatPurgeLabel(purgeAt: string): string {
   return formatPurgeDetail(purgeAt);
 }
 
+function SectionSelectAllCheckbox({
+  checked,
+  indeterminate,
+  label,
+  onChange,
+}: {
+  checked: boolean;
+  indeterminate: boolean;
+  label: string;
+  onChange: (checked: boolean) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (inputRef.current) inputRef.current.indeterminate = indeterminate;
+  }, [indeterminate]);
+
+  return (
+    <label className="stories-group__select-all">
+      <input
+        ref={inputRef}
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        aria-label={`Select all stories in ${label}`}
+      />
+    </label>
+  );
+}
+
+function StoriesSearchEmpty({ query }: { query: string }) {
+  return (
+    <div className="stories-lib__empty stories-lib__empty--search" role="status">
+      <StoriesSearchEmptyGlyph />
+      <h2 className="stories-lib__empty-title">No stories found</h2>
+      <p className="stories-lib__empty-hint">
+        Nothing matched &ldquo;{query}&rdquo;. Try another title, subject, or participant name.
+      </p>
+    </div>
+  );
+}
+
 export function StoriesLibrary({
-  initial,
+  stories: controlledStories,
+  onStoriesChange,
+  highlightedStoryIds = [],
   inbound,
   isFree,
   verified,
@@ -56,7 +102,9 @@ export function StoriesLibrary({
   showDeletedBanner = false,
   initialLibraryView = "active",
 }: {
-  initial: StoryCardData[];
+  stories: StoryCardData[];
+  onStoriesChange: (stories: StoryCardData[]) => void;
+  highlightedStoryIds?: string[];
   inbound: string;
   isFree: boolean;
   verified: boolean;
@@ -67,7 +115,12 @@ export function StoriesLibrary({
   const router = useRouter();
   const { showToast } = useAppToast();
   const retentionDays = deletedStoryRetentionDays();
-  const [stories, setStories] = useState(initial);
+  const stories = controlledStories;
+  const setStories = onStoriesChange;
+  const highlightedStoryIdSet = useMemo(
+    () => new Set(highlightedStoryIds),
+    [highlightedStoryIds],
+  );
   const [libraryView, setLibraryView] = useState<LibraryView>(initialLibraryView);
   const [deletedVisible, setDeletedVisible] = useState(deletedCount);
   const [q, setQ] = useState("");
@@ -143,6 +196,15 @@ export function StoriesLibrary({
     (onSearch as { t?: number }).t = window.setTimeout(() => {
       void refresh(value, group, libraryView);
     }, 220);
+  }
+
+  function toggleSectionSelection(sectionIds: string[], checked: boolean) {
+    setSelected((current) => {
+      if (checked) {
+        return Array.from(new Set([...current, ...sectionIds]));
+      }
+      return current.filter((id) => !sectionIds.includes(id));
+    });
   }
 
   function requestDelete(payload: {
@@ -270,6 +332,8 @@ export function StoriesLibrary({
     }));
   }, [stories, group, libraryView]);
 
+  const isSearchActive = q.trim().length > 0;
+
   return (
     <div className="stories-lib">
       <div className="stories-lib__view-tabs" role="tablist" aria-label="Story library views">
@@ -354,13 +418,11 @@ export function StoriesLibrary({
       {libraryView === "active" && selected.length > 0 ? (
         <div className="stories-lib__bulk">
           <span>{selected.length} selected</span>
-          <button
-            type="button"
+          <StoryDeleteIconButton
+            label={`Delete ${selected.length} selected ${selected.length === 1 ? "story" : "stories"}`}
             disabled={busy}
             onClick={() => requestDelete({ ids: selected })}
-          >
-            Move to Recently deleted
-          </button>
+          />
         </div>
       ) : null}
 
@@ -370,17 +432,18 @@ export function StoriesLibrary({
           <button type="button" disabled={busy} onClick={() => void restoreSelected()}>
             Restore selected
           </button>
-          <button
-            type="button"
+          <StoryDeleteIconButton
+            label={`Permanently delete ${selected.length} selected ${selected.length === 1 ? "story" : "stories"}`}
             disabled={busy}
             onClick={() => requestPermanentDelete(selected)}
-          >
-            Delete permanently
-          </button>
+          />
         </div>
       ) : null}
 
       {stories.length === 0 ? (
+        isSearchActive ? (
+          <StoriesSearchEmpty query={q.trim()} />
+        ) : (
         <div className="dash-empty">
           {libraryView === "deleted" ? (
             <>
@@ -405,34 +468,54 @@ export function StoriesLibrary({
                 <li>
                   Forward a thread from Gmail, Outlook, or Apple Mail to that address.
                 </li>
-                <li>Open this page again — your story usually appears within a minute.</li>
+                <li>
+                  Keep this page open — your story will appear here automatically, usually
+                  within a minute.
+                </li>
               </ol>
               <CopyAddress address={inbound} prominent />
             </>
           )}
         </div>
+        )
       ) : (
-        groups.map((section) => (
+        groups.map((section) => {
+          const sectionIds = section.items.map((story) => story.id);
+          const sectionSelectedIds = sectionIds.filter((id) => selected.includes(id));
+          const sectionAllSelected =
+            sectionIds.length > 0 && sectionIds.every((id) => selected.includes(id));
+          const sectionSomeSelected = sectionSelectedIds.length > 0;
+
+          return (
           <section key={section.key} className="stories-group">
             <header className="stories-group__head">
-              <h2>
-                {section.label}{" "}
-                <span>({section.items.length})</span>
-              </h2>
-              {libraryView === "active" && group !== "current" ? (
-                <button
-                  type="button"
+              <div className="stories-group__head-main">
+                {(libraryView === "active" || libraryView === "deleted") ? (
+                  <SectionSelectAllCheckbox
+                    checked={sectionAllSelected}
+                    indeterminate={sectionSomeSelected && !sectionAllSelected}
+                    label={section.label}
+                    onChange={(checked) => toggleSectionSelection(sectionIds, checked)}
+                  />
+                ) : null}
+                <h2>
+                  {section.label}{" "}
+                  <span>({section.items.length})</span>
+                </h2>
+              </div>
+              {libraryView === "active" && sectionSomeSelected ? (
+                <StoryDeleteIconButton
+                  label={`Delete ${sectionSelectedIds.length} selected ${sectionSelectedIds.length === 1 ? "story" : "stories"} in ${section.label}`}
                   disabled={busy}
-                  onClick={() =>
-                    requestDelete(
-                      group === "year"
-                        ? { year: section.key }
-                        : { month: section.key },
-                    )
-                  }
-                >
-                  Move {group === "year" ? "this year" : "this month"} to Recently deleted
-                </button>
+                  onClick={() => requestDelete({ ids: sectionSelectedIds })}
+                />
+              ) : null}
+              {libraryView === "deleted" && sectionSomeSelected ? (
+                <StoryDeleteIconButton
+                  label={`Permanently delete ${sectionSelectedIds.length} selected ${sectionSelectedIds.length === 1 ? "story" : "stories"} in ${section.label}`}
+                  disabled={busy}
+                  onClick={() => requestPermanentDelete(sectionSelectedIds)}
+                />
               ) : null}
             </header>
             {libraryView === "deleted" || view === "cards" ? (
@@ -440,7 +523,7 @@ export function StoriesLibrary({
                 {section.items.map((story) => (
                   <li
                     key={story.id}
-                    className={`story-card${libraryView === "deleted" ? " story-card--deleted" : ""}`}
+                    className={`story-card${libraryView === "deleted" ? " story-card--deleted" : ""}${highlightedStoryIdSet.has(story.id) ? " story-card--new" : ""}`}
                   >
                     <label className="story-card__check">
                       <input
@@ -479,25 +562,22 @@ export function StoriesLibrary({
                         >
                           Restore
                         </button>
-                        <button
-                          type="button"
-                          className="story-card__purge"
-                          disabled={busy}
-                          onClick={() => requestPermanentDelete([story.id])}
-                        >
-                          Delete permanently
-                        </button>
+                        {selected.includes(story.id) ? (
+                          <StoryDeleteIconButton
+                            label={`Permanently delete ${story.title}`}
+                            disabled={busy}
+                            onClick={() => requestPermanentDelete([story.id])}
+                          />
+                        ) : null}
                       </div>
-                    ) : (
-                      <button
-                        type="button"
-                        className="story-card__delete"
+                    ) : selected.includes(story.id) ? (
+                      <StoryDeleteIconButton
+                        label={`Delete ${story.title}`}
                         disabled={busy}
+                        className="story-card__delete"
                         onClick={() => requestDelete({ ids: [story.id] })}
-                      >
-                        Delete
-                      </button>
-                    )}
+                      />
+                    ) : null}
                   </li>
                 ))}
               </ul>
@@ -514,7 +594,10 @@ export function StoriesLibrary({
                 </thead>
                 <tbody>
                   {section.items.map((story) => (
-                    <tr key={story.id}>
+                    <tr
+                      key={story.id}
+                      className={highlightedStoryIdSet.has(story.id) ? "story-table__row--new" : undefined}
+                    >
                       <td>
                         <input
                           type="checkbox"
@@ -534,13 +617,13 @@ export function StoriesLibrary({
                       <td>{new Date(story.createdAt).toLocaleDateString()}</td>
                       <td>{story.status.replace("_", " ")}</td>
                       <td>
-                        <button
-                          type="button"
-                          disabled={busy}
-                          onClick={() => requestDelete({ ids: [story.id] })}
-                        >
-                          Delete
-                        </button>
+                        {selected.includes(story.id) ? (
+                          <StoryDeleteIconButton
+                            label={`Delete ${story.title}`}
+                            disabled={busy}
+                            onClick={() => requestDelete({ ids: [story.id] })}
+                          />
+                        ) : null}
                       </td>
                     </tr>
                   ))}
@@ -548,7 +631,8 @@ export function StoriesLibrary({
               </table>
             )}
           </section>
-        ))
+          );
+        })
       )}
       <DeleteStoryConfirmModal
         open={deleteRequest !== null}

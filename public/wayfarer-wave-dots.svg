@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 48" preserveAspectRatio="none">
+  <!-- Dotted stroke on the recap wave seam (matches mkt-wave-mask.svg edge) -->
+  <path
+    fill="none"
+    stroke="#000"
+    stroke-width="2.5"
+    stroke-dasharray="0.01 7"
+    stroke-linecap="round"
+    d="M0,22 C240,4 480,4 720,22 C960,40 1200,40 1440,22"
+  />
+</svg>

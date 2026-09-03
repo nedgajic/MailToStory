@@ -10,6 +10,82 @@ export function gravatarAvatarUrl(email: string, sizePx: number): string {
 
 export type ParticipantLite = { name: string; email: string };
 
+/** Strip a trailing `Name <email>` down to display name only. */
+export function stripSpeakerLabelEmail(raw: string): string {
+  const trimmed = raw.trim();
+  const angle = trimmed.match(/^(.+?)\s*<[^>]+@[^>]+>$/i);
+  if (angle) {
+    return angle[1].replace(/^["']|["']$/g, "").trim();
+  }
+  return trimmed;
+}
+
+/**
+ * Prefer the canonical participant name when we know their email.
+ */
+export function resolveParticipantDisplayName(
+  speaker: string,
+  participants: ParticipantLite[],
+  email?: string | null,
+): string {
+  const normalizedEmail = email?.trim().toLowerCase() ?? null;
+  if (normalizedEmail) {
+    const match = participants.find(
+      (p) => p.email?.trim().toLowerCase() === normalizedEmail,
+    );
+    if (match?.name?.trim()) return match.name.trim();
+  }
+
+  const stripped = stripSpeakerLabelEmail(speaker);
+  if (stripped && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(stripped)) {
+    return stripped;
+  }
+
+  const resolvedEmail = resolveSpeakerToEmail(speaker, participants);
+  if (resolvedEmail) {
+    const match = participants.find(
+      (p) => p.email?.trim().toLowerCase() === resolvedEmail,
+    );
+    if (match?.name?.trim()) return match.name.trim();
+  }
+
+  return stripped || speaker.trim();
+}
+
+export function getInitials(label: string): string {
+  const cleaned = stripSpeakerLabelEmail(label).trim();
+  if (!cleaned) return "?";
+
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleaned)) {
+    const local = cleaned.split("@")[0] ?? "";
+    const parts = local.split(/[._-]+/).filter(Boolean);
+    if (parts.length >= 2) {
+      return `${parts[0]![0] ?? ""}${parts[1]![0] ?? ""}`.toUpperCase();
+    }
+    return local.slice(0, 2).toUpperCase() || "?";
+  }
+
+  const words = cleaned.split(/\s+/).filter((word) => word.length > 0);
+  if (words.length === 0) return "?";
+  if (words.length === 1) {
+    const word = words[0]!;
+    if (word.length >= 2) return word.slice(0, 2).toUpperCase();
+    return word[0]!.toUpperCase();
+  }
+
+  const first = words[0]![0] ?? "";
+  const last = words[words.length - 1]![0] ?? "";
+  return `${first}${last}`.toUpperCase();
+}
+
+export function initialsForSpeaker(
+  speaker: string,
+  participants: ParticipantLite[],
+  email?: string | null,
+): string {
+  return getInitials(resolveParticipantDisplayName(speaker, participants, email));
+}
+
 /**
  * Map a digest speaker / actor label to a participant email for Gravatar.
  */

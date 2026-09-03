@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 type DigestExportPdfOverlayProps = {
   url: string;
@@ -15,6 +16,12 @@ export function DigestExportPdfOverlay({
   filename,
   onClose,
 }: DigestExportPdfOverlayProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
@@ -37,7 +44,7 @@ export function DigestExportPdfOverlay({
     anchor.remove();
   }
 
-  return (
+  const overlay = (
     <div
       className="digest-export-pdf-preview"
       role="dialog"
@@ -93,4 +100,8 @@ export function DigestExportPdfOverlay({
       </div>
     </div>
   );
+
+  if (!mounted) return null;
+
+  return createPortal(overlay, document.body);
 }

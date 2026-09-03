@@ -7,10 +7,15 @@ import { StoryPageToolbar } from "@/components/stories/story-page-toolbar";
 import { DeleteStoryConfirmModal } from "@/components/stories/delete-story-confirm-modal";
 import { DeletedStoryBanner } from "@/components/stories/deleted-story-banner";
 import type { Digest } from "@/lib/digest-schema";
+import { speakerPaletteCssProperties } from "@/lib/participantColors";
 import {
-  readStoryReadingTheme,
-  writeStoryReadingTheme,
-  type StoryReadingTheme,
+  readStoryColorMode,
+  readStoryDisplayTheme,
+  storyPageThemeClass,
+  writeStoryColorMode,
+  writeStoryDisplayTheme,
+  type StoryColorMode,
+  type StoryDisplayTheme,
 } from "@/lib/story-reading-theme";
 
 export function StoryDetail({
@@ -31,17 +36,24 @@ export function StoryDetail({
   purgeAt: string | null;
 }) {
   const router = useRouter();
-  const [readingTheme, setReadingTheme] = useState<StoryReadingTheme>("dark");
+  const [displayTheme, setDisplayTheme] = useState<StoryDisplayTheme>("dossier");
+  const [colorMode, setColorMode] = useState<StoryColorMode>("dark");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
 
   useEffect(() => {
-    setReadingTheme(readStoryReadingTheme());
+    setDisplayTheme(readStoryDisplayTheme());
+    setColorMode(readStoryColorMode());
   }, []);
 
-  function onReadingThemeChange(theme: StoryReadingTheme) {
-    setReadingTheme(theme);
-    writeStoryReadingTheme(theme);
+  function onDisplayThemeChange(theme: StoryDisplayTheme) {
+    setDisplayTheme(theme);
+    writeStoryDisplayTheme(theme);
+  }
+
+  function onColorModeChange(mode: StoryColorMode) {
+    setColorMode(mode);
+    writeStoryColorMode(mode);
   }
 
   async function confirmDelete() {
@@ -62,12 +74,15 @@ export function StoryDetail({
 
   return (
     <div
-      className={`story-page${readingTheme === "light" ? " story-page--light" : ""}${deletedAt ? " story-page--deleted" : ""}`}
+      className={`story-page${storyPageThemeClass(displayTheme, colorMode)}${deletedAt ? " story-page--deleted" : ""}`}
+      style={speakerPaletteCssProperties(displayTheme, colorMode)}
     >
       <StoryPageToolbar
         digest={digest}
-        readingTheme={readingTheme}
-        onReadingThemeChange={onReadingThemeChange}
+        displayTheme={displayTheme}
+        colorMode={colorMode}
+        onDisplayThemeChange={onDisplayThemeChange}
+        onColorModeChange={onColorModeChange}
         onDelete={() => setDeleteOpen(true)}
         hideDelete={Boolean(deletedAt)}
       />
@@ -91,6 +106,8 @@ export function StoryDetail({
           digest={digest}
           threadId={conversationId}
           messageIdsInOrder={messageIdsInOrder}
+          displayTheme={displayTheme}
+          colorMode={colorMode}
         />
       </div>
     </div>

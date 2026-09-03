@@ -10,6 +10,7 @@ import {
   type MarketingThreadMessage,
 } from "@/lib/marketing-sample-thread";
 import { BRAND_NAME } from "@/lib/brand";
+import { DIGEST_STATUS_LABEL } from "@/lib/digestExportContent";
 import "@/app/marketing-demo.css";
 
 type DemoTab = "story" | "timeline" | "actions";
@@ -43,20 +44,6 @@ function formatDue(iso: string) {
     day: "numeric",
     year: "numeric",
   });
-}
-
-function statusConfig(status: Digest["status"]) {
-  const map = {
-    resolved: { label: "Resolved", color: "#2d6a4f", bg: "#d8f3dc" },
-    ongoing: { label: "Ongoing", color: "#7b4f12", bg: "#fde8c8" },
-    pending_action: { label: "Pending Action", color: "#1d3557", bg: "#d6e8f7" },
-    no_conclusion: {
-      label: "No Conclusion",
-      color: "var(--digest-prose-soft)",
-      bg: "#eee",
-    },
-  };
-  return map[status] ?? map.no_conclusion;
 }
 
 function speakerHue(name: string) {
@@ -127,6 +114,13 @@ function DemoStoryTurn({
       }
     : undefined;
 
+  const fileSummary =
+    attachments.length === 0
+      ? ""
+      : attachments.length === 1
+        ? "1 file"
+        : `${attachments.length} files`;
+
   return (
     <div className="digest-story-turn-root mkt-demo-story-turn">
       <div className="digest-story-turn__prose">
@@ -141,36 +135,26 @@ function DemoStoryTurn({
         ) : content ? (
           <p>{content}</p>
         ) : null}
-      </div>
-      {attachments.length > 0 ? (
-        <aside className="digest-story-turn__meta" aria-label="Attachments">
-          <div className="digest-story-meta-strip">
-            <div className="digest-story-meta-strip__resources">
-              <div className="digest-paragraph-resources">
-                <div className="digest-paragraph-resources-label">Files</div>
-                <div className="digest-attachment-strip-stack">
-                  {attachments.map((file) => (
-                    <div key={file.filename} className="digest-attachment-strip">
-                      <span className="digest-attachment-strip-icon" aria-hidden="true">
-                        📎
-                      </span>
-                      <div className="digest-attachment-strip-body">
-                        <div className="digest-attachment-strip-name">{file.filename}</div>
-                        <p className="digest-attachment-strip-context">{file.context}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+        {attachments.length > 0 ? (
+          <div className="digest-turn-evidence">
+            <div className="digest-turn-evidence__banner" aria-expanded="false">
+              <span className="digest-turn-evidence__chevron" aria-hidden>
+                ▸
+              </span>
+              <span className="digest-turn-evidence__summary">{fileSummary}</span>
+              <span className="digest-turn-evidence__source">
+                <span className="digest-turn-evidence__dot" aria-hidden>
+                  ·
+                </span>
+                <span className="digest-original-source-caption">Source</span>
+                <span className="digest-original-mail-icon-btn" aria-hidden>
+                  ✉
+                </span>
+              </span>
             </div>
           </div>
-        </aside>
-      ) : (
-        <div
-          className="digest-story-turn__meta digest-story-turn__meta--empty"
-          aria-hidden="true"
-        />
-      )}
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -182,7 +166,6 @@ function DemoDigestPanel({
   digest: Digest;
   activeTab: DemoTab;
 }) {
-  const status = statusConfig(digest.status);
   const storyItems = flattenNarrativeForStory(digest.narrative);
   const firstTimeline = digest.timeline[0];
   const lastTimeline = digest.timeline[digest.timeline.length - 1];
@@ -208,9 +191,9 @@ function DemoDigestPanel({
               <span className="digest-recap-kicker">Recap</span>
               <span
                 className="digest-recap-status-pill"
-                style={{ color: status.color, background: status.bg }}
+                data-status={digest.status}
               >
-                {status.label}
+                {DIGEST_STATUS_LABEL[digest.status]}
               </span>
             </div>
             <p className="digest-recap-summary">{digest.resolution_summary}</p>
@@ -339,12 +322,11 @@ export function MarketingStoryDemo() {
         <div className="mkt-section__head">
           <p className="mkt-eyebrow mkt-eyebrow--pill">Live example</p>
           <h2 className="mkt-h2" id="mkt-demo-title">
-            Five replies in. One story out.
+            Five replies in. One story you&apos;ll enjoy reading.
           </h2>
           <p className="mkt-lede">
             A realistic thread with budget, legal, and engineering voices — then the
-            structured recap {BRAND_NAME} produces: narrative, timeline, and open
-            actions.
+            flowing recap {BRAND_NAME} produces: narrative, timeline, and open actions.
           </p>
         </div>
 
