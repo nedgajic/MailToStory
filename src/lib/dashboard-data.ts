@@ -9,14 +9,14 @@ import {
 import {
   monthlyAmountUsd,
   planLabel,
-  storyLimitForPlan,
   type PlanId,
 } from "@/lib/billing/plans";
+import { creditsUsedThisMonth } from "@/lib/billing/generation-limits";
 import {
-  generationsThisMonth,
-  monthlyGenerationLimit,
-} from "@/lib/billing/generation-limits";
-import { activeSeatCount, storiesCreatedThisMonth } from "@/lib/billing/entitlements";
+  formatCredits,
+  monthlyCreditAllowance,
+} from "@/lib/billing/credits";
+import { activeSeatCount } from "@/lib/billing/entitlements";
 import { countVisibleQuarantine } from "@/lib/inbound/quarantine";
 import { inboundAddress } from "@/lib/workspace";
 import type { WorkspaceContext } from "@/lib/session";
@@ -73,31 +73,31 @@ export async function getUpcomingBill(ctx: WorkspaceContext): Promise<UpcomingBi
 
 export async function getDashboardData(ctx: WorkspaceContext) {
   const plan = ctx.workspace.plan as PlanId;
-  const [storiesUsed, generationsUsed, seatsUsed, recent, heldMailCount] =
-    await Promise.all([
-      storiesCreatedThisMonth(ctx.workspace.id),
-      generationsThisMonth(ctx.workspace.id),
-      activeSeatCount(ctx.workspace.id),
-      prisma.story.findMany({
-        where: { workspaceId: ctx.workspace.id, ...ACTIVE_STORY_WHERE },
-        orderBy: { createdAt: "desc" },
-        take: 8,
-        select: {
-          id: true,
-          title: true,
-          subject: true,
-          status: true,
-          resolutionSummary: true,
-          createdAt: true,
-        },
-      }),
-      countVisibleQuarantine(ctx),
-    ]);
+  const [creditsUsedUnits, seatsUsed, recent, heldMailCount] = await Promise.all([
+    creditsUsedThisMonth(ctx.workspace.id),
+    activeSeatCount(ctx.workspace.id),
+    prisma.story.findMany({
+      where: { workspaceId: ctx.workspace.id, ...ACTIVE_STORY_WHERE },
+      orderBy: { createdAt: "desc" },
+      take: 8,
+      select: {
+        id: true,
+        title: true,
+        subject: true,
+        status: true,
+        resolutionSummary: true,
+        createdAt: true,
+      },
+    }),
+    countVisibleQuarantine(ctx),
+  ]);
 
   const upcoming = await getUpcomingBill(ctx);
-  const generationLimit = monthlyGenerationLimit(plan, ctx.workspace.seatQuantity);
-  const used = plan === "free" ? storiesUsed : generationsUsed;
-  const limit = plan === "free" ? storyLimitForPlan(plan) : generationLimit;
+  const creditAllowanceUnits = monthlyCreditAllowance(plan, ctx.workspace.seatQuantity);
+  const used = creditsUsedUnits;
+  const limit = creditAllowanceUnits;
+  const usedCreditsLabel = formatCredits(used);
+  const limitCreditsLabel = limit != null ? formatCredits(limit) : null;
 
   return {
     ctx,
@@ -105,6 +105,8 @@ export async function getDashboardData(ctx: WorkspaceContext) {
     inbound: inboundAddress(ctx.workspace.inboundLocalPart),
     used,
     limit,
+    usedCreditsLabel,
+    limitCreditsLabel,
     seatsUsed,
     planName: planLabel(plan),
     upcoming,

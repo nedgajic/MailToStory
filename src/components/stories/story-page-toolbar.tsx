@@ -8,23 +8,59 @@ import { StoryExportActions } from "@/components/stories/story-export-actions";
 import { StoryDisplayThemeMenu } from "@/components/stories/story-display-theme-menu";
 import { StoryColorModeToggle } from "@/components/stories/story-color-mode-toggle";
 import { StoryDeleteIconButton } from "@/components/stories/story-delete-icon-button";
+import { StoryRegenerateMenu } from "@/components/stories/story-regenerate-menu";
+import { StoryVersionPicker } from "@/components/stories/story-version-picker";
+import type { StoryVersionSummary } from "@/lib/story-version-types";
+import type { StoryLength } from "@/lib/story-length";
 
 export function StoryPageToolbar({
   digest,
+  storyId,
+  conversationId,
+  storyLength,
+  versions,
+  activeVersionId,
+  canUseElaborate,
+  creditsRemainingLabel,
   displayTheme,
   colorMode,
   onDisplayThemeChange,
   onColorModeChange,
+  onRegenerated,
+  onVersionActivated,
   onDelete,
   hideDelete = false,
+  hideRegenerate = false,
 }: {
   digest: Digest;
+  storyId: string;
+  conversationId: string;
+  storyLength: StoryLength;
+  versions: StoryVersionSummary[];
+  activeVersionId: string | null;
+  canUseElaborate: boolean;
+  creditsRemainingLabel: string | null;
   displayTheme: StoryDisplayTheme;
   colorMode: StoryColorMode;
   onDisplayThemeChange: (theme: StoryDisplayTheme) => void;
   onColorModeChange: (mode: StoryColorMode) => void;
+  onRegenerated: (payload: {
+    digest: Digest;
+    messageIdsInOrder: string[];
+    storyLength: StoryLength;
+    activeVersionId?: string | null;
+    versions?: StoryVersionSummary[];
+  }) => void;
+  onVersionActivated: (payload: {
+    digest: Digest;
+    messageIdsInOrder: string[];
+    storyLength: StoryLength;
+    activeVersionId: string;
+    versions: StoryVersionSummary[];
+  }) => void;
   onDelete: () => void | Promise<void>;
   hideDelete?: boolean;
+  hideRegenerate?: boolean;
 }) {
   const toolbarRef = useRef<HTMLDivElement>(null);
 
@@ -64,39 +100,79 @@ export function StoryPageToolbar({
   }, []);
 
   return (
-    <div ref={toolbarRef} className="story-page-toolbar">
+    <div ref={toolbarRef} className="story-page-toolbar story-page-toolbar--compact">
       <div className="story-page-toolbar__inner">
-        <Link href="/stories" className="story-page-toolbar__back">
+        <Link href="/stories" className="story-page-toolbar__back" title="Back to stories">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
             <path d="M15 18l-6-6 6-6" />
           </svg>
-          Stories
+          <span className="story-page-toolbar__back-label">Stories</span>
         </Link>
 
         <div className="story-page-toolbar__cluster">
-          <div className="story-page-toolbar__cluster-group">
-            <StoryColorModeToggle mode={colorMode} onChange={onColorModeChange} />
-            <StoryDisplayThemeMenu
-              theme={displayTheme}
-              onChange={onDisplayThemeChange}
-            />
-            <StoryExportActions
-              digest={digest}
-              displayTheme={displayTheme}
-              colorMode={colorMode}
-            />
-          </div>
+          <div className="story-page-toolbar__dock" role="toolbar" aria-label="Story actions">
+            {!hideRegenerate ? (
+              <>
+                <div className="story-page-toolbar__dock-group">
+                  <StoryVersionPicker
+                    storyId={storyId}
+                    versions={versions}
+                    activeVersionId={activeVersionId}
+                    compact
+                    onActivated={onVersionActivated}
+                  />
+                  <StoryRegenerateMenu
+                    storyId={storyId}
+                    conversationId={conversationId}
+                    storyLength={storyLength}
+                    versions={versions}
+                    canUseElaborate={canUseElaborate}
+                    creditsRemainingLabel={creditsRemainingLabel}
+                    compact
+                    onRegenerated={onRegenerated}
+                    onVersionActivated={onVersionActivated}
+                  />
+                </div>
+                <div className="story-page-toolbar__dock-separator" aria-hidden />
+              </>
+            ) : null}
 
-          {hideDelete ? null : (
-            <>
-              <div className="story-page-toolbar__divider" aria-hidden="true" />
-              <StoryDeleteIconButton
-                label="Delete story"
-                className="story-page-toolbar__delete"
-                onClick={() => void onDelete()}
+            <div className="story-page-toolbar__dock-group">
+              <StoryColorModeToggle mode={colorMode} onChange={onColorModeChange} />
+              <StoryDisplayThemeMenu
+                theme={displayTheme}
+                compact
+                onChange={onDisplayThemeChange}
               />
-            </>
-          )}
+            </div>
+
+            <div className="story-page-toolbar__dock-separator" aria-hidden />
+
+            <div className="story-page-toolbar__dock-group">
+              <StoryExportActions
+                digest={digest}
+                displayTheme={displayTheme}
+                colorMode={colorMode}
+                compact
+              />
+            </div>
+
+            {hideDelete ? null : (
+              <>
+                <div
+                  className="story-page-toolbar__dock-separator story-page-toolbar__dock-separator--danger"
+                  aria-hidden
+                />
+                <div className="story-page-toolbar__dock-group">
+                  <StoryDeleteIconButton
+                    label="Delete story"
+                    className="story-page-toolbar__icon-btn story-page-toolbar__icon-btn--danger"
+                    onClick={() => void onDelete()}
+                  />
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -15,7 +15,7 @@ export function StoryColorModeToggle({
   return (
     <button
       type="button"
-      className="story-page-toolbar__theme-toggle"
+      className="story-page-toolbar__icon-btn"
       aria-label={label}
       title={label}
       onClick={() => onChange(nextMode)}

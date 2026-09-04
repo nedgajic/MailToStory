@@ -165,7 +165,7 @@ export const PLAN_CARDS: Array<{
     blurb: "Forward a handful of threads and see the recap before you pay.",
     features: [
       "1 person",
-      `${FREE_STORY_LIMIT} stories per month`,
+      `${FREE_STORY_LIMIT} credits per month`,
       "1 inbound address",
       "Story, timeline, and export",
     ],
@@ -176,7 +176,7 @@ export const PLAN_CARDS: Array<{
     blurb: "Keep forwarding — every thread becomes a story you can search and export.",
     features: [
       "1 person",
-      "500 stories / month (fair use)",
+      "500 credits / month (fair use)",
       "1 inbound address",
       "Search, grouping, and exports",
     ],
@@ -188,7 +188,7 @@ export const PLAN_CARDS: Array<{
     features: [
       "Shared inbound address",
       "Shared stories for every seat",
-      "500 stories / seat / month (fair use)",
+      "500 credits / seat / month (fair use)",
       "Invite, assign, and unassign seats",
     ],
   },

@@ -20,6 +20,7 @@ model User {
   twoFactorConfirmedAt DateTime?
   twoFactorBackupCodes String? @db.Text
   activeWorkspaceId  String?
+  lastSeenAt         DateTime?
   accounts           Account[]
   sessions           Session[]
   memberships        WorkspaceMember[]
@@ -74,6 +75,7 @@ model Workspace {
   billingPastDue        Boolean   @default(false)
   currentPeriodEnd      DateTime?
   currentPeriodStart    DateTime?
+  defaultStoryLength    String    @default("normal")
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
@@ -181,17 +183,42 @@ model Story {
   searchText        String    @db.Text
   digest            Json
   messageIdsInOrder Json
+  storyLength       String    @default("normal")
+  activeVersionId   String?   @unique
   deletedAt         DateTime?
   purgeAt           DateTime?
   deletedById       String?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
-  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversation  Conversation   @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  activeVersion StoryVersion?  @relation("ActiveStoryVersion", fields: [activeVersionId], references: [id], onDelete: SetNull)
+  versions      StoryVersion[] @relation("StoryVersions")
 
   @@index([workspaceId, createdAt])
   @@index([workspaceId, deletedAt])
   @@index([purgeAt])
+}
+
+model StoryVersion {
+  id                String   @id @default(cuid())
+  storyId           String
+  versionNumber     Int
+  title             String
+  status            String
+  resolutionSummary String   @db.Text
+  searchText        String   @db.Text
+  digest            Json
+  messageIdsInOrder Json
+  storyLength       String   @default("normal")
+  creditCost        Int      @default(10)
+  createdAt         DateTime @default(now())
+
+  story     Story  @relation("StoryVersions", fields: [storyId], references: [id], onDelete: Cascade)
+  activeFor Story? @relation("ActiveStoryVersion")
+
+  @@unique([storyId, versionNumber])
+  @@index([storyId, createdAt])
 }
 
 model StoryAccessToken {
@@ -210,6 +237,8 @@ model StoryGenerationLog {
   id             String   @id @default(cuid())
   workspaceId    String
   conversationId String
+  storyLength    String   @default("normal")
+  creditCost     Int      @default(10)
   createdAt      DateTime @default(now())
 
   @@index([workspaceId, createdAt])

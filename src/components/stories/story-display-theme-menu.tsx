@@ -6,13 +6,16 @@ import {
   STORY_DISPLAY_THEME_PREVIEWS,
   type StoryDisplayTheme,
 } from "@/lib/story-reading-theme";
+import { ToolbarThemeIcon } from "@/components/stories/story-toolbar-icons";
 
 export function StoryDisplayThemeMenu({
   theme,
   onChange,
+  compact = false,
 }: {
   theme: StoryDisplayTheme;
   onChange: (theme: StoryDisplayTheme) => void;
+  compact?: boolean;
 }) {
   const menuRef = useRef<HTMLDivElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -47,25 +50,36 @@ export function StoryDisplayThemeMenu({
     >
       <button
         type="button"
-        className={`story-export-actions__btn story-export-actions__trigger${menuOpen ? " story-export-actions__trigger--open" : ""}`}
+        className={
+          compact
+            ? `story-page-toolbar__icon-btn${menuOpen ? " story-page-toolbar__icon-btn--open" : ""}`
+            : `story-export-actions__btn story-export-actions__trigger${menuOpen ? " story-export-actions__trigger--open" : ""}`
+        }
+        title={`Theme: ${current.label}`}
         aria-label={`Theme, ${current.label}`}
         aria-haspopup="menu"
         aria-expanded={menuOpen}
         onClick={() => setMenuOpen((open) => !open)}
       >
-        Theme - {current.label}
-        <svg
-          className="story-export-actions__chevron"
-          width="12"
-          height="12"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          aria-hidden
-        >
-          <path d="M6 9l6 6 6-6" />
-        </svg>
+        {compact ? (
+          <ToolbarThemeIcon />
+        ) : (
+          <>
+            Theme - {current.label}
+            <svg
+              className="story-export-actions__chevron"
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              aria-hidden
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </>
+        )}
       </button>
 
       {menuOpen ? (
@@ -74,6 +88,11 @@ export function StoryDisplayThemeMenu({
           role="menu"
           aria-label="Theme options"
         >
+          <div className="story-display-theme__intro">
+            <p className="story-display-theme__intro-title">
+              Choose your theme
+            </p>
+          </div>
           {STORY_DISPLAY_THEMES.map((option) => {
             const selected = option.id === theme;
             const preview = STORY_DISPLAY_THEME_PREVIEWS[option.id];
@@ -83,23 +102,16 @@ export function StoryDisplayThemeMenu({
                 type="button"
                 role="menuitemradio"
                 aria-checked={selected}
-                data-theme={option.id}
                 className={`story-page-toolbar__menu-item story-export-actions__menu-item story-display-theme__item${selected ? " story-display-theme__item--selected" : ""}`}
                 style={
-                  {
-                    "--theme-item-bg": preview.itemBackground,
-                    "--theme-item-accent": preview.accent,
-                    "--theme-item-border": preview.border,
-                    "--theme-item-label": preview.labelColor,
-                    "--theme-item-radius": preview.radius ?? "8px",
-                    "--theme-item-border-style": preview.borderStyle ?? "solid",
-                  } as React.CSSProperties
+                  { "--theme-swatch": preview.swatch } as React.CSSProperties
                 }
                 onClick={() => {
                   onChange(option.id);
                   setMenuOpen(false);
                 }}
               >
+                <span className="story-display-theme__swatch" aria-hidden />
                 <span className="story-display-theme__item-label">{option.label}</span>
               </button>
             );

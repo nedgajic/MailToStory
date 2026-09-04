@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/auth";
 import { getWorkspaceContext, isWorkspaceAdmin } from "@/lib/session";
 import type { PlanId } from "@/lib/billing/plans";
+import { canUseElaborateStoryLength, parseStoryLength } from "@/lib/story-length";
 import { AppTopBar } from "@/components/app-top-bar";
 import { DeleteAccountForm } from "@/components/account/delete-account-form";
 import { ExportAccountForm } from "@/components/account/export-account-form";
@@ -11,6 +12,7 @@ import { ChangePasswordForm } from "@/components/settings/change-password-form";
 import { ProfileNameForm } from "@/components/settings/profile-name-form";
 import { TwoFactorForm } from "@/components/settings/two-factor-form";
 import { StoryNotificationsForm } from "@/components/settings/story-notifications-form";
+import { StoryDefaultLengthForm } from "@/components/settings/story-default-length-form";
 import { ForwardingSettingsPanel } from "@/components/settings/forwarding-settings-panel";
 import {
   storyNotificationSettingHint,
@@ -37,6 +39,10 @@ export default async function ProfileSettingsPage() {
   const twoFactorEnabled = await prisma.user.findUnique({
     where: { id: ctx.userId },
     select: { twoFactorEnabled: true },
+  });
+  const workspacePrefs = await prisma.workspace.findUnique({
+    where: { id: ctx.workspace.id },
+    select: { defaultStoryLength: true },
   });
 
   return (
@@ -92,6 +98,13 @@ export default async function ProfileSettingsPage() {
             title={notifyCopy.title}
             description="Choose whether we email you when a forwarded thread becomes a story."
             hint={storyNotificationSettingHint(plan)}
+          />
+
+          <StoryDefaultLengthForm
+            initialLength={parseStoryLength(workspacePrefs?.defaultStoryLength)}
+            canUseElaborate={canUseElaborateStoryLength(plan)}
+            canManage={canManageTeam}
+            plan={plan}
           />
 
           <ForwardingSettingsPanel canManage={canManageTeam} />

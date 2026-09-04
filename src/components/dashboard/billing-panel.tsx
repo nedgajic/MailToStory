@@ -199,6 +199,8 @@ export function BillingPanel({
   invoices,
   used,
   limit,
+  usedCreditsLabel,
+  limitCreditsLabel,
   billingInterval = "monthly",
   teamMembers = [],
   teamInvites = [],
@@ -216,6 +218,8 @@ export function BillingPanel({
   invoices: BillingInvoice[];
   used: number;
   limit: number | null;
+  usedCreditsLabel?: string;
+  limitCreditsLabel?: string | null;
   billingInterval?: BillingInterval;
   teamMembers?: Array<{
     id: string;
@@ -341,8 +345,8 @@ export function BillingPanel({
   if (limit != null) {
     detailRows.push({
       key: "usage",
-      label: "Stories this month",
-      value: `${used} of ${limit}`,
+      label: "Credits this month",
+      value: `${usedCreditsLabel ?? used} of ${limitCreditsLabel ?? limit}`,
       icon: (
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
           <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />

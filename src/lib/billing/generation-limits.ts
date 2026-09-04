@@ -1,6 +1,5 @@
 import prisma from "@/lib/prisma";
 import {
-  FREE_STORY_LIMIT,
   GENERATION_LIMIT_DAILY,
   GENERATION_LIMIT_HOURLY,
   PRO_GENERATION_LIMIT_MONTHLY,
@@ -8,8 +7,14 @@ import {
   TEAM_GENERATION_LIMIT_MONTHLY_PER_SEAT,
   type PlanId,
 } from "@/lib/billing/plans";
-import { canGenerateStory } from "@/lib/billing/entitlements";
+import {
+  creditCostForLength,
+  formatCredits,
+  hasEnoughCredits,
+  monthlyCreditAllowance,
+} from "@/lib/billing/credits";
 import { isInboundSenderAllowed } from "@/lib/inbound/sender-allowlist";
+import { canUseElaborateStoryLength, parseStoryLength } from "@/lib/story-length";
 import { utcMonthRange } from "@/lib/workspace";
 
 export type GenerationBlockReason =
@@ -19,7 +24,9 @@ export type GenerationBlockReason =
   | "daily_rate_limit"
   | "regeneration_debounce"
   | "sender_not_allowed"
-  | "email_not_verified";
+  | "email_not_verified"
+  | "elaborate_not_allowed"
+  | "insufficient_credits";
 
 export type GenerationGateResult = {
   allowed: boolean;
@@ -103,6 +110,15 @@ export async function generationsSince(
   });
 }
 
+export async function creditsUsedThisMonth(workspaceId: string): Promise<number> {
+  const { start } = utcMonthRange();
+  const result = await prisma.storyGenerationLog.aggregate({
+    where: { workspaceId, createdAt: { gte: start } },
+    _sum: { creditCost: true },
+  });
+  return result._sum.creditCost ?? 0;
+}
+
 export async function generationsThisMonth(
   workspaceId: string,
 ): Promise<number> {
@@ -124,11 +140,16 @@ export async function lastGenerationAt(
 export async function logStoryGeneration(input: {
   workspaceId: string;
   conversationId: string;
+  storyLength?: string;
+  creditCost?: number;
 }): Promise<void> {
+  const storyLength = parseStoryLength(input.storyLength);
   await prisma.storyGenerationLog.create({
     data: {
       workspaceId: input.workspaceId,
       conversationId: input.conversationId,
+      storyLength,
+      creditCost: input.creditCost ?? creditCostForLength(storyLength),
     },
   });
 }
@@ -148,9 +169,20 @@ export async function evaluateGenerationGate(input: {
   hasExistingStory: boolean;
   /** Manual refresh from the app — skips debounce, still enforces rate limits. */
   manualRefresh?: boolean;
+  /** Requested story length for manual regeneration. */
+  storyLength?: string;
   /** Inbound webhook only — when set, sender must be a workspace member. */
   fromEmail?: string;
 }): Promise<GenerationGateResult> {
+  const storyLength = parseStoryLength(input.storyLength);
+
+  if (storyLength === "elaborate" && !canUseElaborateStoryLength(input.plan)) {
+    return block(
+      "elaborate_not_allowed",
+      "Elaborate story length is available on Pro. Upgrade in Billing to unlock it.",
+    );
+  }
+
   if (requireVerifiedEmailForGeneration()) {
     const verified = await workspaceHasVerifiedMember(input.workspaceId);
     if (!verified) {
@@ -174,25 +206,15 @@ export async function evaluateGenerationGate(input: {
     }
   }
 
-  if (!input.hasExistingStory) {
-    const quota = await canGenerateStory(input.plan, input.workspaceId);
-    if (!quota.allowed) {
-      return block(
-        "free_story_quota",
-        `Free plan includes ${FREE_STORY_LIMIT} stories this month. Upgrade to generate more.`,
-      );
-    }
-  }
-
-  const monthlyLimit = monthlyGenerationLimit(input.plan, input.seatQuantity);
-  if (monthlyLimit != null) {
-    const used = await generationsThisMonth(input.workspaceId);
-    if (used >= monthlyLimit) {
-      return block(
-        "monthly_generation_quota",
-        `Monthly generation limit reached (${monthlyLimit}). Contact support if you need more.`,
-      );
-    }
+  const creditCost = creditCostForLength(storyLength);
+  const creditAllowance = monthlyCreditAllowance(input.plan, input.seatQuantity);
+  const creditsUsed = await creditsUsedThisMonth(input.workspaceId);
+  if (!hasEnoughCredits(creditsUsed, creditAllowance, creditCost)) {
+    const remaining = Math.max(0, (creditAllowance ?? 0) - creditsUsed);
+    return block(
+      "insufficient_credits",
+      `Not enough credits. This action needs ${formatCredits(creditCost)} credits; you have ${formatCredits(remaining)} left this month.`,
+    );
   }
 
   const hourAgo = new Date(Date.now() - 60 * 60 * 1000);

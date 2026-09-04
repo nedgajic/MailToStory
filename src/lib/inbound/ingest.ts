@@ -11,6 +11,9 @@ import {
 } from "@/lib/preprocessThread";
 import { buildDigestPrompt } from "@/lib/buildDigestPrompt";
 import { generateDigestFromPrompt } from "@/lib/gemini";
+import { DEFAULT_STORY_LENGTH, parseStoryLength, type StoryLength } from "@/lib/story-length";
+import { createStoryVersion } from "@/lib/story-versions";
+import { creditCostForLength } from "@/lib/billing/credits";
 import {
   evaluateGenerationGate,
   logStoryGeneration,
@@ -120,6 +123,7 @@ export async function ingestAllowedPostmarkPayload(input: {
     id: string;
     plan: string;
     seatQuantity: number;
+    defaultStoryLength: string;
   };
   fromEmail: string;
 }): Promise<string> {
@@ -263,6 +267,8 @@ export async function ingestAllowedPostmarkPayload(input: {
     select: { id: true },
   });
 
+  const inboundLength = parseStoryLength(workspace.defaultStoryLength);
+
   const gate = await evaluateGenerationGate({
     plan: parsePlanId(workspace.plan),
     workspaceId: workspace.id,
@@ -270,6 +276,7 @@ export async function ingestAllowedPostmarkPayload(input: {
     seatQuantity: workspace.seatQuantity,
     hasExistingStory: Boolean(existingStory),
     fromEmail,
+    storyLength: inboundLength,
   });
   if (!gate.allowed) {
     console.info("[inbound] generation skipped", {
@@ -292,7 +299,7 @@ export async function ingestAllowedPostmarkPayload(input: {
   }
 
   try {
-    await generateAndSaveStory(conversation.id);
+    await generateAndSaveStory(conversation.id, { length: inboundLength });
   } catch (error) {
     console.error("[inbound] digest failed", error);
     void notifyGenerationFailed({
@@ -354,7 +361,7 @@ async function releaseQuarantineForSenderSync(input: {
 
   const workspace = await prisma.workspace.findUniqueOrThrow({
     where: { id: input.workspaceId },
-    select: { id: true, plan: true, seatQuantity: true },
+    select: { id: true, plan: true, seatQuantity: true, defaultStoryLength: true },
   });
 
   let processed = 0;
@@ -377,13 +384,16 @@ async function releaseQuarantineForSenderSync(input: {
   return processed;
 }
 
-export async function generateAndSaveStory(conversationId: string): Promise<Digest> {
+export async function generateAndSaveStory(
+  conversationId: string,
+  options?: { length?: StoryLength },
+): Promise<Digest> {
   const conversation = await prisma.conversation.findUniqueOrThrow({
     where: { id: conversationId },
     include: {
       messages: { orderBy: { sequence: "asc" } },
       attachments: true,
-      workspace: { select: { id: true, plan: true } },
+      workspace: { select: { id: true, plan: true, defaultStoryLength: true } },
     },
   });
 
@@ -433,10 +443,16 @@ export async function generateAndSaveStory(conversationId: string): Promise<Dige
 
   const { cleanedThread, attachmentManifest, metadata } =
     preprocessMessages(generics);
+  const storyLength = parseStoryLength(
+    options?.length ??
+      conversation.workspace.defaultStoryLength ??
+      DEFAULT_STORY_LENGTH,
+  );
   const prompt = buildDigestPrompt(
     cleanedThread,
     attachmentManifest,
     metadata,
+    storyLength,
   );
   const digest = digestSchema.parse(await generateDigestFromPrompt(prompt));
   const messageIdsInOrder = conversation.messages.map((m) => m.id);
@@ -454,6 +470,7 @@ export async function generateAndSaveStory(conversationId: string): Promise<Dige
       searchText,
       digest: JSON.parse(JSON.stringify(digest)),
       messageIdsInOrder: JSON.parse(JSON.stringify(messageIdsInOrder)),
+      storyLength,
     },
     update: {
       title: digest.title,
@@ -463,12 +480,24 @@ export async function generateAndSaveStory(conversationId: string): Promise<Dige
       searchText,
       digest: JSON.parse(JSON.stringify(digest)),
       messageIdsInOrder: JSON.parse(JSON.stringify(messageIdsInOrder)),
+      storyLength,
     },
   });
 
   const savedStory = await prisma.story.findUniqueOrThrow({
     where: { conversationId },
     select: { id: true },
+  });
+
+  await createStoryVersion({
+    storyId: savedStory.id,
+    title: digest.title,
+    status: digest.status,
+    resolutionSummary: digest.resolution_summary,
+    searchText,
+    digest,
+    messageIdsInOrder,
+    storyLength,
   });
 
   try {
@@ -480,6 +509,8 @@ export async function generateAndSaveStory(conversationId: string): Promise<Dige
   await logStoryGeneration({
     workspaceId: conversation.workspaceId,
     conversationId,
+    storyLength,
+    creditCost: creditCostForLength(storyLength),
   });
 
   return digest;

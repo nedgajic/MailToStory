@@ -12,44 +12,26 @@ export type StoryDisplayThemeOption = {
 };
 
 export type StoryDisplayThemePreview = {
-  itemBackground: string;
-  accent: string;
-  border: string;
-  labelColor: string;
-  hintColor: string;
-  radius?: string;
-  borderStyle?: "solid" | "dashed";
+  /** Diagonal dark/light swatch for the theme picker. */
+  swatch: string;
 };
 
-/** Full menu-item preview styling for the theme picker. */
+/** Swatch gradients for the theme picker split preview. */
 export const STORY_DISPLAY_THEME_PREVIEWS: Record<
   StoryDisplayTheme,
   StoryDisplayThemePreview
 > = {
   dossier: {
-    itemBackground: "linear-gradient(168deg, #eef4fb 0%, #e3edf8 100%)",
-    accent: "#6b9bd4",
-    border: "rgb(138 180 248 / 0.38)",
-    labelColor: "#2a4a72",
-    hintColor: "rgb(42 74 114 / 0.72)",
-    radius: "2px",
+    swatch:
+      "linear-gradient(112deg, #040810 0%, #0c1524 22%, #1a3050 41%, #1a3050 43%, #6e98c4 43%, #a8c4e4 68%, #dce8f8 100%)",
   },
   moonletter: {
-    itemBackground: "linear-gradient(168deg, oklch(89.5% 0.048 36) 0%, oklch(96.5% 0.048 36) 100%)",
-    accent: "#c47868",
-    border: "rgb(220 168 152 / 0.48)",
-    labelColor: "#5a3428",
-    hintColor: "rgb(74 56 88 / 0.72)",
-    radius: "10px",
+    swatch:
+      "linear-gradient(112deg, #140604 0%, #2a1008 20%, #4a2010 41%, #4a2010 43%, #c07060 43%, #dcb0a0 66%, oklch(91% 0.042 36) 100%)",
   },
   wayfarer: {
-    itemBackground: "linear-gradient(168deg, #f7eed8 0%, #ede4cc 100%)",
-    accent: "#c4954a",
-    border: "rgb(196 149 74 / 0.38)",
-    labelColor: "#6a5028",
-    hintColor: "rgb(106 80 40 / 0.72)",
-    radius: "2px",
-    borderStyle: "dashed",
+    swatch:
+      "linear-gradient(112deg, #100c04 0%, #241c0c 22%, #443418 41%, #443418 43%, #a88848 43%, #d0b878 68%, #ede4cc 100%)",
   },
 };
 

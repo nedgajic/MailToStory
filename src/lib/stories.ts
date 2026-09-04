@@ -1,5 +1,8 @@
 import prisma from "@/lib/prisma";
 import { digestSchema, type Digest } from "@/lib/digest-schema";
+import { parseStoryLength, type StoryLength } from "@/lib/story-length";
+import { listStoryVersions } from "@/lib/story-versions";
+import type { StoryVersionSummary } from "@/lib/story-version-types";
 
 export type StoryListItem = {
   id: string;
@@ -23,9 +26,23 @@ export async function getStoryForWorkspace(
   title: string;
   deletedAt: Date | null;
   purgeAt: Date | null;
+  storyLength: StoryLength;
+  activeVersionId: string | null;
+  versions: StoryVersionSummary[];
 } | null> {
   const story = await prisma.story.findFirst({
     where: { id: storyId, workspaceId },
+    select: {
+      id: true,
+      conversationId: true,
+      title: true,
+      digest: true,
+      messageIdsInOrder: true,
+      deletedAt: true,
+      purgeAt: true,
+      storyLength: true,
+      activeVersionId: true,
+    },
   });
   if (!story) return null;
   const parsed = digestSchema.safeParse(story.digest);
@@ -33,6 +50,7 @@ export async function getStoryForWorkspace(
   const ids = Array.isArray(story.messageIdsInOrder)
     ? story.messageIdsInOrder.filter((x): x is string => typeof x === "string")
     : [];
+  const versions = await listStoryVersions(story.id, story.activeVersionId);
   return {
     digest: parsed.data,
     messageIdsInOrder: ids,
@@ -40,5 +58,8 @@ export async function getStoryForWorkspace(
     title: story.title,
     deletedAt: story.deletedAt,
     purgeAt: story.purgeAt,
+    storyLength: parseStoryLength(story.storyLength),
+    activeVersionId: story.activeVersionId,
+    versions,
   };
 }

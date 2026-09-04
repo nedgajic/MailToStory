@@ -10,6 +10,8 @@ import { authorizeTwoFactorLogin } from "@/lib/auth/authorize-two-factor-login";
 import { createPendingTwoFactorLogin } from "@/lib/auth/two-factor-login";
 import { appUrl } from "@/lib/email/send";
 import { verifyLoginTotp } from "@/lib/auth/totp";
+import { SESSION_MAX_AGE_SECONDS, LAST_SEEN_THROTTLE_MS } from "@/lib/auth/session-config";
+import { touchLastSeen } from "@/lib/auth/touch-last-seen";
 
 const googleId = process.env.GOOGLE_CLIENT_ID?.trim();
 const googleSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
@@ -96,7 +98,7 @@ export const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60,
+    maxAge: SESSION_MAX_AGE_SECONDS,
   },
   pages: {
     signIn: "/login",
@@ -128,6 +130,8 @@ export const authOptions: NextAuthOptions = {
         token.email = user.email;
         token.name = user.name;
         token.picture = user.image;
+        token.lastSeenBump = Date.now();
+        void touchLastSeen(user.id);
         const changedAt =
           "credentialsChangedAt" in user && user.credentialsChangedAt instanceof Date
             ? user.credentialsChangedAt.getTime()
@@ -145,6 +149,12 @@ export const authOptions: NextAuthOptions = {
       }
 
       if (token.sub) {
+        const lastBump = (token.lastSeenBump as number | undefined) ?? 0;
+        if (Date.now() - lastBump > LAST_SEEN_THROTTLE_MS) {
+          token.lastSeenBump = Date.now();
+          void touchLastSeen(token.sub);
+        }
+
         const dbUser = await prisma.user.findUnique({
           where: { id: token.sub },
           select: {
@@ -180,6 +190,11 @@ export const authOptions: NextAuthOptions = {
     },
   },
   events: {
+    async signIn({ user }) {
+      if (user.id) {
+        await touchLastSeen(user.id);
+      }
+    },
     async createUser({ user }) {
       if (!user.id) return;
       await ensureWorkspaceForUser({

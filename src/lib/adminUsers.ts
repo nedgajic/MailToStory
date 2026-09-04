@@ -1,4 +1,13 @@
 import prisma from "@/lib/prisma";
+import {
+  getGenerationCountsByWorkspace,
+  countWorkspaceGenerations,
+} from "@/lib/admin/generation-stats";
+import {
+  isSessionActive,
+  SESSION_MAX_AGE_MS,
+  sessionExpiresFromLastSeen,
+} from "@/lib/auth/session-config";
 
 export type AdminUserRow = {
   id: string;
@@ -6,6 +15,8 @@ export type AdminUserRow = {
   name: string | null;
   digestCount: number;
   uniqueThreads: number;
+  generationCount: number;
+  regenerationCount: number;
   firstDigestAt: Date | null;
   lastDigestAt: Date | null;
   activeSession: boolean;
@@ -30,14 +41,21 @@ function maxDate(...values: Array<Date | null | undefined>): Date | null {
 }
 
 export async function getAdminUserSummary(): Promise<AdminUserSummary> {
+  const now = new Date();
+  const activeSince = new Date(now.getTime() - SESSION_MAX_AGE_MS);
   const [totalUsers, usersWithDigests, activeSessions, totalDigests] =
     await Promise.all([
       prisma.user.count(),
       prisma.user.count({
         where: { memberships: { some: { workspace: { conversations: { some: { story: { isNot: null } } } } } } },
       }),
-      prisma.session.count({
-        where: { expires: { gt: new Date() } },
+      prisma.user.count({
+        where: {
+          OR: [
+            { sessions: { some: { expires: { gt: now } } } },
+            { lastSeenAt: { gte: activeSince } },
+          ],
+        },
       }),
       prisma.story.count(),
     ]);
@@ -52,11 +70,13 @@ export async function getAdminUserSummary(): Promise<AdminUserSummary> {
 
 export async function listAdminUsers(): Promise<AdminUserRow[]> {
   const now = new Date();
+  const countsByWorkspace = await getGenerationCountsByWorkspace();
   const users = await prisma.user.findMany({
     select: {
       id: true,
       email: true,
       name: true,
+      lastSeenAt: true,
       sessions: {
         select: { expires: true },
         where: { expires: { gt: now } },
@@ -71,6 +91,7 @@ export async function listAdminUsers(): Promise<AdminUserRow[]> {
         select: {
           workspace: {
             select: {
+              id: true,
               plan: true,
               conversations: {
                 select: {
@@ -108,6 +129,19 @@ export async function listAdminUsers(): Promise<AdminUserRow[]> {
           )
         : null;
     const sessionExpiresAt = user.sessions[0]?.expires ?? null;
+    const jwtActive = isSessionActive(user.lastSeenAt, now);
+    const activeSession = sessionExpiresAt !== null || jwtActive;
+    const sessionDisplayExpiresAt =
+      sessionExpiresAt ??
+      (jwtActive && user.lastSeenAt
+        ? sessionExpiresFromLastSeen(user.lastSeenAt)
+        : null);
+
+    const workspaceIds = user.memberships.map((m) => m.workspace.id);
+    const generationTotals = countWorkspaceGenerations(
+      workspaceIds,
+      countsByWorkspace,
+    );
 
     return {
       id: user.id,
@@ -115,10 +149,12 @@ export async function listAdminUsers(): Promise<AdminUserRow[]> {
       name: user.name,
       digestCount,
       uniqueThreads: digestCount,
+      generationCount: generationTotals.generations,
+      regenerationCount: generationTotals.regenerations,
       firstDigestAt,
       lastDigestAt,
-      activeSession: sessionExpiresAt !== null,
-      sessionExpiresAt,
+      activeSession,
+      sessionExpiresAt: sessionDisplayExpiresAt,
       googleLinked: user.accounts.some((a) => a.provider === "google"),
       plan: user.memberships[0]?.workspace.plan ?? null,
     };

@@ -17,4 +17,13 @@ describe("digestPdfBaseFilename", () => {
   it("falls back when the title is empty", () => {
     expect(digestPdfBaseFilename("   /\\ ")).toBe("MailToStory - Story");
   });
+
+  it("normalizes unicode punctuation to ASCII for HTTP headers", () => {
+    expect(digestPdfBaseFilename("Q3 Review — Final")).toBe(
+      "MailToStory - Q3 Review - Final",
+    );
+    expect(digestPdfBaseFilename("“Hello” — world…")).toBe(
+      "MailToStory - Hello - world...",
+    );
+  });
 });

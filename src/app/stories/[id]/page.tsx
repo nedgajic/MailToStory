@@ -4,6 +4,13 @@ import { authOptions } from "@/auth";
 import { getWorkspaceContext, isWorkspaceAdmin } from "@/lib/session";
 import { getStoryForWorkspace } from "@/lib/stories";
 import type { PlanId } from "@/lib/billing/plans";
+import { canUseElaborateStoryLength } from "@/lib/story-length";
+import { creditsUsedThisMonth } from "@/lib/billing/generation-limits";
+import {
+  creditsRemaining,
+  formatCredits,
+  monthlyCreditAllowance,
+} from "@/lib/billing/credits";
 import { AppTopBar } from "@/components/app-top-bar";
 import { StoryDetail } from "./story-detail";
 
@@ -24,6 +31,15 @@ export default async function StoryPage({
   const story = await getStoryForWorkspace(ctx.workspace.id, id);
   if (!story) notFound();
 
+  const plan = ctx.workspace.plan as PlanId;
+  const [creditsUsed] = await Promise.all([
+    creditsUsedThisMonth(ctx.workspace.id),
+  ]);
+  const allowance = monthlyCreditAllowance(plan, ctx.workspace.seatQuantity);
+  const remaining = creditsRemaining(creditsUsed, allowance);
+  const creditsRemainingLabel =
+    remaining != null ? formatCredits(remaining) : null;
+
   return (
     <>
       <AppTopBar
@@ -36,7 +52,12 @@ export default async function StoryPage({
         conversationId={story.conversationId}
         digest={story.digest}
         messageIdsInOrder={story.messageIdsInOrder}
-        isFree={ctx.workspace.plan === "free"}
+        storyLength={story.storyLength}
+        versions={story.versions}
+        activeVersionId={story.activeVersionId}
+        canUseElaborate={canUseElaborateStoryLength(plan)}
+        creditsRemainingLabel={creditsRemainingLabel}
+        isFree={plan === "free"}
         deletedAt={story.deletedAt?.toISOString() ?? null}
         purgeAt={story.purgeAt?.toISOString() ?? null}
       />

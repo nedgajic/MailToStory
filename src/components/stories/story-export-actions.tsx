@@ -13,17 +13,20 @@ import { DigestExportPdfOverlay } from "@/components/digest/DigestExportPdfOverl
 import { digestPdfBaseFilename } from "@/lib/digestPdfFilename";
 import { digestToMarkdown } from "@/lib/digestToMarkdown";
 import { openPdfInNewTab } from "@/lib/openPdfInNewTab";
+import { ToolbarExportIcon } from "@/components/stories/story-toolbar-icons";
 
 export function StoryExportActions({
   digest,
   displayTheme = "dossier",
   colorMode,
   className,
+  compact = false,
 }: {
   digest: Digest;
   displayTheme?: StoryDisplayTheme;
   colorMode?: StoryColorMode;
   className?: string;
+  compact?: boolean;
 }) {
   const menuRef = useRef<HTMLDivElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -41,10 +44,12 @@ export function StoryExportActions({
     setAlwaysDayMode(readExportAlwaysDayMode());
   }, []);
 
+  const currentColorMode = colorMode ?? readStoryColorMode();
   const exportColorMode = resolveExportColorMode(
-    colorMode ?? readStoryColorMode(),
+    currentColorMode,
     alwaysDayMode,
   );
+  const showExportDayModeToggle = currentColorMode === "dark";
 
   const closePdfPreview = useCallback(() => {
     setPdfPreview((current) => {
@@ -221,7 +226,12 @@ export function StoryExportActions({
       >
         <button
           type="button"
-          className={`story-export-actions__btn story-export-actions__trigger${menuOpen ? " story-export-actions__trigger--open" : ""}${busy ? " story-export-actions__trigger--busy" : ""}`}
+          className={
+            compact
+              ? `story-page-toolbar__icon-btn${menuOpen ? " story-page-toolbar__icon-btn--open" : ""}${busy ? " story-page-toolbar__icon-btn--loading" : ""}`
+              : `story-export-actions__btn story-export-actions__trigger${menuOpen ? " story-export-actions__trigger--open" : ""}${busy ? " story-export-actions__trigger--busy" : ""}`
+          }
+          title="Export story"
           aria-label="Export story"
           aria-haspopup="menu"
           aria-expanded={menuOpen}
@@ -231,8 +241,10 @@ export function StoryExportActions({
           {busy ? (
             <>
               <span className="story-export-actions__spinner" aria-hidden />
-              Exporting…
+              {compact ? null : "Exporting…"}
             </>
+          ) : compact ? (
+            <ToolbarExportIcon />
           ) : (
             <>
               Export
@@ -303,45 +315,49 @@ export function StoryExportActions({
               {markdownCopied ? "Copied!" : "Copy Markdown"}
             </button>
 
-            <div
-              className="story-export-actions__menu-divider"
-              role="separator"
-              aria-hidden
-            />
+            {showExportDayModeToggle ? (
+              <>
+                <div
+                  className="story-export-actions__menu-divider"
+                  role="separator"
+                  aria-hidden
+                />
 
-            <button
-              type="button"
-              role="menuitemcheckbox"
-              aria-checked={alwaysDayMode}
-              className="story-page-toolbar__menu-item story-export-actions__menu-toggle"
-              title="Force PDF and Word exports to use day mode for printing"
-              onClick={toggleAlwaysDayMode}
-            >
-              <span
-                className={`story-export-actions__menu-toggle-box${alwaysDayMode ? " story-export-actions__menu-toggle-box--checked" : ""}`}
-                aria-hidden
-              >
-                {alwaysDayMode ? (
-                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-                    <path
-                      d="M2.5 6.2 5 8.7 9.5 3.8"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                ) : null}
-              </span>
-              <span className="story-export-actions__menu-toggle-copy">
-                <span className="story-export-actions__menu-toggle-label">
-                  Always day mode
-                </span>
-                <span className="story-export-actions__menu-toggle-hint">
-                  Printer-friendly exports
-                </span>
-              </span>
-            </button>
+                <button
+                  type="button"
+                  role="menuitemcheckbox"
+                  aria-checked={alwaysDayMode}
+                  className="story-page-toolbar__menu-item story-export-actions__menu-toggle"
+                  title="Export PDF and Word in day mode for printing"
+                  onClick={toggleAlwaysDayMode}
+                >
+                  <span
+                    className={`story-export-actions__menu-toggle-box${alwaysDayMode ? " story-export-actions__menu-toggle-box--checked" : ""}`}
+                    aria-hidden
+                  >
+                    {alwaysDayMode ? (
+                      <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                        <path
+                          d="M2.5 6.2 5 8.7 9.5 3.8"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    ) : null}
+                  </span>
+                  <span className="story-export-actions__menu-toggle-copy">
+                    <span className="story-export-actions__menu-toggle-label">
+                      Export in day mode
+                    </span>
+                    <span className="story-export-actions__menu-toggle-hint">
+                      Printer friendly
+                    </span>
+                  </span>
+                </button>
+              </>
+            ) : null}
           </div>
         ) : null}
       </div>

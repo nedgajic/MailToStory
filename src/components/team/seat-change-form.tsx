@@ -7,7 +7,7 @@ import {
   planUnitAmountUsd,
   type BillingInterval,
 } from "@/lib/billing/plans";
-import { seatsToRemove, suggestMemberIdsToRemove } from "@/lib/billing/seats";
+import { seatsToRemove, suggestMemberIdsToRemove } from "@/lib/billing/seats-shared";
 
 type Member = {
   id: string;

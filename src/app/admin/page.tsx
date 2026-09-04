@@ -4,7 +4,9 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/auth";
 import { isAdminEmail } from "@/lib/admin";
 import { getAdminUserSummary, listAdminUsers } from "@/lib/adminUsers";
+import { getAdminGenerationStats } from "@/lib/admin/generation-stats";
 import { getAdminStorageReport } from "@/lib/admin/storage-metrics";
+import { AdminGenerationPanel } from "@/components/admin/admin-generation-panel";
 import { AdminStoragePanel } from "@/components/admin/admin-storage-panel";
 
 import { BRAND_NAME } from "@/lib/brand";
@@ -33,9 +35,10 @@ export default async function AdminPage() {
     redirect("/dashboard");
   }
 
-  const [summary, users, storage] = await Promise.all([
+  const [summary, users, generationStats, storage] = await Promise.all([
     getAdminUserSummary(),
     listAdminUsers(),
+    getAdminGenerationStats(),
     getAdminStorageReport(),
   ]);
 
@@ -74,6 +77,8 @@ export default async function AdminPage() {
             </div>
           </div>
 
+          <AdminGenerationPanel stats={generationStats} />
+
           <AdminStoragePanel
             metrics={storage.metrics}
             suggestions={storage.suggestions}
@@ -86,6 +91,8 @@ export default async function AdminPage() {
                   <th scope="col">Email</th>
                   <th scope="col">Name</th>
                   <th scope="col">Digests</th>
+                  <th scope="col">Generations</th>
+                  <th scope="col">Regens</th>
                   <th scope="col">Threads</th>
                   <th scope="col">First story</th>
                   <th scope="col">Last story</th>
@@ -96,7 +103,7 @@ export default async function AdminPage() {
               <tbody>
                 {users.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="admin-table__empty">
+                    <td colSpan={10} className="admin-table__empty">
                       No users yet.
                     </td>
                   </tr>
@@ -110,14 +117,15 @@ export default async function AdminPage() {
                       </td>
                       <td>{user.name ?? "—"}</td>
                       <td className="admin-table__num">{user.digestCount}</td>
+                      <td className="admin-table__num">{user.generationCount}</td>
+                      <td className="admin-table__num">{user.regenerationCount}</td>
                       <td className="admin-table__num">{user.uniqueThreads}</td>
                       <td>{formatWhen(user.firstDigestAt)}</td>
                       <td>{formatWhen(user.lastDigestAt)}</td>
                       <td>
                         {user.activeSession ? (
                           <span className="admin-badge admin-badge--ok">
-                            Active until{" "}
-                            {formatWhen(user.sessionExpiresAt)}
+                            Active until {formatWhen(user.sessionExpiresAt)}
                           </span>
                         ) : (
                           <span className="admin-badge admin-badge--muted">
@@ -136,8 +144,10 @@ export default async function AdminPage() {
           </div>
 
           <p className="admin-page__note">
-            Users appear after signup. “Digests” counts generated stories. Sessions
-            are JWT, so the session column may stay empty.{" "}
+            Users appear after signup. “Digests” counts cached stories; “Generations”
+            and “Regens” come from the generation log (every AI call, including
+            manual regenerates). Session status uses JWT cookie activity (
+            <code>lastSeenAt</code>, refreshed while browsing).{" "}
             <Link href="/dashboard" className="admin-page__link">
               Back to dashboard
             </Link>

@@ -75,7 +75,7 @@ async function main() {
 
   const workspace = await prisma.workspace.findFirst({
     where: { inboundLocalPart: localPart },
-    select: { id: true, plan: true, seatQuantity: true, name: true },
+    select: { id: true, plan: true, seatQuantity: true, name: true, defaultStoryLength: true },
   });
 
   if (!workspace) {

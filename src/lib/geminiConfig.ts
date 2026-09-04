@@ -75,7 +75,7 @@ export function parseMaxOutputTokens(
   const parsed = raw ? Number(raw) : NaN;
   return Math.min(
     65536,
-    Math.max(2048, Number.isFinite(parsed) ? parsed : 16384),
+    Math.max(2048, Number.isFinite(parsed) ? parsed : 32768),
   );
 }
 

@@ -87,7 +87,12 @@ export default async function BillingSettingsPage({
           {data.billingPastDue ? (
             <BillingPastDueBanner canBill={data.canBill} />
           ) : null}
-          <GenerationLimitBanner used={data.used} limit={data.limit} />
+          <GenerationLimitBanner
+            used={data.used}
+            limit={data.limit}
+            usedLabel={data.usedCreditsLabel}
+            limitLabel={data.limitCreditsLabel}
+          />
 
           <BillingPanel
             plan={ctx.workspace.plan as PlanId}
@@ -103,6 +108,8 @@ export default async function BillingSettingsPage({
             invoices={data.invoices}
             used={data.used}
             limit={data.limit}
+            usedCreditsLabel={data.usedCreditsLabel}
+            limitCreditsLabel={data.limitCreditsLabel}
             billingInterval={billingInterval}
             teamMembers={teamMembers}
             teamInvites={teamInvites}

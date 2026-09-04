@@ -57,12 +57,19 @@ export default async function DashboardPage({
           {data.billingPastDue ? (
             <BillingPastDueBanner canBill={data.canBill} />
           ) : null}
-          <GenerationLimitBanner used={data.used} limit={data.limit} />
+          <GenerationLimitBanner
+            used={data.used}
+            limit={data.limit}
+            usedLabel={data.usedCreditsLabel}
+            limitLabel={data.limitCreditsLabel}
+          />
           <DashboardOverview
             firstName={ctx.name?.split(" ")[0] ?? null}
             verified={data.verified}
             used={data.used}
             limit={data.limit}
+            usedCreditsLabel={data.usedCreditsLabel}
+            limitCreditsLabel={data.limitCreditsLabel}
             planName={data.planName}
             seatsUsed={data.seatsUsed}
             seatQuantity={ctx.workspace.seatQuantity}

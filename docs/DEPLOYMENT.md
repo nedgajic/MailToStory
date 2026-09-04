@@ -251,8 +251,10 @@ GEMINI_API_KEY="..."                    # primary key from AI Studio
 # GEMINI_API_KEY_FALLBACKS="key2,key3"  # optional second project if you hit rate limits
 GEMINI_MODEL="gemini-2.5-flash"
 # GEMINI_MODEL_FALLBACKS="gemini-2.5-flash-lite"
-# GEMINI_MAX_OUTPUT_TOKENS=16384        # default; lower to 8192 if stories never truncate
+# GEMINI_MAX_OUTPUT_TOKENS=32768        # default; raise to 65536 for Elaborate length on long threads
 ```
+
+Manual regeneration supports **Concise**, **Normal**, and **Elaborate** story length. **Elaborate** is **Pro-only**. Each generation spends credits: Concise **0.5**, Normal **1**, Elaborate **1.5**. Free includes **5** credits/month; Pro **500**; Team **500/seat**. Switching between saved versions is free. Set your default length under Profile → Story generation.
 
 App-side caps (independent of Gemini quotas) — defaults in `src/lib/billing/plans.ts`:
 

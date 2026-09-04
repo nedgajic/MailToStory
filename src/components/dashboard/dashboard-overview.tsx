@@ -11,6 +11,8 @@ export type DashboardOverviewProps = {
   verified: boolean;
   used: number;
   limit: number | null;
+  usedCreditsLabel?: string;
+  limitCreditsLabel?: string | null;
   planName: string;
   seatsUsed: number;
   seatQuantity: number;
@@ -23,6 +25,8 @@ export function DashboardOverview({
   verified,
   used,
   limit,
+  usedCreditsLabel,
+  limitCreditsLabel,
   planName,
   seatsUsed,
   seatQuantity,
@@ -54,10 +58,10 @@ export function DashboardOverview({
       <section className="dash-stats dash-stats--compact">
         <article className="dash-stat">
           <span className="dash-stat__value">
-            {used}
-            {limit != null ? ` / ${limit}` : ""}
+            {usedCreditsLabel ?? used}
+            {limit != null ? ` / ${limitCreditsLabel ?? limit}` : ""}
           </span>
-          <span className="dash-stat__label">Stories this month</span>
+          <span className="dash-stat__label">Credits this month</span>
         </article>
         <article className="dash-stat">
           <span className="dash-stat__value">{planName}</span>
