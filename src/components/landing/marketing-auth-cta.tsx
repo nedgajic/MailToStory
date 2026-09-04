@@ -12,6 +12,10 @@ function useMounted() {
   return mounted;
 }
 
+function scrollToDemo() {
+  document.getElementById("demo")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 export function MarketingHeaderAuth() {
   const { status } = useSession();
   const mounted = useMounted();
@@ -75,9 +79,13 @@ export function MarketingHeroCta({ googleEnabled }: { googleEnabled: boolean }) 
   if (signedIn) {
     return (
       <div className="mkt-hero__ctas">
-        <Link href="/dashboard" className="mkt-btn mkt-btn--hero mkt-btn--lg">
-          Open dashboard
-        </Link>
+        <button
+          type="button"
+          className="mkt-btn mkt-btn--hero mkt-btn--lg"
+          onClick={scrollToDemo}
+        >
+          See demo
+        </button>
       </div>
     );
   }

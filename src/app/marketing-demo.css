@@ -13,7 +13,7 @@
   grid-template-columns: minmax(0, 1fr);
   gap: 1.5rem;
   align-items: stretch;
-  --mkt-demo-panel-height: 26rem;
+  --mkt-demo-panel-height: 33.8rem;
 }
 
 @media (min-width: 768px) {

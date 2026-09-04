@@ -115,7 +115,7 @@ export function MarketingStoryDemo() {
 
           <div className="mkt-demo__panel mkt-demo__panel--story">
             <div className="mkt-demo__panel-head">
-              <span className="mkt-demo__panel-label">Interactive preview</span>
+              <span className="mkt-demo__panel-label">Generated story preview</span>
               <span className="mkt-demo__panel-note">Try theme &amp; day/night</span>
             </div>
             <MarketingInteractiveStoryPreview digest={MARKETING_SAMPLE_DIGEST} />

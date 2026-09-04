@@ -8,7 +8,6 @@ import { MarketingHomeFooter } from "@/components/landing/marketing-home-footer"
 import { AuthModalTrigger } from "@/components/auth/auth-modal-trigger";
 import { BRAND_PRIVACY_PATH } from "@/lib/brand";
 import { googleAuthEnabled } from "@/lib/google-auth-enabled";
-import { MARKETING_SAMPLE_DIGEST } from "@/lib/marketing-sample-thread";
 import "@/app/marketing-home.css";
 
 const features = [
@@ -147,28 +146,6 @@ export function LandingPage() {
                 <li>Private forwarding address</li>
                 <li>No inbox OAuth required</li>
               </ul>
-            </div>
-
-            <div className="mkt-hero__preview" aria-hidden="true">
-              <div className="mkt-preview-card">
-                <div className="mkt-preview-card__chrome">
-                  <span />
-                  <span />
-                  <span />
-                </div>
-                <div className="mkt-preview-card__body">
-                  <p className="mkt-preview-card__kicker">Pleasant to read</p>
-                  <h3>{MARKETING_SAMPLE_DIGEST.title}</h3>
-                  <p className="mkt-preview-card__status">
-                    Pending action · {MARKETING_SAMPLE_DIGEST.participants.length} participants
-                  </p>
-                  <ul>
-                    {MARKETING_SAMPLE_DIGEST.action_items.slice(0, 3).map((item) => (
-                      <li key={item.action}>{item.action}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
             </div>
           </div>
         </section>
