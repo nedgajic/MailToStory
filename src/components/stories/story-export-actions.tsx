@@ -21,12 +21,14 @@ export function StoryExportActions({
   colorMode,
   className,
   compact = false,
+  disabled = false,
 }: {
   digest: Digest;
   displayTheme?: StoryDisplayTheme;
   colorMode?: StoryColorMode;
   className?: string;
   compact?: boolean;
+  disabled?: boolean;
 }) {
   const menuRef = useRef<HTMLDivElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -231,12 +233,16 @@ export function StoryExportActions({
               ? `story-page-toolbar__icon-btn${menuOpen ? " story-page-toolbar__icon-btn--open" : ""}${busy ? " story-page-toolbar__icon-btn--loading" : ""}`
               : `story-export-actions__btn story-export-actions__trigger${menuOpen ? " story-export-actions__trigger--open" : ""}${busy ? " story-export-actions__trigger--busy" : ""}`
           }
-          title="Export story"
-          aria-label="Export story"
+          title={disabled ? "Export available after sign up" : "Export story"}
+          aria-label={disabled ? "Export available after sign up" : "Export story"}
           aria-haspopup="menu"
           aria-expanded={menuOpen}
           aria-busy={busy}
-          onClick={() => setMenuOpen((open) => !open)}
+          disabled={disabled}
+          onClick={() => {
+            if (disabled) return;
+            setMenuOpen((open) => !open);
+          }}
         >
           {busy ? (
             <>

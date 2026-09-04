@@ -1,25 +1,12 @@
 import type { Metadata } from "next";
-import { DM_Mono, Lora } from "next/font/google";
 import { BRAND_ICON_PATH, BRAND_NAME, BRAND_OG_PATH, BRAND_URL } from "@/lib/brand";
+import { fontVariableClassNames } from "@/lib/fonts";
 import { googleAuthEnabled } from "@/lib/google-auth-enabled";
 import "./theme-tokens.css";
 import "./globals.css";
 import "./cookie-consent.css";
 import "./auth-modal.css";
 import { Providers } from "@/components/providers";
-
-const lora = Lora({
-  subsets: ["latin"],
-  variable: "--font-lora",
-  display: "swap",
-});
-
-const dmMono = DM_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500"],
-  variable: "--font-dm-mono",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL(BRAND_URL),
@@ -62,10 +49,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${lora.variable} ${dmMono.variable}`}
-    >
+    <html lang="en" className={fontVariableClassNames}>
       <body>
         <Providers googleEnabled={googleAuthEnabled()}>{children}</Providers>
       </body>

@@ -31,6 +31,9 @@ export function StoryPageToolbar({
   onDelete,
   hideDelete = false,
   hideRegenerate = false,
+  disableBack = false,
+  disableExport = false,
+  disableDelete = false,
 }: {
   digest: Digest;
   storyId: string;
@@ -61,6 +64,9 @@ export function StoryPageToolbar({
   onDelete: () => void | Promise<void>;
   hideDelete?: boolean;
   hideRegenerate?: boolean;
+  disableBack?: boolean;
+  disableExport?: boolean;
+  disableDelete?: boolean;
 }) {
   const toolbarRef = useRef<HTMLDivElement>(null);
 
@@ -102,12 +108,25 @@ export function StoryPageToolbar({
   return (
     <div ref={toolbarRef} className="story-page-toolbar story-page-toolbar--compact">
       <div className="story-page-toolbar__inner">
-        <Link href="/stories" className="story-page-toolbar__back" title="Back to stories">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
-          <span className="story-page-toolbar__back-label">Stories</span>
-        </Link>
+        {disableBack ? (
+          <span
+            className="story-page-toolbar__back story-page-toolbar__back--disabled"
+            aria-disabled="true"
+            title="Demo preview"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+            <span className="story-page-toolbar__back-label">Stories</span>
+          </span>
+        ) : (
+          <Link href="/stories" className="story-page-toolbar__back" title="Back to stories">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+            <span className="story-page-toolbar__back-label">Stories</span>
+          </Link>
+        )}
 
         <div className="story-page-toolbar__cluster">
           <div className="story-page-toolbar__dock" role="toolbar" aria-label="Story actions">
@@ -154,6 +173,7 @@ export function StoryPageToolbar({
                 displayTheme={displayTheme}
                 colorMode={colorMode}
                 compact
+                disabled={disableExport}
               />
             </div>
 
@@ -165,7 +185,8 @@ export function StoryPageToolbar({
                 />
                 <div className="story-page-toolbar__dock-group">
                   <StoryDeleteIconButton
-                    label="Delete story"
+                    label={disableDelete ? "Delete available after sign up" : "Delete story"}
+                    disabled={disableDelete}
                     className="story-page-toolbar__icon-btn story-page-toolbar__icon-btn--danger"
                     onClick={() => void onDelete()}
                   />
