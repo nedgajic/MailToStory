@@ -92,7 +92,7 @@ export function StoryReadyEmail({
             settings.
           </Text>
           <Text style={styles.footerLink}>
-            <a href={`${BRAND_URL}/settings/profile`} style={styles.link}>
+            <a href={`${BRAND_URL}/settings/stories`} style={styles.link}>
               Notification settings
             </a>
           </Text>

@@ -21,7 +21,7 @@ PORT="${PORT:-22}"
 APP_PORT="${APP_PORT:-3010}"
 REMOTE_DIR="${REMOTE_DIR:-/var/www/mailtostory}"
 
-echo -e "${GREEN}Bootstrapping MailToStory on $USER@$HOST${NC}"
+echo -e "${GREEN}Bootstrapping Mail To Story on $USER@$HOST${NC}"
 echo "Remote dir: $REMOTE_DIR"
 echo "App port: $APP_PORT"
 echo ""

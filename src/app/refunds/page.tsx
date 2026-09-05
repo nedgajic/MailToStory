@@ -80,7 +80,7 @@ export default function RefundsPage() {
         <h2>6. Account deletion</h2>
         <p>
           Deleting your account cancels an active subscription immediately. See{" "}
-          <a href={BRAND_TERMS_PATH}>Terms of Service</a> and Settings → Profile.
+          <a href={BRAND_TERMS_PATH}>Terms of Service</a> and Settings → Privacy & data.
         </p>
       </LegalDocument>
     </MarketingShell>

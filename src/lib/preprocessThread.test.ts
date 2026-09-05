@@ -60,6 +60,40 @@ describe("parseForwardedThread", () => {
     );
     expect(parts.length).toBeGreaterThan(1);
   });
+
+  it("splits Gmail list-view forwards with nested wrote blocks", () => {
+    const text = [
+      "---------- Forwarded message ---------",
+      "From: wynwood tech Recruiting <recruiting@wynwd.com>",
+      "Date: Sat, Jul 25, 2026 at 10:21 AM",
+      "Subject: Re: Data Scientists",
+      "To: <nedgajic@gmail.com>",
+      "",
+      "Hi Nedeljko,",
+      "",
+      "Latest outreach.",
+      "On Wed, Jul 22, 2026 at 09:18 AM EDT, wynwood tech Recruiting <",
+      "recruiting@wynwd.com> wrote:",
+      "",
+      "Reminder note.",
+      "On Tue, Jul 21, 2026 at 07:50 AM EDT, wynwood tech Recruiting <",
+      "recruiting@wynwd.com> wrote:",
+      "",
+      "Initial outreach.",
+    ].join("\n");
+
+    const parts = parseForwardedThread(
+      text,
+      "Ned Gajic <nedgajic@gmail.com>",
+      "2026-09-05",
+      "Fwd: Data Scientists",
+    );
+
+    expect(parts.length).toBe(3);
+    expect(parts[0]?.text).toContain("Initial outreach");
+    expect(parts[2]?.text).toContain("Latest outreach");
+    expect(parts[0]?.from).toContain("recruiting@wynwd.com");
+  });
 });
 
 describe("stripSubjectPrefix", () => {

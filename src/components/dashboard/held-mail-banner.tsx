@@ -14,7 +14,7 @@ export function HeldMailBanner({ count }: { count: number }) {
           forwarding address. Approve the sender to generate stories.
         </p>
       </div>
-      <Link href="/settings/profile#forwarding" className="dash-banner__btn">
+      <Link href="/settings/email#forwarding" className="dash-banner__btn">
         Review held mail
       </Link>
     </div>

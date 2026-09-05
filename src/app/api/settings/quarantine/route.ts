@@ -8,7 +8,7 @@ import {
   rejectQuarantinedInbound,
   rejectQuarantineForSender,
 } from "@/lib/inbound/quarantine";
-import { requestForwardingAddressVerification } from "@/lib/email/forwarding-address";
+import { approveForwardingSenderFromQuarantine } from "@/lib/email/forwarding-address";
 import { scheduleReleaseQuarantineForSender } from "@/lib/inbound/ingest";
 import { isMemberAccountEmail } from "@/lib/inbound/sender-allowlist";
 import {
@@ -118,29 +118,24 @@ export async function POST(req: Request) {
         });
       }
 
-      const result = await requestForwardingAddressVerification({
+      const result = await approveForwardingSenderFromQuarantine({
         workspaceId: ctx.workspace.id,
         email: fromEmail,
         addedById: session.user.id,
-        workspaceName: ctx.workspace.name,
       });
 
-      let queued = 0;
-      if (!result.pending) {
-        queued = await scheduleReleaseQuarantineForSender({
-          workspaceId: ctx.workspace.id,
-          fromEmail: result.email,
-        });
-      }
+      const queued = await scheduleReleaseQuarantineForSender({
+        workspaceId: ctx.workspace.id,
+        fromEmail: result.email,
+      });
 
       return NextResponse.json({
         ok: true,
-        message: result.pending
-          ? `Confirmation link sent to ${result.email}. Held mail will process after verification.`
-          : queued > 0
-            ? `${result.email} is verified. Processing ${queued} held message${queued === 1 ? "" : "s"} in the background.`
-            : `${result.email} is verified.`,
-        pending: result.pending,
+        message:
+          queued > 0
+            ? `${result.email} approved. Processing ${queued} held message${queued === 1 ? "" : "s"} in the background.`
+            : `${result.email} approved as a forwarding address.`,
+        pending: false,
         queued,
       });
     } catch (error) {

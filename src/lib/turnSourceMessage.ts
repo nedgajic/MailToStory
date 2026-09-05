@@ -70,6 +70,10 @@ export function resolveTurnSourceMessageId(input: {
   const fromDigest = resolveGmailMessageId(messageIndex ?? null, messageIdsInOrder);
   if (fromDigest) return fromDigest;
 
+  if (messageIndex != null && messageIndex >= 1) {
+    return `src-${messageIndex}`;
+  }
+
   if (actorMessageMap && actorMessageMap.size > 0) {
     const fromSpeaker = resolveFromSpeaker(
       speaker ?? undefined,

@@ -1,18 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
+import { useSettingsFeedback } from "@/components/settings/settings-feedback";
 
 export function ProfileNameForm({ initialName }: { initialName: string }) {
+  const { update } = useSession();
+  const { showFeedback } = useSettingsFeedback();
   const [name, setName] = useState(initialName);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState<string | null>(null);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     setError(null);
-    setSaved(null);
     try {
       const res = await fetch("/api/account/profile", {
         method: "PATCH",
@@ -25,29 +27,32 @@ export function ProfileNameForm({ initialName }: { initialName: string }) {
         return;
       }
       if (data.name) setName(data.name);
-      setSaved("Name updated.");
+      await update({ name: data.name ?? name });
+      showFeedback("Name updated.");
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <form className="auth-form" onSubmit={(e) => void onSubmit(e)}>
+    <form className="auth-form auth-form--settings" onSubmit={(e) => void onSubmit(e)}>
       <label className="auth-form__field">
-        Display name
+        <span className="sr-only">Display name</span>
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
           autoComplete="name"
           maxLength={120}
+          placeholder="Your name"
           required
         />
       </label>
       {error ? <p className="auth-form__error">{error}</p> : null}
-      {saved ? <p className="dash-banner__feedback">{saved}</p> : null}
-      <button className="home-cta home-cta--primary" type="submit" disabled={busy}>
-        {busy ? "Saving…" : "Save name"}
-      </button>
+      <div className="settings-form__footer">
+        <button className="settings-btn settings-btn--primary" type="submit" disabled={busy}>
+          {busy ? "Saving…" : "Save name"}
+        </button>
+      </div>
     </form>
   );
 }

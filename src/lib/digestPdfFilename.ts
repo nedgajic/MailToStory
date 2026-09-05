@@ -1,7 +1,9 @@
-const EXPORT_FILENAME_PREFIX = "MailToStory - ";
+import { BRAND_NAME } from "@/lib/brand";
+
+const EXPORT_FILENAME_PREFIX = `${BRAND_NAME} - `;
 const MAX_EXPORT_FILENAME_LENGTH = 120;
 
-/** Filesystem-safe export base name (no extension), e.g. `MailToStory - Q3 Budget Review`. */
+/** Filesystem-safe export base name (no extension), e.g. `Mail To Story - Q3 Budget Review`. */
 export function digestPdfBaseFilename(title: string): string {
   const cleaned = title
     .normalize("NFKD")

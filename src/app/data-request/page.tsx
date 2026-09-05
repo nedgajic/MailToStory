@@ -28,7 +28,7 @@ export default function DataRequestPage() {
         </p>
         <p>
           If you have an account, sign in and use{" "}
-          <a href="/settings/profile">Settings → Profile</a> to export or delete
+          <a href="/settings/privacy">Settings → Privacy & data</a> to export or delete
           your data instead.
         </p>
         <DataRequestForm />

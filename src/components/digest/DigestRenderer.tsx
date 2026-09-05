@@ -365,38 +365,6 @@ function trimAttachmentFilename(filename: string, maxLen = 30): string {
   return `${name.slice(0, baseBudget)}…${ext}`;
 }
 
-function OriginalMailIconButton({
-  onClick,
-  ariaLabel,
-}: {
-  onClick: () => void;
-  ariaLabel: string;
-}) {
-  return (
-    <button
-      type="button"
-      className="digest-original-mail-icon-btn"
-      onClick={onClick}
-      aria-label={ariaLabel}
-    >
-      <svg
-        width="17"
-        height="17"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden
-      >
-        <rect x="2.5" y="4.5" width="19" height="15" rx="2" />
-        <path d="M22 7.5 12.6 12.7a2 2 0 0 1-2.06 0L2 7.5" />
-      </svg>
-    </button>
-  );
-}
-
 type AttachmentRef = Extract<NarrativeBlock, { type: "attachment_reference" }>;
 
 function resourceSummary(urlCount: number, attachmentCount: number): string {
@@ -518,11 +486,28 @@ function TurnEvidenceFooter({
                 ·
               </span>
             ) : null}
-            <span className="digest-original-source-caption">Source</span>
-            <OriginalMailIconButton
+            <button
+              type="button"
+              className="digest-original-source-btn"
               onClick={() => onOpenOriginal(sourceMessageId)}
-              ariaLabel="Show original email in HTML"
-            />
+              aria-label="Show original email for this turn"
+            >
+              <span className="digest-original-source-caption">Original</span>
+              <svg
+                width="17"
+                height="17"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <rect x="2.5" y="4.5" width="19" height="15" rx="2" />
+                <path d="M22 7.5 12.6 12.7a2 2 0 0 1-2.06 0L2 7.5" />
+              </svg>
+            </button>
           </span>
         ) : null}
       </div>
@@ -1593,8 +1578,14 @@ function OriginalMessageModal({
           setState("error");
           return;
         }
-        const d = data as ThreadMessagePayload;
-        setPayload(d);
+        const d = data as ThreadMessagePayload & { html?: string | null };
+        setPayload({
+          subject: d.subject ?? "",
+          from: d.from ?? "",
+          date: d.date ?? "",
+          body: d.body ?? "",
+          bodyHtml: d.bodyHtml ?? d.html ?? null,
+        });
         setState("ok");
       } catch {
         if (!cancelled) {

@@ -28,6 +28,15 @@ describe("resolveSpeakerToEmail", () => {
   it("returns null when unknown", () => {
     expect(resolveSpeakerToEmail("Zora", people)).toBeNull();
   });
+
+  it("matches organizational From labels via email local-part", () => {
+    const recruiters = [
+      { name: "Julia Kurmann", email: "recruiting@wynwd.com" },
+    ];
+    expect(
+      resolveSpeakerToEmail("wynwood tech Recruiting", recruiters),
+    ).toBe("recruiting@wynwd.com");
+  });
 });
 
 describe("gravatarAvatarUrl", () => {

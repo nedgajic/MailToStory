@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/auth";
 import { getWorkspaceContext, isWorkspaceAdmin } from "@/lib/session";
 import { getStoryForWorkspace } from "@/lib/stories";
+import { markStoryViewed } from "@/lib/story-views";
 import type { PlanId } from "@/lib/billing/plans";
 import { canUseElaborateStoryLength } from "@/lib/story-length";
 import { creditsUsedThisMonth } from "@/lib/billing/generation-limits";
@@ -12,8 +13,8 @@ import {
   monthlyCreditAllowance,
 } from "@/lib/billing/credits";
 import { AppTopBar } from "@/components/app-top-bar";
+import { StoryViewTracker } from "@/components/stories/story-view-tracker";
 import { StoryDetail } from "./story-detail";
-
 import { BRAND_NAME } from "@/lib/brand";
 
 export const metadata = { title: `Story — ${BRAND_NAME}` };
@@ -31,6 +32,8 @@ export default async function StoryPage({
   const story = await getStoryForWorkspace(ctx.workspace.id, id);
   if (!story) notFound();
 
+  await markStoryViewed(session.user.id, id);
+
   const plan = ctx.workspace.plan as PlanId;
   const [creditsUsed] = await Promise.all([
     creditsUsedThisMonth(ctx.workspace.id),
@@ -47,6 +50,7 @@ export default async function StoryPage({
         canManageTeam={isWorkspaceAdmin(ctx.role)}
         plan={ctx.workspace.plan as PlanId}
       />
+      <StoryViewTracker />
       <StoryDetail
         storyId={id}
         conversationId={story.conversationId}

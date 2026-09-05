@@ -1,4 +1,4 @@
-# GDPR Compliance Checklist — MailToStory
+# GDPR Compliance Checklist — Mail To Story
 
 This checklist documents implemented measures and manual operational steps for GDPR compliance at mailtostory.com.
 
@@ -20,8 +20,8 @@ This checklist documents implemented measures and manual operational steps for G
 | **Terms of Service** | Done | `/terms` |
 | **Footer / app legal links** | Done | Privacy, Cookies, Terms, Data Request |
 | **Signup consent** | Done | Required checkbox + server validation on register |
-| **Delete account** | Done | Settings → Profile — `POST /api/account/delete` |
-| **Data export (registered)** | Done | Settings → Profile — `GET /api/account/export` |
+| **Delete account** | Done | Settings → Privacy & data — `POST /api/account/delete` |
+| **Data export (registered)** | Done | Settings → Privacy & data — `GET /api/account/export` |
 | **Data request (non-account)** | Done | `/data-request` + `POST /api/gdpr/request-export` / `request-deletion` |
 | **Rate limiting (GDPR APIs)** | Done | 5 requests/hour per email+IP — `src/lib/gdpr/rate-limit.ts` |
 
@@ -47,7 +47,7 @@ This checklist documents implemented measures and manual operational steps for G
 3. Accept analytics — GA loads; check Network tab.
 4. Open `/cookies` → **Open cookie settings** opens the modal.
 5. Sign up without checkbox — blocked client-side and via API.
-6. Settings → Profile → **Export my data** downloads JSON.
+6. Settings → Privacy & data → **Export my data** downloads JSON.
 7. `/data-request` — export/deletion for non-account email works; active account email returns sign-in message.
 
 ---

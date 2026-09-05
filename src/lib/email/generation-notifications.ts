@@ -91,7 +91,7 @@ export async function notifyGenerationSkipped(input: {
       ? `Upgrade or review usage: ${billingUrl}`
       : "",
     "",
-    `Manage notifications: ${appUrl("/settings/profile")}`,
+    `Manage notifications: ${appUrl("/settings/stories")}`,
   ]
     .filter(Boolean)
     .join("\n");
@@ -142,7 +142,7 @@ export async function notifyGenerationFailed(input: {
     input.attachmentNote ?? "",
     `Open Stories: ${storiesUrl}`,
     "",
-    `Manage notifications: ${appUrl("/settings/profile")}`,
+    `Manage notifications: ${appUrl("/settings/stories")}`,
   ].join("\n");
 
   for (const recipient of recipients) {

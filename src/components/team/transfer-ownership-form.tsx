@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { SettingsSection } from "@/components/settings/settings-section";
+import { useSettingsFeedback } from "@/components/settings/settings-feedback";
 
 type MemberOption = {
   id: string;
@@ -13,9 +15,9 @@ export function TransferOwnershipForm({
 }: {
   members: MemberOption[];
 }) {
+  const { showFeedback } = useSettingsFeedback();
   const [memberId, setMemberId] = useState(members[0]?.id ?? "");
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   if (members.length === 0) return null;
@@ -34,7 +36,6 @@ export function TransferOwnershipForm({
 
     setBusy(true);
     setError(null);
-    setMessage(null);
     try {
       const res = await fetch("/api/team/transfer-ownership", {
         method: "POST",
@@ -46,7 +47,7 @@ export function TransferOwnershipForm({
         setError(data.error || "Could not transfer ownership.");
         return;
       }
-      setMessage("Ownership transferred.");
+      showFeedback("Ownership transferred.");
       window.location.reload();
     } finally {
       setBusy(false);
@@ -54,13 +55,12 @@ export function TransferOwnershipForm({
   }
 
   return (
-    <section className="dash-panel dash-panel--flat">
-      <h2 className="dash-panel__section-title">Transfer ownership</h2>
+    <SettingsSection title="Transfer ownership">
       <p className="dash-muted">
         Before deleting your account, transfer ownership to another active team member.
         You will become an admin.
       </p>
-      <form className="auth-form" onSubmit={(e) => void onSubmit(e)}>
+      <form className="auth-form auth-form--settings" onSubmit={(e) => void onSubmit(e)}>
         <label className="auth-form__field">
           New owner
           <select value={memberId} onChange={(e) => setMemberId(e.target.value)} required>
@@ -72,11 +72,12 @@ export function TransferOwnershipForm({
           </select>
         </label>
         {error ? <p className="auth-form__error">{error}</p> : null}
-        {message ? <p className="dash-banner__feedback">{message}</p> : null}
-        <button className="home-cta home-cta--secondary" type="submit" disabled={busy}>
-          {busy ? "Transferring…" : "Transfer ownership"}
-        </button>
+        <div className="settings-form__footer">
+          <button className="settings-btn settings-btn--secondary" type="submit" disabled={busy}>
+            {busy ? "Transferring…" : "Transfer ownership"}
+          </button>
+        </div>
       </form>
-    </section>
+    </SettingsSection>
   );
 }

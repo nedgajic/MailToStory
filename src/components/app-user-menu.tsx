@@ -1,9 +1,35 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { createPortal } from "react-dom";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { HELP_NAV_LINK } from "@/lib/brand";
+import type { PlanId } from "@/lib/billing/plans";
+import {
+  userMenuNav,
+} from "@/lib/settings-nav";
+import {
+  UserMenuHelpGlyph,
+  UserMenuLogOutGlyph,
+  userMenuGlyphForHref,
+} from "@/components/app-user-menu-glyphs";
+
+function UserMenuItemContent({
+  glyph,
+  label,
+}: {
+  glyph: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <>
+      <span className="app-top-bar__user-item__glyph">{glyph}</span>
+      <span className="app-top-bar__user-item__label">{label}</span>
+    </>
+  );
+}
 
 function getInitials(name: string) {
   return name
@@ -17,20 +43,54 @@ function getInitials(name: string) {
 type AppUserMenuProps = {
   className?: string;
   triggerClassName?: string;
+  canManageTeam?: boolean;
+  plan?: PlanId;
 };
 
 export function AppUserMenu({
   className,
   triggerClassName = "",
+  canManageTeam: canManageTeamProp,
+  plan: planProp,
 }: AppUserMenuProps) {
+  const pathname = usePathname();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [userDropdownPos, setUserDropdownPos] = useState<{
     top: number;
     right: number;
   } | null>(null);
+  const [navContext, setNavContext] = useState<{
+    canManageTeam: boolean;
+    plan: PlanId;
+  } | null>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const userDropdownRef = useRef<HTMLDivElement>(null);
   const { data: session, status: sessionStatus } = useSession();
+
+  const canManageTeam = canManageTeamProp ?? navContext?.canManageTeam ?? false;
+  const plan = planProp ?? navContext?.plan ?? "free";
+
+  useEffect(() => {
+    if (sessionStatus !== "authenticated") {
+      setNavContext(null);
+      return;
+    }
+    if (canManageTeamProp !== undefined && planProp !== undefined) return;
+
+    let cancelled = false;
+    void fetch("/api/settings/menu-context")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled || !data) return;
+        setNavContext({
+          canManageTeam: Boolean(data.canManageTeam),
+          plan: (data.plan as PlanId) ?? "free",
+        });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionStatus, canManageTeamProp, planProp]);
 
   useLayoutEffect(() => {
     if (!userMenuOpen) {
@@ -80,6 +140,10 @@ export function AppUserMenu({
     };
   }, [userMenuOpen]);
 
+  useEffect(() => {
+    setUserMenuOpen(false);
+  }, [pathname]);
+
   const accountUser = session?.user;
   const accountLabel =
     accountUser?.name?.trim() ||
@@ -94,6 +158,11 @@ export function AppUserMenu({
   ]
     .filter(Boolean)
     .join(" ");
+
+  const settingsItems =
+    sessionStatus === "authenticated"
+      ? userMenuNav({ canManageTeam, plan })
+      : [];
 
   return (
     <>
@@ -137,14 +206,43 @@ export function AppUserMenu({
               }}
               role="menu"
             >
+              {settingsItems.map(({ href, label }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  role="menuitem"
+                  className="app-top-bar__user-item app-top-bar__user-item--link"
+                  onClick={() => setUserMenuOpen(false)}
+                >
+                  <UserMenuItemContent
+                    glyph={userMenuGlyphForHref(href)}
+                    label={label}
+                  />
+                </Link>
+              ))}
+              {settingsItems.length > 0 ? (
+                <div
+                  className="app-top-bar__user-dropdown__divider"
+                  role="separator"
+                  aria-hidden
+                />
+              ) : null}
               <a
                 href={HELP_NAV_LINK.path}
                 role="menuitem"
                 className="app-top-bar__user-item app-top-bar__user-item--link"
                 onClick={() => setUserMenuOpen(false)}
               >
-                {HELP_NAV_LINK.label}
+                <UserMenuItemContent
+                  glyph={<UserMenuHelpGlyph />}
+                  label={HELP_NAV_LINK.label}
+                />
               </a>
+              <div
+                className="app-top-bar__user-dropdown__divider"
+                role="separator"
+                aria-hidden
+              />
               <button
                 type="button"
                 role="menuitem"
@@ -154,7 +252,10 @@ export function AppUserMenu({
                   void signOut({ callbackUrl: "/" });
                 }}
               >
-                Log out
+                <UserMenuItemContent
+                  glyph={<UserMenuLogOutGlyph />}
+                  label="Log out"
+                />
               </button>
             </div>,
             document.body,

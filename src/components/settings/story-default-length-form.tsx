@@ -6,6 +6,8 @@ import {
   STORY_LENGTH_OPTIONS,
   type StoryLength,
 } from "@/lib/story-length";
+import { SettingsSection } from "@/components/settings/settings-section";
+import { useSettingsFeedback } from "@/components/settings/settings-feedback";
 
 export function StoryDefaultLengthForm({
   initialLength,
@@ -18,16 +20,15 @@ export function StoryDefaultLengthForm({
   canManage: boolean;
   plan: PlanId;
 }) {
+  const { showFeedback } = useSettingsFeedback();
   const [length, setLength] = useState(initialLength);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState<string | null>(null);
 
   async function save(next: StoryLength) {
     if (!canManage) return;
     setBusy(true);
     setError(null);
-    setSaved(null);
     const previous = length;
     setLength(next);
     try {
@@ -42,7 +43,7 @@ export function StoryDefaultLengthForm({
         setError(data.error || "Could not update default length.");
         return;
       }
-      setSaved("Default story length saved.");
+      showFeedback("Default story length saved.");
     } catch {
       setLength(previous);
       setError("Could not update default length.");
@@ -52,8 +53,7 @@ export function StoryDefaultLengthForm({
   }
 
   return (
-    <section className="dash-panel">
-      <h2 className="dash-panel__section-title">Story generation</h2>
+    <SettingsSection title="Story generation">
       <p className="dash-muted">
         Default length for new stories when mail is forwarded in. Manual regenerates
         still let you pick each time. Costs are in credits per generation.
@@ -98,7 +98,6 @@ export function StoryDefaultLengthForm({
         </p>
       ) : null}
       {error ? <p className="auth-form__error">{error}</p> : null}
-      {saved ? <p className="dash-banner__feedback">{saved}</p> : null}
-    </section>
+    </SettingsSection>
   );
 }

@@ -3,6 +3,8 @@ import { digestSchema, type Digest } from "@/lib/digest-schema";
 import { creditCostForLength, MAX_STORY_VERSIONS } from "@/lib/billing/credits-shared";
 import { parseStoryLength, type StoryLength } from "@/lib/story-length";
 import type { StoryVersionSummary } from "@/lib/story-version-types";
+import type { ThreadSourceMessage } from "@/lib/thread-source-messages";
+import { parseThreadSourceMessages } from "@/lib/thread-source-messages";
 
 export type { StoryVersionSummary } from "@/lib/story-version-types";
 
@@ -14,6 +16,7 @@ export async function createStoryVersion(input: {
   searchText: string;
   digest: Digest;
   messageIdsInOrder: string[];
+  sourceMessages: ThreadSourceMessage[];
   storyLength: StoryLength;
 }): Promise<{ id: string; versionNumber: number }> {
   const creditCost = creditCostForLength(input.storyLength);
@@ -35,6 +38,7 @@ export async function createStoryVersion(input: {
       searchText: input.searchText,
       digest: JSON.parse(JSON.stringify(input.digest)),
       messageIdsInOrder: JSON.parse(JSON.stringify(input.messageIdsInOrder)),
+      sourceMessages: JSON.parse(JSON.stringify(input.sourceMessages)),
       storyLength: input.storyLength,
       creditCost,
     },
@@ -106,6 +110,7 @@ export async function activateStoryVersion(
 ): Promise<{
   digest: Digest;
   messageIdsInOrder: string[];
+  sourceMessages: ThreadSourceMessage[];
   storyLength: StoryLength;
   title: string;
 }> {
@@ -124,6 +129,7 @@ export async function activateStoryVersion(
   const messageIdsInOrder = Array.isArray(version.messageIdsInOrder)
     ? version.messageIdsInOrder.filter((x): x is string => typeof x === "string")
     : [];
+  const sourceMessages = parseThreadSourceMessages(version.sourceMessages);
 
   await prisma.story.update({
     where: { id: storyId },
@@ -135,6 +141,7 @@ export async function activateStoryVersion(
       searchText: version.searchText,
       digest: JSON.parse(JSON.stringify(parsed.data)),
       messageIdsInOrder: JSON.parse(JSON.stringify(messageIdsInOrder)),
+      sourceMessages: JSON.parse(JSON.stringify(sourceMessages)),
       storyLength: version.storyLength,
     },
   });
@@ -142,6 +149,7 @@ export async function activateStoryVersion(
   return {
     digest: parsed.data,
     messageIdsInOrder,
+    sourceMessages,
     storyLength: parseStoryLength(version.storyLength),
     title: version.title,
   };

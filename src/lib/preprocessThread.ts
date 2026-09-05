@@ -80,6 +80,40 @@ export function stripSubjectPrefix(subject: string): string {
   return subject.replace(/^(re|fwd|fw):\s*/gi, "").trim();
 }
 
+/** Normalize line breaks and Gmail-broken angle brackets before forward parsing. */
+export function normalizeForwardedText(text: string): string {
+  return text
+    .replace(/\r\n/g, "\n")
+    .replace(/\u202f/g, " ")
+    .replace(/<\s*\n\s*/g, "<")
+    .replace(/\n\s*>/g, ">")
+    .trim();
+}
+
+const FORWARD_DELIMITER_ONLY =
+  /^-{3,}\s*(?:Forwarded message|Original Message)\s*-{3,}$/i;
+
+const FORWARD_SPLIT_RE =
+  /\n(?=-{5,}\s*Forwarded message\s*-{5,}|----+ ?Original Message ?----|From:\s+\S|On\s+(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun|\d{1,2})\b[\s\S]{0,280}?\bwrote\s*:)/i;
+
+function isForwardDelimiterOnly(part: string): boolean {
+  return FORWARD_DELIMITER_ONLY.test(part.trim());
+}
+
+function extractWroteHeader(part: string): {
+  date: string;
+  from: string;
+} | null {
+  const match = part.match(
+    /^On\s+(.+?),\s+(.+?)\s+(?:<([^>]+@[^>]+)>|([^<\n]+@[^\s>]+))\s*wrote:\s*/im,
+  );
+  if (!match) return null;
+  const date = `${match[1]?.trim() ?? ""}, ${match[2]?.trim() ?? ""}`.trim();
+  const from = (match[3] ?? match[4] ?? "").trim();
+  if (!from) return null;
+  return { date, from };
+}
+
 /**
  * Split a single forwarded blob into message-like chunks.
  * Prefer this over stripQuotedReplies for inbound forwards.
@@ -90,7 +124,7 @@ export function parseForwardedThread(
   fallbackDate: string,
   fallbackSubject: string,
 ): GenericMessage[] {
-  const normalized = text.replace(/\r\n/g, "\n").trim();
+  const normalized = normalizeForwardedText(text);
   if (!normalized) {
     return [
       {
@@ -103,10 +137,11 @@ export function parseForwardedThread(
     ];
   }
 
-  const splitRe =
-    /\n(?=----+ ?Original Message ?----|From:\s+\S|On\s+(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun|\d{1,2})\b[\s\S]{0,200}?\bwrote\s*:)/i;
+  const parts = normalized
+    .split(FORWARD_SPLIT_RE)
+    .map((p) => p.trim())
+    .filter((p) => p && !isForwardDelimiterOnly(p));
 
-  const parts = normalized.split(splitRe).map((p) => p.trim()).filter(Boolean);
   if (parts.length <= 1) {
     return [
       {
@@ -119,22 +154,23 @@ export function parseForwardedThread(
     ];
   }
 
-  return parts.map((part, index) => {
+  const parsed = parts.map((part, index) => {
     const fromMatch = part.match(/^From:\s*(.+)$/im);
     const dateMatch = part.match(/^Date:\s*(.+)$/im);
     const subjectMatch = part.match(/^Subject:\s*(.+)$/im);
-    const wroteMatch = part.match(
-      /^On\s+(.+?)\s+(.+?)\s+wrote:\s*/im,
-    );
+    const wroteHeader = extractWroteHeader(part);
     let body = part;
     if (fromMatch) {
       body = part.replace(/^[\s\S]*?\n\n/, "\n").trim();
-    } else if (wroteMatch) {
+    } else if (wroteHeader) {
       body = part.replace(/^On[\s\S]*?wrote:\s*/im, "").trim();
     }
-    const from = fromMatch?.[1]?.trim() || wroteMatch?.[2]?.trim() || fallbackFrom;
+    const from =
+      fromMatch?.[1]?.trim() ||
+      wroteHeader?.from ||
+      fallbackFrom;
     const date =
-      dateMatch?.[1]?.trim() || wroteMatch?.[1]?.trim() || fallbackDate;
+      dateMatch?.[1]?.trim() || wroteHeader?.date || fallbackDate;
     return {
       id: `m${index + 1}`,
       from,
@@ -143,6 +179,19 @@ export function parseForwardedThread(
       text: body || part,
     };
   });
+
+  return parsed.reverse();
+}
+
+/** Prefer plain text; fall back to stripped HTML when the body is empty or tiny. */
+export function messageBodyForParsing(input: {
+  textBody: string;
+  htmlBody?: string | null;
+}): string {
+  const text = input.textBody?.trim() ?? "";
+  if (text.length > 80) return text;
+  const fromHtml = htmlToText(input.htmlBody ?? "");
+  return fromHtml || text;
 }
 
 export function preprocessMessages(messages: GenericMessage[]): PreprocessResult {

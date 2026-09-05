@@ -5,7 +5,6 @@ import { parsePlanId } from "@/lib/billing/plans";
 import { normalizeEmail } from "@/lib/password";
 import { appUrl, sendTransactionalEmail } from "@/lib/email/send";
 import { createStoryAccessToken } from "@/lib/email/story-access-token";
-import { BRAND_NAME } from "@/lib/brand";
 
 export type StoryNotificationRecipient = {
   userId: string;
@@ -101,7 +100,7 @@ export async function notifyStoryReady(storyId: string): Promise<void> {
         "",
         `Open story: ${storyUrl}`,
         "",
-        `Manage notifications: ${appUrl("/settings/profile")}`,
+        `Manage notifications: ${appUrl("/settings/stories")}`,
       ].join("\n");
 
       await sendTransactionalEmail({
@@ -138,9 +137,9 @@ export function storyNotificationSettingLabel(plan: "free" | "pro" | "team"): {
   };
 }
 
-export function storyNotificationSettingHint(plan: "free" | "pro" | "team"): string {
+export function storyNotificationSettingHint(plan: "free" | "pro" | "team"): string | undefined {
   if (plan === "team") {
     return "Applies to stories created in this team workspace. Each teammate controls their own notifications.";
   }
-  return `We only email the address that forwarded the thread (${BRAND_NAME} account email).`;
+  return undefined;
 }

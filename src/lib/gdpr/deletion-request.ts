@@ -37,7 +37,7 @@ export async function createDeletionRequest(email: string): Promise<void> {
       "",
       "This link expires in 24 hours. If you did not request deletion, ignore this message.",
       "",
-      `If this email belongs to an active account, sign in and delete your account under Settings → Profile instead.`,
+      `If this email belongs to an active account, sign in and delete your account under Settings → Privacy & data instead.`,
     ].join("\n"),
   });
 }

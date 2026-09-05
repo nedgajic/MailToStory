@@ -4,6 +4,7 @@ import { scanAttachmentBuffer } from "@/lib/inbound/attachment-scan";
 import { digestSchema, type Digest } from "@/lib/digest-schema";
 import { parseFromHeader } from "@/lib/parseFromHeader";
 import {
+  messageBodyForParsing,
   parseForwardedThread,
   preprocessMessages,
   stripSubjectPrefix,
@@ -19,6 +20,11 @@ import {
   logStoryGeneration,
 } from "@/lib/billing/generation-limits";
 import { parsePlanId } from "@/lib/billing/plans";
+import {
+  buildSourceMessagesFromGenerics,
+  pickForwardParseSource,
+  sourceMessageIdsInOrder,
+} from "@/lib/thread-source-messages";
 import { notifyStoryReady } from "@/lib/email/story-notifications";
 import {
   notifyGenerationFailed,
@@ -397,25 +403,22 @@ export async function generateAndSaveStory(
     },
   });
 
-  const latest = conversation.messages[conversation.messages.length - 1];
-  const looksForwarded =
-    conversation.messages.length === 1 &&
-    /^(fwd|fw):/i.test(latest?.subject ?? "");
+  const forwardSource = pickForwardParseSource(conversation.messages);
 
   let generics: GenericMessage[];
-  if (looksForwarded && latest) {
+  if (forwardSource) {
     generics = parseForwardedThread(
-      latest.textBody,
-      `${latest.fromName} <${latest.fromEmail}>`.trim(),
-      latest.date.toISOString(),
-      latest.subject,
+      messageBodyForParsing(forwardSource),
+      `${forwardSource.fromName} <${forwardSource.fromEmail}>`.trim(),
+      forwardSource.date.toISOString(),
+      forwardSource.subject,
     ).map((m, i) => ({
       ...m,
-      id: conversation.messages[i]?.id ?? m.id,
+      id: `src-${i + 1}`,
       attachments:
         i === 0
           ? conversation.attachments
-              .filter((a) => a.messageId === latest.id)
+              .filter((a) => a.messageId === forwardSource.id)
               .map((a) => ({
                 filename: a.filename,
                 mimeType: a.mimeType,
@@ -424,8 +427,8 @@ export async function generateAndSaveStory(
           : [],
     }));
   } else {
-    generics = conversation.messages.map((m) => ({
-      id: m.id,
+    generics = conversation.messages.map((m, i) => ({
+      id: `src-${i + 1}`,
       from: m.fromName ? `${m.fromName} <${m.fromEmail}>` : m.fromEmail,
       date: m.date.toISOString(),
       subject: m.subject,
@@ -455,8 +458,15 @@ export async function generateAndSaveStory(
     storyLength,
   );
   const digest = digestSchema.parse(await generateDigestFromPrompt(prompt));
-  const messageIdsInOrder = conversation.messages.map((m) => m.id);
+  const storageMessageIds = forwardSource
+    ? generics.map((_, index) => (index === 0 ? forwardSource.id : undefined))
+    : conversation.messages.map((message) => message.id);
+  const sourceMessages = buildSourceMessagesFromGenerics(generics, {
+    storageMessageIds,
+  });
+  const messageIdsInOrder = sourceMessageIdsInOrder(sourceMessages);
   const searchText = storySearchText(digest, conversation.subject);
+  const sourceMessagesJson = JSON.parse(JSON.stringify(sourceMessages));
 
   await prisma.story.upsert({
     where: { conversationId },
@@ -470,6 +480,7 @@ export async function generateAndSaveStory(
       searchText,
       digest: JSON.parse(JSON.stringify(digest)),
       messageIdsInOrder: JSON.parse(JSON.stringify(messageIdsInOrder)),
+      sourceMessages: sourceMessagesJson,
       storyLength,
     },
     update: {
@@ -480,6 +491,7 @@ export async function generateAndSaveStory(
       searchText,
       digest: JSON.parse(JSON.stringify(digest)),
       messageIdsInOrder: JSON.parse(JSON.stringify(messageIdsInOrder)),
+      sourceMessages: sourceMessagesJson,
       storyLength,
     },
   });
@@ -497,6 +509,7 @@ export async function generateAndSaveStory(
     searchText,
     digest,
     messageIdsInOrder,
+    sourceMessages,
     storyLength,
   });
 

@@ -145,7 +145,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
           "Change seat count from Settings → Team — upgrades bill immediately; downgrades let you choose who to remove.",
           "Invite members from Settings → Team.",
           "Transfer ownership when the primary admin changes.",
-          "Enable two-factor authentication on your account in Settings → Profile.",
+          "Enable two-factor authentication on your account in Settings → Account.",
         ],
       },
     ],
@@ -203,7 +203,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
     sections: [
       {
         paragraphs: [
-          "Enable two-factor authentication in Settings → Profile to protect every sign-in method. Export or delete your account from the same page. GDPR requests are available from the Data Request page linked in the footer.",
+          "Enable two-factor authentication in Settings → Account to protect every sign-in method. Export or delete your account from Settings → Privacy & data. GDPR requests are available from the Data Request page linked in the footer.",
         ],
       },
       {

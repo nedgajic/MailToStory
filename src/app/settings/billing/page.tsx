@@ -7,12 +7,11 @@ import { intervalFromStripePriceId } from "@/lib/billing/plans";
 import { getDashboardData } from "@/lib/dashboard-data";
 import { isPlatformAdmin } from "@/lib/billing/platform-admin-billing";
 import prisma from "@/lib/prisma";
-import { AppTopBar } from "@/components/app-top-bar";
+import { SettingsPageShell } from "@/components/settings/settings-page-shell";
 import { BillingPanel } from "@/components/dashboard/billing-panel";
 import { BillingPastDueBanner } from "@/components/dashboard/billing-past-due-banner";
 import { GenerationLimitBanner } from "@/components/dashboard/generation-limit-banner";
 import "@/app/dashboard-billing.css";
-
 import { BRAND_NAME } from "@/lib/brand";
 
 export const metadata = { title: `Billing & Invoices — ${BRAND_NAME}` };
@@ -30,8 +29,9 @@ export default async function BillingSettingsPage({
   const params = await searchParams;
   const billingFlash = params.billing === "ok";
   const billingInterval = intervalFromStripePriceId(ctx.workspace.stripePriceId) ?? "monthly";
+  const plan = ctx.workspace.plan as PlanId;
   const teamMembers =
-    ctx.workspace.plan === "team"
+    plan === "team"
       ? (
           await prisma.workspaceMember.findMany({
             where: { workspaceId: ctx.workspace.id, status: "active" },
@@ -47,7 +47,7 @@ export default async function BillingSettingsPage({
         }))
       : [];
   const teamInvites =
-    ctx.workspace.plan === "team"
+    plan === "team"
       ? (
           await prisma.workspaceInvite.findMany({
             where: { workspaceId: ctx.workspace.id, expiresAt: { gt: new Date() } },
@@ -56,66 +56,52 @@ export default async function BillingSettingsPage({
         ).map((invite) => ({ id: invite.id, email: invite.email }))
       : [];
 
+  const title =
+    plan === "free" ? "Choose a plan" : "Billing & invoices";
+  const description =
+    plan === "free"
+      ? "Start free or upgrade for 500 stories per month and shared team seats."
+      : "Manage your subscription, payment method, and download past invoices.";
+
   return (
-    <>
-      <AppTopBar
-        showNav
-        canManageTeam={isWorkspaceAdmin(ctx.role)}
-        plan={ctx.workspace.plan as PlanId}
-        contentMaxWidth="app"
+    <SettingsPageShell
+      title={title}
+      description={description}
+      canManageTeam={isWorkspaceAdmin(ctx.role)}
+      plan={plan}
+      wide
+      billingBackground
+    >
+      {data.billingPastDue ? (
+        <BillingPastDueBanner canBill={data.canBill} />
+      ) : null}
+      <GenerationLimitBanner
+        used={data.used}
+        limit={data.limit}
+        usedLabel={data.usedCreditsLabel}
+        limitLabel={data.limitCreditsLabel}
       />
-      <main className="dash">
-        <div className="dash__bg" aria-hidden="true">
-          <div className="dash__orb dash__orb--1" />
-          <div className="dash__orb dash__orb--2" />
-          <div className="dash__orb dash__orb--3" />
-          <div className="dash__grid" />
-        </div>
-        <div className="dash__inner dash-tab-panel--billing">
-          <header className="dash-billing-page__head">
-            <p className="home-kicker">Settings</p>
-            <h1 className="dash-billing-page__title">
-              {ctx.workspace.plan === "free" ? "Choose a plan" : "Billing & Invoices"}
-            </h1>
-            <p className="dash-billing-page__lead">
-              {ctx.workspace.plan === "free"
-                ? "Start free or upgrade for 500 stories per month and shared team seats."
-                : "Manage your subscription, payment method, and download past invoices."}
-            </p>
-          </header>
 
-          {data.billingPastDue ? (
-            <BillingPastDueBanner canBill={data.canBill} />
-          ) : null}
-          <GenerationLimitBanner
-            used={data.used}
-            limit={data.limit}
-            usedLabel={data.usedCreditsLabel}
-            limitLabel={data.limitCreditsLabel}
-          />
-
-          <BillingPanel
-            plan={ctx.workspace.plan as PlanId}
-            workspaceName={ctx.workspace.name}
-            canBill={data.canBill}
-            seatQuantity={ctx.workspace.seatQuantity}
-            seatsUsed={data.seatsUsed}
-            cancelAtPeriodEnd={ctx.workspace.cancelAtPeriodEnd}
-            stripeReady={data.stripeReady}
-            platformAdminBilling={isPlatformAdmin(session.user.email)}
-            upcoming={data.upcoming}
-            billingFlash={billingFlash}
-            invoices={data.invoices}
-            used={data.used}
-            limit={data.limit}
-            usedCreditsLabel={data.usedCreditsLabel}
-            limitCreditsLabel={data.limitCreditsLabel}
-            billingInterval={billingInterval}
-            teamMembers={teamMembers}
-            teamInvites={teamInvites}
-          />
-        </div>
-      </main>
-    </>
+      <BillingPanel
+        plan={plan}
+        workspaceName={ctx.workspace.name}
+        canBill={data.canBill}
+        seatQuantity={ctx.workspace.seatQuantity}
+        seatsUsed={data.seatsUsed}
+        cancelAtPeriodEnd={ctx.workspace.cancelAtPeriodEnd}
+        stripeReady={data.stripeReady}
+        platformAdminBilling={isPlatformAdmin(session.user.email)}
+        upcoming={data.upcoming}
+        billingFlash={billingFlash}
+        invoices={data.invoices}
+        used={data.used}
+        limit={data.limit}
+        usedCreditsLabel={data.usedCreditsLabel}
+        limitCreditsLabel={data.limitCreditsLabel}
+        billingInterval={billingInterval}
+        teamMembers={teamMembers}
+        teamInvites={teamInvites}
+      />
+    </SettingsPageShell>
   );
 }

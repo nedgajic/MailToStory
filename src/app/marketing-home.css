@@ -248,7 +248,28 @@ a.mkt-logo:focus-visible {
 }
 
 a.mkt-nav__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   text-decoration: none;
+}
+
+.mkt-nav__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.32rem;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1;
+  text-transform: none;
+  color: #0f172a;
+  background: #fbbf24;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.12);
 }
 
 .mkt-nav__settings {

@@ -113,6 +113,48 @@ export async function requestForwardingAddressVerification(input: {
   return { email, pending: true };
 }
 
+/**
+ * Trust an authenticated workspace admin approving held mail: mark the sender
+ * verified without sending a confirmation email (outbound may be unavailable).
+ */
+export async function approveForwardingSenderFromQuarantine(input: {
+  workspaceId: string;
+  email: string;
+  addedById: string;
+}): Promise<{ email: string }> {
+  const email = normalizeEmail(input.email);
+  if (!isValidEmail(email)) {
+    throw new Error("INVALID_EMAIL");
+  }
+
+  if (await isMemberAccountEmail(input.workspaceId, email)) {
+    throw new Error("ALREADY_MEMBER_EMAIL");
+  }
+
+  const verifiedAt = new Date();
+  await prisma.forwardingAddress.upsert({
+    where: {
+      workspaceId_email: { workspaceId: input.workspaceId, email },
+    },
+    create: {
+      workspaceId: input.workspaceId,
+      email,
+      addedById: input.addedById,
+      verifiedAt,
+    },
+    update: {
+      addedById: input.addedById,
+      verifiedAt,
+    },
+  });
+
+  await prisma.verificationToken.deleteMany({
+    where: { identifier: forwardingTokenIdentifier(input.workspaceId, email) },
+  });
+
+  return { email };
+}
+
 export async function verifyForwardingAddressToken(input: {
   rawToken: string;
   workspaceId: string;
@@ -147,7 +189,7 @@ export async function notifyUnknownSender(input: {
   subject: string;
 }): Promise<void> {
   const normalizedFrom = normalizeEmail(input.fromEmail);
-  const settingsUrl = appUrl("/settings/profile#forwarding");
+  const settingsUrl = appUrl("/settings/email#forwarding");
   const text = [
     `Mail arrived at ${input.workspaceName} from an unverified address: ${input.fromEmail}`,
     "",

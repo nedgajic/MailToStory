@@ -1,4 +1,4 @@
-# MailToStory
+# Mail To Story
 
 Next.js app at [mailtostory.com](https://mailtostory.com): sign up, get a private inbound address, **forward** a thread from Gmail/Outlook/Apple Mail, and read an LLM-generated **story** (narrative, timeline, actions). There is no Gmail API access.
 
@@ -128,7 +128,7 @@ npm run deploy:dry-run
 npm run deploy
 ```
 
-MailToStory runs on **port 3010** (`mailtostory` PM2 app). dt-wellness (5173), Strapi (1337), and Medusa (9000) are unchanged.
+Mail To Story runs on **port 3010** (`mailtostory` PM2 app). dt-wellness (5173), Strapi (1337), and Medusa (9000) are unchanged.
 
 ## Architecture (short)
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Send test inbound threads to MailToStory via the Postmark webhook.
+ * Send test inbound threads to Mail To Story via the Postmark webhook.
  *
  * Usage:
  *   node scripts/send-test-threads.mjs
@@ -173,7 +173,7 @@ async function sendThread({
 }
 
 function printHelp() {
-  console.log(`Send test threads to MailToStory inbound webhook.
+  console.log(`Send test threads to Mail To Story inbound webhook.
 
 Options:
   --thread N       Send only thread N (1-5)
@@ -264,7 +264,7 @@ async function main() {
     }
   }
 
-  console.log("\nDone. Check your MailToStory dashboard for new stories.");
+  console.log("\nDone. Check your Mail To Story dashboard for new stories.");
 }
 
 main().catch((err) => {

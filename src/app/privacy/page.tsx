@@ -181,7 +181,7 @@ export default function PrivacyPage() {
         </ul>
         <p>
           <strong>Account holders:</strong> use{" "}
-          <a href="/settings/profile">Settings → Profile</a> to export or delete
+          <a href="/settings/privacy">Settings → Privacy & data</a> to export or delete
           your account.
         </p>
         <p>

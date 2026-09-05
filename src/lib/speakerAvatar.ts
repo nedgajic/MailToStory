@@ -118,5 +118,12 @@ export function resolveSpeakerToEmail(
     if (nameLower && nameLower.startsWith(`${lower} `)) return em;
   }
 
+  for (const p of participants) {
+    const em = p.email?.trim().toLowerCase();
+    if (!em) continue;
+    const local = em.split("@")[0] ?? "";
+    if (local.length >= 4 && lower.includes(local)) return em;
+  }
+
   return null;
 }

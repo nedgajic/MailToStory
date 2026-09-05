@@ -24,6 +24,7 @@ model User {
   accounts           Account[]
   sessions           Session[]
   memberships        WorkspaceMember[]
+  storyViews         StoryView[]
 }
 
 model Account {
@@ -183,6 +184,7 @@ model Story {
   searchText        String    @db.Text
   digest            Json
   messageIdsInOrder Json
+  sourceMessages    Json      @default("[]")
   storyLength       String    @default("normal")
   activeVersionId   String?   @unique
   deletedAt         DateTime?
@@ -194,6 +196,7 @@ model Story {
   conversation  Conversation   @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   activeVersion StoryVersion?  @relation("ActiveStoryVersion", fields: [activeVersionId], references: [id], onDelete: SetNull)
   versions      StoryVersion[] @relation("StoryVersions")
+  views         StoryView[]
 
   @@index([workspaceId, createdAt])
   @@index([workspaceId, deletedAt])
@@ -210,6 +213,7 @@ model StoryVersion {
   searchText        String   @db.Text
   digest            Json
   messageIdsInOrder Json
+  sourceMessages    Json     @default("[]")
   storyLength       String   @default("normal")
   creditCost        Int      @default(10)
   createdAt         DateTime @default(now())
@@ -231,6 +235,19 @@ model StoryAccessToken {
 
   @@index([storyId, userId])
   @@index([expiresAt])
+}
+
+model StoryView {
+  id       String   @id @default(cuid())
+  userId   String
+  storyId  String
+  viewedAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, storyId])
+  @@index([userId])
 }
 
 model StoryGenerationLog {

@@ -14,6 +14,9 @@ import { formatPurgeDetail } from "@/lib/story-purge-label";
 import { DIGEST_STATUS_LABEL } from "@/lib/digestExportContent";
 import type { Digest } from "@/lib/digest-schema";
 import { storyCardExcerpt } from "@/lib/story-card-excerpt";
+import { notifyStoriesSummaryChanged } from "@/lib/stories-summary-events";
+
+const FORWARDING_APPROVE_HREF = "/settings/email#forwarding";
 
 export type StoryCardData = {
   id: string;
@@ -24,7 +27,37 @@ export type StoryCardData = {
   createdAt: string;
   deletedAt?: string | null;
   purgeAt?: string | null;
+  isUnread?: boolean;
 };
+
+export type QuarantineCardData = {
+  id: string;
+  fromEmail: string;
+  fromName: string;
+  subject: string;
+  snippet: string;
+  createdAt: string;
+};
+
+type LibraryItem =
+  | { kind: "story"; story: StoryCardData }
+  | { kind: "quarantine"; item: QuarantineCardData };
+
+function quarantineMatchesSearch(item: QuarantineCardData, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  return [item.subject, item.fromEmail, item.fromName, item.snippet].some((part) =>
+    part.toLowerCase().includes(q),
+  );
+}
+
+function libraryItemDate(item: LibraryItem): string {
+  return item.kind === "story" ? item.story.createdAt : item.item.createdAt;
+}
+
+function libraryItemKey(item: LibraryItem): string {
+  return item.kind === "story" ? item.story.id : `quarantine:${item.item.id}`;
+}
 
 type GroupMode = "current" | "month" | "year";
 type ViewMode = "cards" | "list";
@@ -104,6 +137,8 @@ function StoriesSearchEmpty({ query }: { query: string }) {
 export function StoriesLibrary({
   stories: controlledStories,
   onStoriesChange,
+  quarantine: controlledQuarantine,
+  onQuarantineChange,
   highlightedStoryIds = [],
   inbound,
   isFree,
@@ -111,9 +146,12 @@ export function StoriesLibrary({
   deletedCount,
   showDeletedBanner = false,
   initialLibraryView = "active",
+  onLibraryViewChange,
 }: {
   stories: StoryCardData[];
   onStoriesChange: (stories: StoryCardData[]) => void;
+  quarantine: QuarantineCardData[];
+  onQuarantineChange: (items: QuarantineCardData[]) => void;
   highlightedStoryIds?: string[];
   inbound: string;
   isFree: boolean;
@@ -121,12 +159,15 @@ export function StoriesLibrary({
   deletedCount: number;
   showDeletedBanner?: boolean;
   initialLibraryView?: LibraryView;
+  onLibraryViewChange?: (view: LibraryView) => void;
 }) {
   const router = useRouter();
   const { showToast } = useAppToast();
   const retentionDays = deletedStoryRetentionDays();
   const stories = controlledStories;
   const setStories = onStoriesChange;
+  const quarantine = controlledQuarantine;
+  const setQuarantine = onQuarantineChange;
   const highlightedStoryIdSet = useMemo(
     () => new Set(highlightedStoryIds),
     [highlightedStoryIds],
@@ -148,6 +189,10 @@ export function StoriesLibrary({
   } | null>(null);
 
   useEffect(() => {
+    onLibraryViewChange?.(libraryView);
+  }, [libraryView, onLibraryViewChange]);
+
+  useEffect(() => {
     if (!showDeletedBanner) return;
     showToast({
       message: `Story moved to Recently deleted. You can restore it within ${retentionDays} days.`,
@@ -167,7 +212,10 @@ export function StoriesLibrary({
       view: nextLibraryView === "deleted" ? "deleted" : "active",
     });
     const res = await fetch(`/api/stories?${params.toString()}`);
-    const data = (await res.json()) as { stories?: StoryCardData[] };
+    const data = (await res.json()) as {
+      stories?: StoryCardData[];
+      quarantine?: QuarantineCardData[];
+    };
     setStories(
       (data.stories ?? []).map((s) => ({
         ...s,
@@ -189,6 +237,18 @@ export function StoriesLibrary({
               : new Date(s.purgeAt).toISOString(),
       })),
     );
+    if (nextLibraryView === "active") {
+      setQuarantine(
+        (data.quarantine ?? []).map((item) => ({
+          ...item,
+          createdAt:
+            typeof item.createdAt === "string"
+              ? item.createdAt
+              : new Date(item.createdAt).toISOString(),
+        })),
+      );
+      notifyStoriesSummaryChanged();
+    }
     if (nextLibraryView === "deleted") {
       setDeletedVisible(data.stories?.length ?? 0);
     }
@@ -321,18 +381,42 @@ export function StoriesLibrary({
     }
   }
 
+  const filteredQuarantine = useMemo(
+    () => quarantine.filter((item) => quarantineMatchesSearch(item, q)),
+    [quarantine, q],
+  );
+
   const groups = useMemo(() => {
     if (libraryView === "deleted") {
-      return [{ key: "deleted", label: "Recently deleted", items: stories }];
+      return [
+        {
+          key: "deleted",
+          label: "Recently deleted",
+          items: stories.map((story) => ({ kind: "story" as const, story })),
+        },
+      ];
     }
+
+    const libraryItems: LibraryItem[] = [
+      ...stories.map((story) => ({ kind: "story" as const, story })),
+      ...filteredQuarantine.map((item) => ({ kind: "quarantine" as const, item })),
+    ].sort(
+      (a, b) =>
+        new Date(libraryItemDate(b)).getTime() - new Date(libraryItemDate(a)).getTime(),
+    );
+
     if (group === "current") {
-      return [{ key: "current", label: "This month", items: stories }];
+      return [{ key: "current", label: "This month", items: libraryItems }];
     }
-    const map = new Map<string, StoryCardData[]>();
-    for (const story of stories) {
-      const key = group === "year" ? yearKey(story.createdAt) : monthKey(story.createdAt);
+
+    const map = new Map<string, LibraryItem[]>();
+    for (const item of libraryItems) {
+      const key =
+        group === "year"
+          ? yearKey(libraryItemDate(item))
+          : monthKey(libraryItemDate(item));
       const list = map.get(key) ?? [];
-      list.push(story);
+      list.push(item);
       map.set(key, list);
     }
     return Array.from(map.entries()).map(([key, items]) => ({
@@ -340,7 +424,12 @@ export function StoriesLibrary({
       label: group === "year" ? key : monthLabel(key),
       items,
     }));
-  }, [stories, group, libraryView]);
+  }, [stories, filteredQuarantine, group, libraryView]);
+
+  const hasLibraryContent =
+    libraryView === "deleted"
+      ? stories.length > 0
+      : stories.length > 0 || filteredQuarantine.length > 0;
 
   const isSearchActive = q.trim().length > 0;
 
@@ -450,7 +539,7 @@ export function StoriesLibrary({
         </div>
       ) : null}
 
-      {stories.length === 0 ? (
+      {!hasLibraryContent ? (
         isSearchActive ? (
           <StoriesSearchEmpty query={q.trim()} />
         ) : (
@@ -471,7 +560,7 @@ export function StoriesLibrary({
                 {!verified ? (
                   <li>
                     Verify your email in{" "}
-                    <Link href="/settings/profile">Settings → Profile</Link> so
+                    <Link href="/settings/email">Settings → Email & forwarding</Link> so
                     generation can start.
                   </li>
                 ) : null}
@@ -490,7 +579,9 @@ export function StoriesLibrary({
         )
       ) : (
         groups.map((section) => {
-          const sectionIds = section.items.map((story) => story.id);
+          const sectionIds = section.items
+            .filter((item) => item.kind === "story")
+            .map((item) => item.story.id);
           const sectionSelectedIds = sectionIds.filter((id) => selected.includes(id));
           const sectionAllSelected =
             sectionIds.length > 0 && sectionIds.every((id) => selected.includes(id));
@@ -530,7 +621,53 @@ export function StoriesLibrary({
             </header>
             {libraryView === "deleted" || view === "cards" ? (
               <ul className="story-cards">
-                {section.items.map((story) => (
+                {section.items.map((entry) => {
+                  if (entry.kind === "quarantine") {
+                    const item = entry.item;
+                    return (
+                      <li
+                        key={libraryItemKey(entry)}
+                        className="story-card story-card--quarantine"
+                      >
+                        <div className="story-card__body story-card__body--disabled">
+                          <div className="story-card__title-row">
+                            <h3 className="story-card__title">{item.subject}</h3>
+                            <Link
+                              href={FORWARDING_APPROVE_HREF}
+                              className="story-card__badge story-card__badge--action"
+                            >
+                              Action needed
+                            </Link>
+                          </div>
+                          <div className="story-card__meta-row">
+                            <span className="story-card__status story-card__status--held">
+                              Held mail
+                            </span>
+                            <p className="story-card__meta">
+                              {new Date(item.createdAt).toLocaleDateString()}
+                              {` · ${item.fromEmail}`}
+                            </p>
+                          </div>
+                          {item.snippet ? (
+                            <p className="story-card__excerpt">
+                              {storyCardExcerpt(item.snippet)}
+                            </p>
+                          ) : null}
+                          <p className="story-card__quarantine-hint">
+                            Approve this sender in{" "}
+                            <Link href={FORWARDING_APPROVE_HREF}>Forwarding settings</Link>{" "}
+                            to generate a story.
+                          </p>
+                        </div>
+                      </li>
+                    );
+                  }
+
+                  const story = entry.story;
+                  const showNewBadge =
+                    Boolean(story.isUnread) || highlightedStoryIdSet.has(story.id);
+
+                  return (
                   <li
                     key={story.id}
                     className={`story-card${libraryView === "deleted" ? " story-card--deleted" : ""}${highlightedStoryIdSet.has(story.id) ? " story-card--new" : ""}`}
@@ -549,7 +686,14 @@ export function StoriesLibrary({
                       />
                     </label>
                     <Link href={`/stories/${story.id}`} className="story-card__link">
-                      <h3 className="story-card__title">{story.title}</h3>
+                      <div className="story-card__title-row">
+                        <h3 className="story-card__title">{story.title}</h3>
+                        {libraryView === "active" && showNewBadge ? (
+                          <span className="story-card__badge story-card__badge--new">
+                            New
+                          </span>
+                        ) : null}
+                      </div>
                       <div className="story-card__meta-row">
                         {libraryView === "active" ? (
                           <span
@@ -605,7 +749,8 @@ export function StoriesLibrary({
                       />
                     ) : null}
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             ) : (
               <table className="story-table">
@@ -619,7 +764,38 @@ export function StoriesLibrary({
                   </tr>
                 </thead>
                 <tbody>
-                  {section.items.map((story) => (
+                  {section.items.map((entry) => {
+                    if (entry.kind === "quarantine") {
+                      const item = entry.item;
+                      return (
+                        <tr
+                          key={libraryItemKey(entry)}
+                          className="story-table__row--quarantine"
+                        >
+                          <td />
+                          <td>
+                            <span className="story-table__title-link story-table__title-link--disabled">
+                              {item.subject}
+                            </span>
+                            <Link
+                              href={FORWARDING_APPROVE_HREF}
+                              className="story-card__badge story-card__badge--action"
+                            >
+                              Action needed
+                            </Link>
+                          </td>
+                          <td>{new Date(item.createdAt).toLocaleDateString()}</td>
+                          <td>Held mail</td>
+                          <td />
+                        </tr>
+                      );
+                    }
+
+                    const story = entry.story;
+                    const showNewBadge =
+                      Boolean(story.isUnread) || highlightedStoryIdSet.has(story.id);
+
+                    return (
                     <tr
                       key={story.id}
                       className={highlightedStoryIdSet.has(story.id) ? "story-table__row--new" : undefined}
@@ -644,6 +820,11 @@ export function StoriesLibrary({
                         >
                           {story.title}
                         </Link>
+                        {libraryView === "active" && showNewBadge ? (
+                          <span className="story-card__badge story-card__badge--new story-card__badge--inline">
+                            New
+                          </span>
+                        ) : null}
                       </td>
                       <td>{new Date(story.createdAt).toLocaleDateString()}</td>
                       <td>{story.status.replace("_", " ")}</td>
@@ -657,7 +838,8 @@ export function StoriesLibrary({
                         ) : null}
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             )}

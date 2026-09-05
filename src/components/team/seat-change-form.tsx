@@ -8,6 +8,8 @@ import {
   type BillingInterval,
 } from "@/lib/billing/plans";
 import { seatsToRemove, suggestMemberIdsToRemove } from "@/lib/billing/seats-shared";
+import { SettingsSection } from "@/components/settings/settings-section";
+import { useSettingsFeedback } from "@/components/settings/settings-feedback";
 
 type Member = {
   id: string;
@@ -43,11 +45,11 @@ export function SeatChangeForm({
   compact?: boolean;
   onSuccess?: () => void;
 }) {
+  const { showFeedback } = useSettingsFeedback();
   const [targetSeats, setTargetSeats] = useState(seatQuantity);
   const [removeMemberIds, setRemoveMemberIds] = useState<string[]>([]);
   const [revokeInviteIds, setRevokeInviteIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const memberRows = useMemo(
@@ -98,7 +100,6 @@ export function SeatChangeForm({
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setMessage(null);
     setBusy(true);
     try {
       const res = await fetch("/api/billing/seats", {
@@ -119,7 +120,7 @@ export function SeatChangeForm({
         onSuccess();
         return;
       }
-      setMessage(
+      showFeedback(
         data.seatQuantity
           ? `Team updated to ${data.seatQuantity} seats. Stripe will prorate your next invoice.`
           : "Seats updated.",
@@ -132,9 +133,11 @@ export function SeatChangeForm({
 
   const unchanged = targetSeats === seatQuantity && removeMemberIds.length === 0;
 
-  return (
-    <form className={compact ? "seat-change seat-change--compact" : "seat-change dash-panel"} onSubmit={(e) => void submit(e)}>
-      {!compact ? <h2 className="dash-panel__section-title">Seats & billing</h2> : null}
+  const form = (
+    <form
+      className={compact ? "seat-change seat-change--compact" : "seat-change auth-form auth-form--settings"}
+      onSubmit={(e) => void submit(e)}
+    >
       <p className="dash-muted">
         {seatsUsed} of {seatQuantity} seats in use · {formatUsd(pricePerSeat)}
         {interval === "annual" ? " / seat / year" : " / seat / month"}
@@ -216,26 +219,31 @@ export function SeatChangeForm({
       ) : null}
 
       {error ? <p className="auth-form__error">{error}</p> : null}
-      {message ? <p className="dash-banner__feedback">{message}</p> : null}
 
-      <button
-        className="home-cta home-cta--primary"
-        type="submit"
-        disabled={
-          busy ||
-          !canChangeSeats ||
-          unchanged ||
-          (requiredRemovals > 0 && removeMemberIds.length < requiredRemovals)
-        }
-      >
-        {busy
-          ? "Updating…"
-          : isUpgrade
-            ? `Add seats · ${formatUsd(nextTotal)}`
-            : isDowngrade
-              ? `Reduce to ${targetSeats} seats`
-              : "Update seats"}
-      </button>
+      <div className="settings-form__footer">
+        <button
+          className="settings-btn settings-btn--primary"
+          type="submit"
+          disabled={
+            busy ||
+            !canChangeSeats ||
+            unchanged ||
+            (requiredRemovals > 0 && removeMemberIds.length < requiredRemovals)
+          }
+        >
+          {busy
+            ? "Updating…"
+            : isUpgrade
+              ? `Add seats · ${formatUsd(nextTotal)}`
+              : isDowngrade
+                ? `Reduce to ${targetSeats} seats`
+                : "Update seats"}
+        </button>
+      </div>
     </form>
   );
+
+  if (compact) return form;
+
+  return <SettingsSection title="Seats & billing">{form}</SettingsSection>;
 }

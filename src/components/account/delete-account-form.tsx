@@ -37,7 +37,7 @@ export function DeleteAccountForm({
   }
 
   return (
-    <form className="auth-form" onSubmit={(e) => void onSubmit(e)}>
+    <form className="auth-form auth-form--settings" onSubmit={(e) => void onSubmit(e)}>
       <p>
         This cancels any paid subscription immediately, deletes forwarded mail and
         stories in workspaces you own, and signs you out. Type{" "}
@@ -59,9 +59,11 @@ export function DeleteAccountForm({
         </label>
       ) : null}
       {error ? <p className="auth-form__error">{error}</p> : null}
-      <button className="home-cta dash-danger" type="submit" disabled={busy}>
-        {busy ? "Deleting…" : "Delete my account"}
-      </button>
+      <div className="settings-form__footer">
+        <button className="settings-btn settings-btn--danger" type="submit" disabled={busy}>
+          {busy ? "Deleting…" : "Delete my account"}
+        </button>
+      </div>
     </form>
   );
 }

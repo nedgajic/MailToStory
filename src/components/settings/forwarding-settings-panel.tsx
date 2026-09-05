@@ -1,6 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { SettingsSection } from "@/components/settings/settings-section";
+import { useSettingsFeedback } from "@/components/settings/settings-feedback";
+import { notifyStoriesSummaryChanged } from "@/lib/stories-summary-events";
 
 type ForwardingAddress = {
   id: string;
@@ -25,6 +28,7 @@ export function ForwardingSettingsPanel({
 }: {
   canManage: boolean;
 }) {
+  const { showFeedback } = useSettingsFeedback();
   const [memberEmails, setMemberEmails] = useState<string[]>([]);
   const [forwardingAddresses, setForwardingAddresses] = useState<
     ForwardingAddress[]
@@ -33,7 +37,6 @@ export function ForwardingSettingsPanel({
   const [newEmail, setNewEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/settings/forwarding-addresses");
@@ -63,7 +66,6 @@ export function ForwardingSettingsPanel({
     if (!newEmail.trim()) return;
     setBusy(true);
     setError(null);
-    setMessage(null);
     try {
       const res = await fetch("/api/settings/forwarding-addresses", {
         method: "POST",
@@ -76,7 +78,7 @@ export function ForwardingSettingsPanel({
         return;
       }
       setNewEmail("");
-      setMessage(data.message || "Confirmation link sent.");
+      showFeedback(data.message || "Confirmation link sent.");
       await load();
     } catch {
       setError("Could not add address.");
@@ -88,7 +90,6 @@ export function ForwardingSettingsPanel({
   async function resendConfirmation(row: ForwardingAddress) {
     setBusy(true);
     setError(null);
-    setMessage(null);
     try {
       const res = await fetch("/api/settings/forwarding-addresses", {
         method: "POST",
@@ -100,7 +101,7 @@ export function ForwardingSettingsPanel({
         setError(data.error || "Could not resend confirmation.");
         return;
       }
-      setMessage(data.message || "Confirmation link resent.");
+      showFeedback(data.message || "Confirmation link resent.");
     } catch {
       setError("Could not resend confirmation.");
     } finally {
@@ -111,7 +112,6 @@ export function ForwardingSettingsPanel({
   async function removeAddress(id: string) {
     setBusy(true);
     setError(null);
-    setMessage(null);
     try {
       const res = await fetch("/api/settings/forwarding-addresses", {
         method: "DELETE",
@@ -123,7 +123,7 @@ export function ForwardingSettingsPanel({
         setError(data.error || "Could not remove address.");
         return;
       }
-      setMessage("Forwarding address removed.");
+      showFeedback("Forwarding address removed.");
       await load();
     } catch {
       setError("Could not remove address.");
@@ -135,7 +135,6 @@ export function ForwardingSettingsPanel({
   async function approveSender(fromEmail: string) {
     setBusy(true);
     setError(null);
-    setMessage(null);
     try {
       const res = await fetch("/api/settings/quarantine", {
         method: "POST",
@@ -147,8 +146,9 @@ export function ForwardingSettingsPanel({
         setError(data.error || "Could not approve sender.");
         return;
       }
-      setMessage(data.message || "Verification email sent.");
+      showFeedback(data.message || "Verification email sent.");
       await load();
+      notifyStoriesSummaryChanged();
     } catch {
       setError("Could not approve sender.");
     } finally {
@@ -159,7 +159,6 @@ export function ForwardingSettingsPanel({
   async function rejectSender(fromEmail: string) {
     setBusy(true);
     setError(null);
-    setMessage(null);
     try {
       const res = await fetch("/api/settings/quarantine", {
         method: "POST",
@@ -172,6 +171,7 @@ export function ForwardingSettingsPanel({
         return;
       }
       await load();
+      notifyStoriesSummaryChanged();
     } catch {
       setError("Could not dismiss held mail.");
     } finally {
@@ -190,8 +190,7 @@ export function ForwardingSettingsPanel({
   );
 
   return (
-    <section className="dash-panel" id="forwarding">
-      <h2 className="dash-panel__section-title">Forwarding addresses</h2>
+    <SettingsSection title="Forwarding addresses" id="forwarding">
       <p className="dash-muted">
         Only mail sent from verified addresses can become stories. Your account
         email is allowed automatically after verification. Add other addresses
@@ -227,7 +226,7 @@ export function ForwardingSettingsPanel({
                 {canManage && !row.verified ? (
                   <button
                     type="button"
-                    className="dash-forwarding__link-btn"
+                    className="settings-btn settings-btn--ghost dash-forwarding__link-btn"
                     disabled={busy}
                     onClick={() => void resendConfirmation(row)}
                   >
@@ -237,7 +236,7 @@ export function ForwardingSettingsPanel({
                 {canManage ? (
                   <button
                     type="button"
-                    className="dash-forwarding__remove"
+                    className="settings-btn settings-btn--ghost settings-btn--danger dash-forwarding__remove"
                     disabled={busy}
                     onClick={() => void removeAddress(row.id)}
                   >
@@ -252,18 +251,30 @@ export function ForwardingSettingsPanel({
         )}
 
         {canManage ? (
-          <form className="dash-forwarding__add" onSubmit={(e) => void addAddress(e)}>
-            <input
-              type="email"
-              value={newEmail}
-              onChange={(e) => setNewEmail(e.target.value)}
-              placeholder="you@example.com"
-              disabled={busy}
-              required
-            />
-            <button type="submit" disabled={busy}>
-              Add &amp; send confirmation
-            </button>
+          <form
+            className="auth-form auth-form--settings dash-forwarding__add"
+            onSubmit={(e) => void addAddress(e)}
+          >
+            <label className="auth-form__field">
+              <span className="sr-only">Email address</span>
+              <input
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="you@example.com"
+                disabled={busy}
+                required
+              />
+            </label>
+            <div className="settings-form__footer">
+              <button
+                type="submit"
+                className="settings-btn settings-btn--primary"
+                disabled={busy}
+              >
+                Add &amp; send confirmation
+              </button>
+            </div>
           </form>
         ) : (
           <p className="dash-muted">
@@ -302,6 +313,7 @@ export function ForwardingSettingsPanel({
               <div className="dash-forwarding__held-actions">
                 <button
                   type="button"
+                  className="settings-btn settings-btn--primary"
                   disabled={busy}
                   onClick={() => void approveSender(fromEmail)}
                 >
@@ -309,7 +321,7 @@ export function ForwardingSettingsPanel({
                 </button>
                 <button
                   type="button"
-                  className="dash-forwarding__remove"
+                  className="settings-btn settings-btn--ghost settings-btn--danger"
                   disabled={busy}
                   onClick={() => void rejectSender(fromEmail)}
                 >
@@ -322,7 +334,6 @@ export function ForwardingSettingsPanel({
       ) : null}
 
       {error ? <p className="auth-form__error">{error}</p> : null}
-      {message ? <p className="dash-banner__feedback">{message}</p> : null}
-    </section>
+    </SettingsSection>
   );
 }

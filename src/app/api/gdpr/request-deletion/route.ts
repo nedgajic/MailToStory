@@ -36,7 +36,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       signInRequired: true,
       message:
-        "This email belongs to an active account. Sign in and use Settings → Profile to delete your account and data.",
+        "This email belongs to an active account. Sign in and use Settings → Privacy & data to delete your account and data.",
     });
   }
 

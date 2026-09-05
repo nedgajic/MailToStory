@@ -50,7 +50,7 @@ export default async function VerifyForwardingPage({
             : "This link is expired or already used."}
         </p>
         <p>
-          <Link href="/settings/profile#forwarding">Forwarding settings</Link>
+          <Link href="/settings/email#forwarding">Forwarding settings</Link>
           {" · "}
           <Link href="/dashboard">Dashboard</Link>
         </p>

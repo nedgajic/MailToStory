@@ -1,16 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { useSettingsFeedback } from "@/components/settings/settings-feedback";
 
 export function ExportAccountForm() {
+  const { showFeedback } = useSettingsFeedback();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
 
   async function onExport() {
     setBusy(true);
     setError(null);
-    setMessage(null);
     try {
       const res = await fetch("/api/account/export");
       if (!res.ok) {
@@ -28,7 +28,7 @@ export function ExportAccountForm() {
       a.download = filename;
       a.click();
       URL.revokeObjectURL(url);
-      setMessage("Your data export has been downloaded.");
+      showFeedback("Your data export has been downloaded.");
     } finally {
       setBusy(false);
     }
@@ -41,15 +41,16 @@ export function ExportAccountForm() {
         stories, and attachment metadata.
       </p>
       {error ? <p className="auth-form__error">{error}</p> : null}
-      {message ? <p className="auth-form__hint">{message}</p> : null}
-      <button
-        type="button"
-        className="home-cta home-cta--secondary"
-        disabled={busy}
-        onClick={() => void onExport()}
-      >
-        {busy ? "Preparing export…" : "Export my data"}
-      </button>
+      <div className="settings-form__footer">
+        <button
+          type="button"
+          className="settings-btn settings-btn--secondary"
+          disabled={busy}
+          onClick={() => void onExport()}
+        >
+          {busy ? "Preparing export…" : "Export my data"}
+        </button>
+      </div>
     </div>
   );
 }

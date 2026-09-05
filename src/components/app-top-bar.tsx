@@ -6,12 +6,11 @@ import { useSession } from "next-auth/react";
 import { BrandLogo } from "@/components/brand-logo";
 import { AppUserMenu } from "@/components/app-user-menu";
 import { BRAND_NAME, BRAND_LOGO_TEXT } from "@/lib/brand";
+import { useEffect, useState, type ReactNode } from "react";
 import {
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+  StoriesNavBadge,
+  useStoriesNavBadgeCount,
+} from "@/components/stories/stories-nav-badge";
 import type { PlanId } from "@/lib/billing/plans";
 import "@/app/marketing-home.css";
 
@@ -24,18 +23,9 @@ const APP_NAV: readonly {
   { href: "/stories", label: "Stories", featured: true },
 ];
 
-const SETTINGS_NAV = [
-  { href: "/settings/profile", label: "Profile" },
-  { href: "/settings/billing", label: "Billing & Invoices" },
-] as const;
-
 function isNavActive(pathname: string, href: string): boolean {
   if (href === "/dashboard") return pathname === "/dashboard";
   return pathname === href || pathname.startsWith(`${href}/`);
-}
-
-function isSettingsActive(pathname: string): boolean {
-  return pathname.startsWith("/settings");
 }
 
 export type AppTopBarProps = {
@@ -57,41 +47,21 @@ export function AppTopBar({
 }: AppTopBarProps) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const settingsRef = useRef<HTMLDivElement>(null);
   const { data: session } = useSession();
+  const storiesNavBadgeCount = useStoriesNavBadgeCount(showNav);
 
   useEffect(() => {
-    if (!settingsOpen) return;
-    function onDocMouseDown(e: MouseEvent) {
-      const t = e.target as Node;
-      if (settingsOpen) {
-        if (settingsRef.current?.contains(t)) return;
-        setSettingsOpen(false);
-      }
-    }
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        setSettingsOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", onDocMouseDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", onDocMouseDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [settingsOpen]);
-
-  useEffect(() => {
-    setSettingsOpen(false);
     setMenuOpen(false);
   }, [pathname]);
 
   const showAdminLink = session?.user?.isAdmin === true;
 
   const userMenu = (
-    <AppUserMenu triggerClassName="app-top-bar__user-trigger--shell" />
+    <AppUserMenu
+      triggerClassName="app-top-bar__user-trigger--shell"
+      canManageTeam={canManageTeam}
+      plan={plan}
+    />
   );
 
   if (showNav) {
@@ -101,8 +71,6 @@ export function AppTopBar({
       if (isNavActive(pathname, href)) classes.push("mkt-nav__btn--active");
       return classes.join(" ");
     }
-
-    const settingsActive = isSettingsActive(pathname);
 
     return (
       <header
@@ -124,55 +92,11 @@ export function AppTopBar({
             {APP_NAV.map(({ href, label, featured }) => (
               <Link key={href} href={href} className={navClass(href, featured)}>
                 {label}
+                {href === "/stories" ? (
+                  <StoriesNavBadge count={storiesNavBadgeCount} />
+                ) : null}
               </Link>
             ))}
-
-            <div className="mkt-nav__settings" ref={settingsRef}>
-              <button
-                type="button"
-                className={
-                  settingsActive
-                    ? "mkt-nav__btn mkt-nav__btn--active mkt-nav__btn--settings"
-                    : "mkt-nav__btn mkt-nav__btn--settings"
-                }
-                aria-haspopup="menu"
-                aria-expanded={settingsOpen}
-                onClick={() => setSettingsOpen((open) => !open)}
-              >
-                Settings
-                <svg
-                  className="mkt-nav__chevron"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  aria-hidden
-                >
-                  <path d="m6 9 6 6 6-6" />
-                </svg>
-              </button>
-              {settingsOpen ? (
-                <div className="mkt-nav__settings-menu" role="menu">
-                  {SETTINGS_NAV.map(({ href, label }) => (
-                    <Link
-                      key={href}
-                      href={href}
-                      role="menuitem"
-                      className={
-                        isNavActive(pathname, href)
-                          ? "mkt-nav__settings-item mkt-nav__settings-item--active"
-                          : "mkt-nav__settings-item"
-                      }
-                      onClick={() => setSettingsOpen(false)}
-                    >
-                      {label}
-                    </Link>
-                  ))}
-                </div>
-              ) : null}
-            </div>
 
             {showAdminLink ? (
               <Link href="/admin" className={navClass("/admin")}>
@@ -220,21 +144,9 @@ export function AppTopBar({
                   onClick={() => setMenuOpen(false)}
                 >
                   {label}
-                </Link>
-              ))}
-              <p className="mkt-mobile-nav__group-label">Settings</p>
-              {SETTINGS_NAV.map(({ href, label }) => (
-                <Link
-                  key={`mobile-${href}`}
-                  href={href}
-                  className={
-                    (isNavActive(pathname, href)
-                      ? "mkt-nav__btn mkt-nav__btn--active"
-                      : "mkt-nav__btn") + " mkt-nav__btn--mobile mkt-nav__btn--sub"
-                  }
-                  onClick={() => setMenuOpen(false)}
-                >
-                  {label}
+                  {href === "/stories" ? (
+                    <StoriesNavBadge count={storiesNavBadgeCount} />
+                  ) : null}
                 </Link>
               ))}
               {showAdminLink ? (

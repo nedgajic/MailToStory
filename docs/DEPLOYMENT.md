@@ -1,6 +1,6 @@
-# Deploy MailToStory to Hostinger VPS (shared with dt-wellness)
+# Deploy Mail To Story to Hostinger VPS (shared with dt-wellness)
 
-Same VPS as **dt-wellness** (`31.97.77.179`, `/var/www/dt-wellness`). MailToStory lives in **`/var/www/mailtostory`** on its own port so PM2 apps do not clash.
+Same VPS as **dt-wellness** (`31.97.77.179`, `/var/www/dt-wellness`). Mail To Story lives in **`/var/www/mailtostory`** on its own port so PM2 apps do not clash.
 
 **Going live?** Stripe, Gemini, Postmark, Google OAuth, and DNS are a separate checklist: **[LAUNCH.md](LAUNCH.md)**.
 
@@ -11,7 +11,7 @@ Same VPS as **dt-wellness** (`31.97.77.179`, `/var/www/dt-wellness`). MailToStor
 | dt-wellness | `dt-wellness` | 5173 |
 | Strapi | `strapi` | 1337 |
 | Medusa | `medusajs` | 9000 |
-| **MailToStory** | `mailtostory` | **3010** |
+| **Mail To Story** | `mailtostory` | **3010** |
 
 Nginx terminates HTTPS for `mailtostory.com` and proxies to `127.0.0.1:3010`.
 
@@ -97,7 +97,7 @@ pm2 logs mailtostory --lines 50
 - **OAuth redirect mismatch** — `NEXTAUTH_URL` must be `https://mailtostory.com` (not localhost).
 - **DB connection** — use `localhost:5432` on VPS; database name `mailtostory` (separate from `dt_wellness`).
 
-## MailToStory (Postmark + Stripe)
+## Mail To Story (Postmark + Stripe)
 
 Add to production `.env` (see `.env.example`):
 
@@ -108,7 +108,7 @@ Add to production `.env` (see `.env.example`):
 
 DNS: MX for **`inbox.mailtostory.com` only** → Postmark Inbound. Keep `mailtostory.com` A record for the site. Verify **sender domain** (`mailtostory.com`) in Postmark for outbound mail from `noreply@mailtostory.com`.
 
-**Story-ready emails:** After inbound processing generates a story, MailToStory sends a React Email HTML message through Postmark with a 7-day magic link (`/api/story-access?token=…`) that signs the recipient in and opens the story. On Team plans, each member toggles this under **Settings → Profile**; on Free/Pro, only the account email that forwarded the thread is notified (if enabled).
+**Story-ready emails:** After inbound processing generates a story, Mail To Story sends a React Email HTML message through Postmark with a 7-day magic link (`/api/story-access?token=…`) that signs the recipient in and opens the story. On Team plans, each member toggles this under **Settings → Stories**; on Free/Pro, only the account email that forwarded the thread is notified (if enabled).
 
 Webhooks:
 
@@ -210,7 +210,7 @@ If ClamAV is unreachable, the app still stores attachments that pass the blockli
 
 ### Two-factor authentication
 
-Users with email/password can enable TOTP in **Settings → Profile**. Google sign-in is unchanged. Optional dedicated encryption key:
+Users with email/password can enable TOTP in **Settings → Account**. Google sign-in is unchanged. Optional dedicated encryption key:
 
 ```env
 TWO_FACTOR_ENCRYPTION_KEY="..."   # defaults to NEXTAUTH_SECRET

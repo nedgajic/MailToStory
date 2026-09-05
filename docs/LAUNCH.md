@@ -1,6 +1,6 @@
 # Launch configuration guide
 
-Step-by-step setup so MailToStory can go live and accept real users. Server install, Nginx, and `pm2` live in **[DEPLOYMENT.md](DEPLOYMENT.md)**. This document is everything you configure **outside the repo**: accounts, DNS, API keys, and the production `.env`.
+Step-by-step setup so Mail To Story can go live and accept real users. Server install, Nginx, and `pm2` live in **[DEPLOYMENT.md](DEPLOYMENT.md)**. This document is everything you configure **outside the repo**: accounts, DNS, API keys, and the production `.env`.
 
 **Production VPS is already running** (`31.97.77.179`, `/var/www/mailtostory`, PM2 `mailtostory` on port **3010**). If you only need to ship new code, skip to **[Update app only](#update-app-only)** below. Use the rest of this doc when adding or verifying Postmark, Stripe, cron, and any missing `.env` keys.
 
@@ -115,7 +115,7 @@ You need this URL before Google, Postmark, and Stripe will accept callbacks (alr
 
 ## 2. Google sign-in (identity only) — configured
 
-MailToStory does **not** read Gmail. Scopes are `openid email profile`. Users still **forward** threads to their inbound address.
+Mail To Story does **not** read Gmail. Scopes are `openid email profile`. Users still **forward** threads to their inbound address.
 
 Production OAuth client and redirect URI are already in server `.env`. Revisit only if sign-in breaks or you rotate credentials:
 
@@ -342,7 +342,7 @@ Users open this from **Settings → Billing → Manage subscription** to update 
 4. Under **Subscriptions**, allow **cancellation** if you want cancel-in-portal as well as in-app (the app also has **Cancel at period end** on the billing page).
 5. Click **Save changes**.
 
-You do **not** need **“Activate test link”** / **“Launch customer portal with a link”** for MailToStory. That no-code link is for sharing a standalone portal URL. The app creates portal sessions via the API (`/api/stripe/portal`) when someone clicks **Manage subscription**.
+You do **not** need **“Activate test link”** / **“Launch customer portal with a link”** for Mail To Story. That no-code link is for sharing a standalone portal URL. The app creates portal sessions via the API (`/api/stripe/portal`) when someone clicks **Manage subscription**.
 
 **When you go live:** switch Stripe to **Live mode**, open the same **Customer portal** page, repeat steps 3–5, and **Save changes** again. Live portal settings are independent of test.
 

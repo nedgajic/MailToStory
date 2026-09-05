@@ -1,6 +1,6 @@
 # Google OAuth verification — demo video script
 
-Use this when submitting MailToStory for **sensitive scope** verification (`gmail.readonly`).
+Use this when submitting Mail To Story for **sensitive scope** verification (`gmail.readonly`).
 
 **Target length:** 3–5 minutes  
 **Format:** Screen recording with optional voiceover (voiceover helps reviewers)  
@@ -27,14 +27,14 @@ Use this when submitting MailToStory for **sensitive scope** verification (`gmai
 
 **Do:**
 - Scroll slowly from top to bottom
-- Point out app name **MailToStory** and short product description
+- Point out app name **Mail To Story** and short product description
 - Scroll to **“Built for trust”** / privacy section
 - Scroll to footer → click **Privacy Policy** → page loads at `https://mailtostory.com/privacy`
 - Briefly scroll the privacy policy (show Gmail / Limited Use sections exist)
 - Go back to homepage
 
 **Say (optional):**
-> This is MailToStory. It turns long Gmail threads into readable stories, timelines, and action lists. Our privacy policy is linked from the homepage footer.
+> This is Mail To Story. It turns long Gmail threads into readable stories, timelines, and action lists. Our privacy policy is linked from the homepage footer.
 
 ---
 
@@ -59,12 +59,12 @@ Use this when submitting MailToStory for **sensitive scope** verification (`gmai
 - If you see **“Google hasn’t verified this app”** → click **Advanced** → **Go to mailtostory.com (unsafe)**  
   *(This is fine for the demo; reviewers expect unverified apps during review.)*
 - On the consent screen, **pause 3–5 seconds** so reviewers can read:
-  - App name: MailToStory
+  - App name: Mail To Story
   - Requested permissions (View your email messages and settings / Gmail read-only)
 - Click **Continue** / **Allow**
 
 **Say (optional):**
-> Google shows the permissions we request. MailToStory uses gmail.readonly only—we never send, edit, or delete email.
+> Google shows the permissions we request. Mail To Story uses gmail.readonly only—we never send, edit, or delete email.
 
 ---
 
@@ -96,7 +96,7 @@ Use this when submitting MailToStory for **sensitive scope** verification (`gmai
 - Click a **link to original Gmail message** (if shown) to prove traceability back to source mail
 
 **Say (optional):**
-> The user opens a thread they care about. MailToStory reads that thread on demand and produces a structured summary. This is the core feature that requires gmail.readonly.
+> The user opens a thread they care about. Mail To Story reads that thread on demand and produces a structured summary. This is the core feature that requires gmail.readonly.
 
 ---
 
@@ -131,11 +131,11 @@ Use this when submitting MailToStory for **sensitive scope** verification (`gmai
 **Show:** https://myaccount.google.com/permissions
 
 **Do:**
-- Find **MailToStory** in Third-party apps
+- Find **Mail To Story** in Third-party apps
 - Show that the user can **Remove access** (you don’t have to actually remove it)
 
 **Say (optional):**
-> Users can revoke MailToStory’s access anytime in Google Account settings.
+> Users can revoke Mail To Story’s access anytime in Google Account settings.
 
 ---
 
@@ -144,7 +144,7 @@ Use this when submitting MailToStory for **sensitive scope** verification (`gmai
 **Show:** Homepage or privacy policy URL in the address bar
 
 **Say (optional):**
-> MailToStory uses Gmail read-only access solely to display and summarize threads the user chooses to open. Thank you.
+> Mail To Story uses Gmail read-only access solely to display and summarize threads the user chooses to open. Thank you.
 
 ---
 
@@ -152,13 +152,13 @@ Use this when submitting MailToStory for **sensitive scope** verification (`gmai
 
 When pasting the video link in the verification form, include this text:
 
-**App:** MailToStory — https://mailtostory.com  
+**App:** Mail To Story — https://mailtostory.com  
 **Sensitive scope:** `https://www.googleapis.com/auth/gmail.readonly`  
 **Video demonstrates:** Homepage + privacy policy link → Google OAuth sign-in → consent screen → inbox → open thread → AI story summary → export → in-app privacy links → (optional) revoke in Google Account settings.
 
 **Scope justification (paste if asked):**
 
-> MailToStory is a reading tool that turns long Gmail threads into structured stories, timelines, and action lists. Users sign in with Google and explicitly open threads they want summarized. We request gmail.readonly only—no send, modify, or delete. Email content is fetched on demand when the user opens a thread, sent to Google Gemini for on-request summarization, and shown to the signed-in user. Raw Gmail message bodies are not stored in our database; we cache generated summaries and OAuth tokens needed to maintain the session. See https://mailtostory.com/privacy
+> Mail To Story is a reading tool that turns long Gmail threads into structured stories, timelines, and action lists. Users sign in with Google and explicitly open threads they want summarized. We request gmail.readonly only—no send, modify, or delete. Email content is fetched on demand when the user opens a thread, sent to Google Gemini for on-request summarization, and shown to the signed-in user. Raw Gmail message bodies are not stored in our database; we cache generated summaries and OAuth tokens needed to maintain the session. See https://mailtostory.com/privacy
 
 ---
 

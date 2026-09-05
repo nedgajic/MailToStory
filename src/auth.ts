@@ -124,7 +124,17 @@ export const authOptions: NextAuthOptions = {
       }
       return true;
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
+      if (trigger === "update" && session) {
+        if ("image" in session) {
+          token.picture = (session as { image?: string | null }).image ?? null;
+        }
+        if ("name" in session) {
+          token.name = (session as { name?: string | null }).name ?? null;
+        }
+        return token;
+      }
+
       if (user?.id) {
         token.sub = user.id;
         token.email = user.email;

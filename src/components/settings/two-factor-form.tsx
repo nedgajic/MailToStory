@@ -2,6 +2,7 @@
 
 import { signOut } from "next-auth/react";
 import { useState } from "react";
+import { useSettingsFeedback } from "@/components/settings/settings-feedback";
 
 type SetupState = {
   qrCodeDataUrl: string;
@@ -15,17 +16,18 @@ export function TwoFactorForm({
   enabled: boolean;
   hasPassword: boolean;
 }) {
+  const { showFeedback } = useSettingsFeedback();
   const [currentPassword, setCurrentPassword] = useState("");
   const [code, setCode] = useState("");
   const [setup, setSetup] = useState<SetupState | null>(null);
   const [backupCodes, setBackupCodes] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const [setupHint, setSetupHint] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function startSetup() {
     setError(null);
-    setMessage(null);
+    setSetupHint(null);
     setBusy(true);
     try {
       const res = await fetch("/api/account/2fa/setup", {
@@ -49,7 +51,7 @@ export function TwoFactorForm({
         return;
       }
       setSetup({ qrCodeDataUrl: data.qrCodeDataUrl, manualKey: data.manualKey });
-      setMessage("Scan the QR code, then enter the 6-digit code to finish.");
+      setSetupHint("Scan the QR code, then enter the 6-digit code to finish.");
     } finally {
       setBusy(false);
     }
@@ -58,7 +60,7 @@ export function TwoFactorForm({
   async function confirmSetup(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setMessage(null);
+    setSetupHint(null);
     setBusy(true);
     try {
       const res = await fetch("/api/account/2fa/confirm", {
@@ -75,7 +77,7 @@ export function TwoFactorForm({
       setCode("");
       setCurrentPassword("");
       setBackupCodes(data.backupCodes ?? []);
-      setMessage("Two-factor authentication is now enabled.");
+      showFeedback("Two-factor authentication is now enabled.");
     } finally {
       setBusy(false);
     }
@@ -84,7 +86,7 @@ export function TwoFactorForm({
   async function disableTwoFactor(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setMessage(null);
+    setSetupHint(null);
     setBusy(true);
     try {
       const res = await fetch("/api/account/2fa/disable", {
@@ -100,7 +102,7 @@ export function TwoFactorForm({
         setError(data.error || "Could not disable two-factor authentication.");
         return;
       }
-      setMessage(data.message || "Two-factor authentication disabled.");
+      showFeedback(data.message || "Two-factor authentication disabled.");
       if (data.reauth) {
         await signOut({ callbackUrl: "/login" });
       } else {
@@ -124,20 +126,22 @@ export function TwoFactorForm({
             </li>
           ))}
         </ul>
-        <button
-          className="home-cta home-cta--primary"
-          type="button"
-          onClick={() => window.location.reload()}
-        >
-          Done
-        </button>
+        <div className="settings-form__footer">
+          <button
+            className="settings-btn settings-btn--primary"
+            type="button"
+            onClick={() => window.location.reload()}
+          >
+            Done
+          </button>
+        </div>
       </div>
     );
   }
 
   if (enabled) {
     return (
-      <form className="auth-form" onSubmit={(e) => void disableTwoFactor(e)}>
+      <form className="auth-form auth-form--settings" onSubmit={(e) => void disableTwoFactor(e)}>
         <p className="dash-muted">
           Two-factor authentication is enabled. You will need your authenticator app or a
           backup code whenever you sign in with Google or email and password.
@@ -164,17 +168,18 @@ export function TwoFactorForm({
           />
         </label>
         {error ? <p className="auth-form__error">{error}</p> : null}
-        {message ? <p className="dash-banner__feedback">{message}</p> : null}
-        <button className="home-cta home-cta--secondary" type="submit" disabled={busy}>
-          {busy ? "Disabling…" : "Disable two-factor authentication"}
-        </button>
+        <div className="settings-form__footer">
+          <button className="settings-btn settings-btn--secondary" type="submit" disabled={busy}>
+            {busy ? "Disabling…" : "Disable two-factor authentication"}
+          </button>
+        </div>
       </form>
     );
   }
 
   if (setup) {
     return (
-      <form className="auth-form" onSubmit={(e) => void confirmSetup(e)}>
+      <form className="auth-form auth-form--settings" onSubmit={(e) => void confirmSetup(e)}>
         <img
           src={setup.qrCodeDataUrl}
           alt="QR code for authenticator app"
@@ -195,10 +200,12 @@ export function TwoFactorForm({
           />
         </label>
         {error ? <p className="auth-form__error">{error}</p> : null}
-        {message ? <p className="dash-banner__feedback">{message}</p> : null}
-        <button className="home-cta home-cta--primary" type="submit" disabled={busy}>
-          {busy ? "Confirming…" : "Enable two-factor authentication"}
-        </button>
+        {setupHint ? <p className="dash-muted">{setupHint}</p> : null}
+        <div className="settings-form__footer">
+          <button className="settings-btn settings-btn--primary" type="submit" disabled={busy}>
+            {busy ? "Confirming…" : "Enable two-factor authentication"}
+          </button>
+        </div>
       </form>
     );
   }
@@ -222,15 +229,16 @@ export function TwoFactorForm({
         </label>
       ) : null}
       {error ? <p className="auth-form__error">{error}</p> : null}
-      {message ? <p className="dash-banner__feedback">{message}</p> : null}
-      <button
-        className="home-cta home-cta--primary"
-        type="button"
-        disabled={busy}
-        onClick={() => void startSetup()}
-      >
-        {busy ? "Preparing…" : "Set up two-factor authentication"}
-      </button>
+      <div className="settings-form__footer">
+        <button
+          className="settings-btn settings-btn--primary"
+          type="button"
+          disabled={busy}
+          onClick={() => void startSetup()}
+        >
+          {busy ? "Preparing…" : "Set up two-factor authentication"}
+        </button>
+      </div>
     </div>
   );
 }

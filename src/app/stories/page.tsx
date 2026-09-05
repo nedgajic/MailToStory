@@ -8,6 +8,7 @@ import { AppTopBar } from "@/components/app-top-bar";
 import { StoriesDashboard } from "@/components/stories/stories-dashboard";
 import { inboundAddress } from "@/lib/workspace";
 import { ACTIVE_STORY_WHERE, DELETED_STORY_WHERE } from "@/lib/story-retention";
+import { getStoriesLibrarySummary } from "@/lib/stories-summary";
 
 import { BRAND_NAME } from "@/lib/brand";
 
@@ -24,7 +25,7 @@ export default async function StoriesPage({
   if (!ctx) redirect("/login");
   const sp = await searchParams;
 
-  const [stories, pending, deletedCount] = await Promise.all([
+  const [stories, pending, deletedCount, summary] = await Promise.all([
     prisma.story.findMany({
       where: { workspaceId: ctx.workspace.id, ...ACTIVE_STORY_WHERE },
       orderBy: { createdAt: "desc" },
@@ -52,7 +53,10 @@ export default async function StoriesPage({
     prisma.story.count({
       where: { workspaceId: ctx.workspace.id, ...DELETED_STORY_WHERE },
     }),
+    getStoriesLibrarySummary(ctx, session.user.id),
   ]);
+
+  const unreadStoryIdSet = new Set(summary.unreadStoryIds);
 
   return (
     <>
@@ -76,9 +80,11 @@ export default async function StoriesPage({
             deletedCount={deletedCount}
             showDeletedBanner={sp.deleted === "1"}
             initialLibraryView={sp.view === "deleted" ? "deleted" : "active"}
+            initialQuarantine={summary.quarantine}
             initialStories={stories.map((s) => ({
               ...s,
               createdAt: s.createdAt.toISOString(),
+              isUnread: unreadStoryIdSet.has(s.id),
             }))}
             initialPending={pending.map((item) => ({
               ...item,

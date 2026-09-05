@@ -9,6 +9,7 @@ import {
   softDeleteStoriesByCreatedRange,
 } from "@/lib/stories-delete";
 import { ACTIVE_STORY_WHERE, DELETED_STORY_WHERE } from "@/lib/story-retention";
+import { getStoriesLibrarySummary } from "@/lib/stories-summary";
 
 const storySelect = {
   id: true,
@@ -58,7 +59,20 @@ export async function GET(req: NextRequest) {
     select: storySelect,
   });
 
-  return NextResponse.json({ stories });
+  const summary =
+    view === "deleted"
+      ? null
+      : await getStoriesLibrarySummary(ctx, session.user.id);
+  const unreadStoryIds = new Set(summary?.unreadStoryIds ?? []);
+
+  return NextResponse.json({
+    stories: stories.map((story) => ({
+      ...story,
+      isUnread: unreadStoryIds.has(story.id),
+    })),
+    quarantine: summary?.quarantine ?? [],
+    unreadStoryIds: summary?.unreadStoryIds ?? [],
+  });
 }
 
 export async function DELETE(req: NextRequest) {

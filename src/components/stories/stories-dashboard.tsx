@@ -4,8 +4,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { PendingStories, type PendingConversation } from "@/components/stories/pending-stories";
 import {
   StoriesLibrary,
+  type QuarantineCardData,
   type StoryCardData,
 } from "@/components/stories/stories-library";
+import { notifyStoriesSummaryChanged } from "@/lib/stories-summary-events";
 import { StoryGenerationCard } from "@/components/stories/story-generation-card";
 import { useAppToast } from "@/components/ui/app-toast";
 import {
@@ -30,12 +32,14 @@ function toStoryCard(story: StoryLiveSnapshot): StoryCardData {
     status: story.status,
     resolutionSummary: story.resolutionSummary,
     createdAt: story.createdAt,
+    isUnread: true,
   };
 }
 
 export function StoriesDashboard({
   initialStories,
   initialPending,
+  initialQuarantine = [],
   inbound,
   isFree,
   verified,
@@ -45,6 +49,7 @@ export function StoriesDashboard({
 }: {
   initialStories: StoryCardData[];
   initialPending: PendingConversation[];
+  initialQuarantine?: QuarantineCardData[];
   inbound: string;
   isFree: boolean;
   verified: boolean;
@@ -54,10 +59,12 @@ export function StoriesDashboard({
 }) {
   const { showToast } = useAppToast();
   const [stories, setStories] = useState(initialStories);
+  const [quarantine, setQuarantine] = useState(initialQuarantine);
   const [pending, setPending] = useState(initialPending);
   const [manualGeneratingIds, setManualGeneratingIds] = useState<string[]>([]);
   const [manualStartedAt, setManualStartedAt] = useState<Record<string, string>>({});
   const [highlightedStoryIds, setHighlightedStoryIds] = useState<string[]>([]);
+  const [libraryView, setLibraryView] = useState<"active" | "deleted">(initialLibraryView);
   const knownStoryIdsRef = useRef(new Set(initialStories.map((story) => story.id)));
   const pendingConversationIdsRef = useRef(new Set(initialPending.map((item) => item.id)));
   const abortRef = useRef<AbortController | null>(null);
@@ -120,6 +127,7 @@ export function StoriesDashboard({
           });
         }
         highlightNewStories(freshStories.map((story) => story.id));
+        notifyStoriesSummaryChanged();
       }
 
       const nextPendingIds = new Set(nextPending.map((item) => item.id));
@@ -216,7 +224,7 @@ export function StoriesDashboard({
     knownStoryIdsRef.current.add(story.id);
     setStories((current) => {
       if (current.some((entry) => entry.id === story.id)) return current;
-      return [story, ...current];
+      return [{ ...story, isUnread: true }, ...current];
     });
     setPending((current) => current.filter((item) => item.id !== story.conversationId));
     setManualGeneratingIds((current) =>
@@ -233,6 +241,7 @@ export function StoriesDashboard({
       action: { label: "Open story", href: `/stories/${story.id}` },
     });
     highlightNewStories([story.id]);
+    notifyStoriesSummaryChanged();
   }
 
   return (
@@ -258,7 +267,11 @@ export function StoriesDashboard({
             ))}
           </ul>
         </section>
-      ) : verified && stories.length === 0 && pending.length === 0 ? (
+      ) : verified &&
+        libraryView === "active" &&
+        stories.length === 0 &&
+        quarantine.length === 0 &&
+        pending.length === 0 ? (
         <section className="dash-panel dash-panel--flat stories-live stories-live--watching">
           <div className="stories-live__watching">
             <span className="stories-live__watching-dot" aria-hidden />
@@ -283,6 +296,8 @@ export function StoriesDashboard({
       <StoriesLibrary
         stories={stories}
         onStoriesChange={setStories}
+        quarantine={quarantine}
+        onQuarantineChange={setQuarantine}
         highlightedStoryIds={highlightedStoryIds}
         inbound={inbound}
         isFree={isFree}
@@ -290,6 +305,7 @@ export function StoriesDashboard({
         deletedCount={deletedCount}
         showDeletedBanner={showDeletedBanner}
         initialLibraryView={initialLibraryView}
+        onLibraryViewChange={setLibraryView}
       />
     </>
   );

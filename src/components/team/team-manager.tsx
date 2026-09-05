@@ -103,7 +103,7 @@ export function TeamManager({
         </p>
       ) : null}
       {error ? <p className="auth-form__error">{error}</p> : null}
-      <form className="auth-form" onSubmit={(e) => void invite(e)}>
+      <form className="auth-form auth-form--settings" onSubmit={(e) => void invite(e)}>
         <label className="auth-form__field">
           Invite by email
           <input
@@ -114,11 +114,17 @@ export function TeamManager({
             disabled={full}
           />
         </label>
-        <button className="home-cta home-cta--primary" type="submit" disabled={busy || full}>
-          Assign seat
-        </button>
+        <div className="settings-form__footer">
+          <button
+            className="settings-btn settings-btn--primary"
+            type="submit"
+            disabled={busy || full}
+          >
+            Assign seat
+          </button>
+        </div>
       </form>
-      <table className="story-table">
+      <table className="story-table team-mgr__table">
         <thead>
           <tr>
             <th>Name</th>
@@ -137,7 +143,12 @@ export function TeamManager({
                 {m.role === "owner" ? (
                   "Owner"
                 ) : (
-                  <button type="button" disabled={busy} onClick={() => void unassign(m.id)}>
+                  <button
+                    type="button"
+                    className="settings-btn settings-btn--ghost settings-btn--danger"
+                    disabled={busy}
+                    onClick={() => void unassign(m.id)}
+                  >
                     Unassign
                   </button>
                 )}
@@ -148,12 +159,17 @@ export function TeamManager({
       </table>
       {invites.length > 0 ? (
         <>
-          <h3>Pending invites</h3>
-          <ul>
+          <h3 className="team-mgr__invites-title">Pending invites</h3>
+          <ul className="team-mgr__invites">
             {invites.map((i) => (
               <li key={i.id}>
                 {i.email} · expires {new Date(i.expiresAt).toLocaleDateString()}{" "}
-                <button type="button" disabled={busy} onClick={() => void revoke(i.id)}>
+                <button
+                  type="button"
+                  className="settings-btn settings-btn--ghost settings-btn--danger"
+                  disabled={busy}
+                  onClick={() => void revoke(i.id)}
+                >
                   Revoke
                 </button>
               </li>

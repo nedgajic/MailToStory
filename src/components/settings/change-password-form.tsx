@@ -2,6 +2,7 @@
 
 import { signOut } from "next-auth/react";
 import { useState } from "react";
+import { useSettingsFeedback } from "@/components/settings/settings-feedback";
 
 export function ChangePasswordForm({
   hasPassword,
@@ -10,17 +11,16 @@ export function ChangePasswordForm({
   hasPassword: boolean;
   hasGoogleAccount: boolean;
 }) {
+  const { showFeedback } = useSettingsFeedback();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setMessage(null);
 
     if (newPassword !== confirmPassword) {
       setError("New passwords do not match.");
@@ -42,7 +42,7 @@ export function ChangePasswordForm({
         setError(data.error || "Could not update password.");
         return;
       }
-      setMessage(data.message || "Password updated.");
+      showFeedback(data.message || "Password updated.");
       if (data.reauth) {
         await signOut({ callbackUrl: "/login?password=updated" });
       }
@@ -52,7 +52,7 @@ export function ChangePasswordForm({
   }
 
   return (
-    <form className="auth-form" onSubmit={(e) => void onSubmit(e)}>
+    <form className="auth-form auth-form--settings" onSubmit={(e) => void onSubmit(e)}>
       {hasGoogleAccount && !hasPassword ? (
         <p className="dash-muted">
           You sign in with Google. Set a password below if you also want to sign in with
@@ -99,10 +99,11 @@ export function ChangePasswordForm({
         </p>
       ) : null}
       {error ? <p className="auth-form__error">{error}</p> : null}
-      {message ? <p className="dash-banner__feedback">{message}</p> : null}
-      <button className="home-cta home-cta--primary" type="submit" disabled={busy}>
-        {busy ? "Saving…" : hasPassword ? "Change password" : "Set password"}
-      </button>
+      <div className="settings-form__footer">
+        <button className="settings-btn settings-btn--primary" type="submit" disabled={busy}>
+          {busy ? "Saving…" : hasPassword ? "Change password" : "Set password"}
+        </button>
+      </div>
     </form>
   );
 }
