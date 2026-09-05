@@ -21,10 +21,6 @@
   color: rgb(189 193 198 / 0.9);
 }
 
-.dash-tab-panel--billing {
-  max-width: 56rem;
-}
-
 .dash-billing-settings {
   display: flex;
   flex-direction: column;
@@ -928,11 +924,14 @@
 }
 
 .team-name-form__inbound {
-  margin-top: 1.25rem;
-  padding-top: 1.15rem;
-  border-top: 1px solid rgb(138 180 248 / 0.1);
+  margin-bottom: 1.15rem;
 }
 
 .team-name-form__inbound .dash-inbound__eyebrow {
   margin-bottom: 0.65rem;
+}
+
+.team-name-form__inbound-note {
+  margin: 0.65rem 0 0;
+  font-size: 0.86rem;
 }

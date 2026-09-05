@@ -12,19 +12,13 @@ import {
   loadWorkspaceMembers,
   validateSeatChange,
 } from "@/lib/billing/seats";
-import { updateWorkspaceIdentity } from "@/lib/workspace";
+import {
+  applyTeamOnboardingIfNeeded,
+  teamOnboardingErrorMessage,
+} from "@/lib/team-workspace";
 
 export function isPlatformAdmin(email: string | null | undefined): boolean {
   return isAdminEmail(email);
-}
-
-async function applyTeamNameIfNeeded(
-  workspaceId: string,
-  plan: PlanId,
-  teamName?: string,
-) {
-  if (plan !== "team" || !teamName?.trim()) return;
-  await updateWorkspaceIdentity(workspaceId, teamName.trim());
 }
 
 export type PlatformAdminPlanInput = {
@@ -32,6 +26,7 @@ export type PlatformAdminPlanInput = {
   interval?: string;
   seats?: number;
   teamName?: string;
+  inboxSlug?: string;
   removeMemberIds?: string[];
   revokeInviteIds?: string[];
 };
@@ -44,8 +39,11 @@ export async function applyPlatformAdminPlanChange(
   if (plan === "free") {
     throw new Error("Use cancel to return to Free.");
   }
-  if (plan === "team" && ctx.workspace.plan !== "team" && !body.teamName?.trim()) {
-    throw new Error("Enter a team name.");
+  const currentPlan = ctx.workspace.plan as PlanId;
+  if (plan === "team" && currentPlan !== "team") {
+    if (!body.teamName?.trim() || !body.inboxSlug?.trim()) {
+      throw new Error("TEAM_ONBOARDING_REQUIRED");
+    }
   }
 
   const interval = parseBillingInterval(body.interval);
@@ -74,8 +72,18 @@ export async function applyPlatformAdminPlanChange(
         revokeInviteIds: validation.revokeInviteIds,
       });
     }
-    if (body.teamName?.trim()) {
-      await applyTeamNameIfNeeded(ctx.workspace.id, plan, body.teamName);
+    if (body.teamName?.trim() || body.inboxSlug?.trim()) {
+      try {
+        await applyTeamOnboardingIfNeeded(ctx.workspace.id, currentPlan, plan, {
+          teamName: body.teamName,
+          inboxSlug: body.inboxSlug,
+        });
+      } catch (error) {
+        if (error instanceof Error) {
+          throw new Error(teamOnboardingErrorMessage(error.message));
+        }
+        throw error;
+      }
     }
   } else if (plan === "pro") {
     const validation = validateSeatChange({

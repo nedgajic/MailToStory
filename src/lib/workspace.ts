@@ -3,17 +3,11 @@ import prisma from "@/lib/prisma";
 import {
   allocateUniqueInboundLocalPart,
   isValidWorkspaceDisplayName,
+  validateInboundLocalPart,
 } from "@/lib/inbound-local-part";
+import { inboundAddress, inboundDomain } from "@/lib/inbound-domain";
 
-export function inboundDomain(): string {
-  return (
-    process.env.POSTMARK_INBOUND_DOMAIN?.trim() || "inbox.mailtostory.com"
-  );
-}
-
-export function inboundAddress(localPart: string): string {
-  return `${localPart}@${inboundDomain()}`;
-}
+export { inboundAddress, inboundDomain };
 
 async function isInboundLocalPartTaken(
   localPart: string,
@@ -38,7 +32,8 @@ export async function allocateInboundForDisplayName(
   );
 }
 
-export async function updateWorkspaceIdentity(
+/** Update display name only — shared inbox address is never changed. */
+export async function updateWorkspaceName(
   workspaceId: string,
   displayName: string,
 ): Promise<{ name: string; inboundLocalPart: string }> {
@@ -46,12 +41,52 @@ export async function updateWorkspaceIdentity(
   if (!isValidWorkspaceDisplayName(trimmed)) {
     throw new Error("INVALID_WORKSPACE_NAME");
   }
-  const inboundLocalPart = await allocateInboundForDisplayName(trimmed, workspaceId);
-  await prisma.workspace.update({
+  return prisma.workspace.update({
     where: { id: workspaceId },
-    data: { name: trimmed, inboundLocalPart },
+    data: { name: trimmed },
+    select: { name: true, inboundLocalPart: true },
   });
-  return { name: trimmed, inboundLocalPart };
+}
+
+/** First-time Team setup: set team name and claim a permanent shared inbox slug. */
+export async function setupTeamWorkspace(
+  workspaceId: string,
+  input: { teamName: string; inboxSlug: string },
+): Promise<{ name: string; inboundLocalPart: string }> {
+  const teamName = input.teamName.trim();
+  if (!isValidWorkspaceDisplayName(teamName)) {
+    throw new Error("INVALID_WORKSPACE_NAME");
+  }
+
+  const validation = validateInboundLocalPart(input.inboxSlug);
+  if (!validation.ok) {
+    throw new Error(validation.code);
+  }
+
+  if (await isInboundLocalPartTaken(validation.slug, workspaceId)) {
+    throw new Error("INBOX_SLUG_TAKEN");
+  }
+
+  return prisma.workspace.update({
+    where: { id: workspaceId },
+    data: { name: teamName, inboundLocalPart: validation.slug },
+    select: { name: true, inboundLocalPart: true },
+  });
+}
+
+export function teamWorkspaceErrorMessage(code: string): string {
+  switch (code) {
+    case "INVALID_WORKSPACE_NAME":
+      return "Use at least 2 letters or numbers for the team name.";
+    case "INVALID_INBOX_SLUG":
+      return "Inbox address must be 2–48 letters or numbers (hyphens allowed).";
+    case "RESERVED_INBOX_SLUG":
+      return "That inbox address is reserved. Choose another.";
+    case "INBOX_SLUG_TAKEN":
+      return "That inbox address is already taken. Choose another.";
+    default:
+      return "Could not save team settings.";
+  }
 }
 
 export function hashToken(raw: string): string {

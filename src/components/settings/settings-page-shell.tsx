@@ -38,7 +38,7 @@ export function SettingsPageShell({
           </div>
         ) : null}
         <div
-          className={`dash__inner settings-layout${wide ? " settings-layout--wide" : ""}${billingBackground ? " dash-tab-panel--billing" : ""}`}
+          className={`dash__inner settings-layout${wide ? " settings-layout--wide" : ""}`}
         >
           <SettingsSidebar canManageTeam={canManageTeam} plan={plan} />
           <div className="settings-layout__main">

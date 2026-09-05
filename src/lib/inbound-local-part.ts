@@ -1,4 +1,27 @@
 const LOCAL_PART_MAX = 48;
+const LOCAL_PART_MIN = 2;
+
+/** Reserved for system/trust — not available as workspace inbox slugs. */
+export const RESERVED_INBOUND_LOCAL_PARTS = new Set([
+  "abuse",
+  "admin",
+  "api",
+  "billing",
+  "help",
+  "hostmaster",
+  "inbox",
+  "mail",
+  "mailer-daemon",
+  "noreply",
+  "no-reply",
+  "postmaster",
+  "root",
+  "security",
+  "support",
+  "team",
+  "webmaster",
+  "www",
+]);
 
 export function slugifyInboundBase(input: string): string {
   const normalized = input
@@ -56,4 +79,23 @@ export function isValidWorkspaceDisplayName(name: string): boolean {
   const trimmed = name.trim();
   if (trimmed.length < 2 || trimmed.length > 80) return false;
   return slugifyInboundBase(trimmed).length >= 2;
+}
+
+export function normalizeInboundLocalPart(input: string): string {
+  return slugifyInboundBase(input);
+}
+
+export type InboundLocalPartValidation =
+  | { ok: true; slug: string }
+  | { ok: false; code: "INVALID_INBOX_SLUG" | "RESERVED_INBOX_SLUG" };
+
+export function validateInboundLocalPart(input: string): InboundLocalPartValidation {
+  const slug = normalizeInboundLocalPart(input);
+  if (slug.length < LOCAL_PART_MIN || slug.length > LOCAL_PART_MAX) {
+    return { ok: false, code: "INVALID_INBOX_SLUG" };
+  }
+  if (RESERVED_INBOUND_LOCAL_PARTS.has(slug)) {
+    return { ok: false, code: "RESERVED_INBOX_SLUG" };
+  }
+  return { ok: true, slug };
 }

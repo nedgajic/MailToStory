@@ -163,6 +163,7 @@ export function AppUserMenu({
     sessionStatus === "authenticated"
       ? userMenuNav({ canManageTeam, plan })
       : [];
+  const showAdminLink = session?.user?.isAdmin === true;
 
   return (
     <>
@@ -206,6 +207,26 @@ export function AppUserMenu({
               }}
               role="menu"
             >
+              {showAdminLink ? (
+                <Link
+                  href="/admin"
+                  role="menuitem"
+                  className="app-top-bar__user-item app-top-bar__user-item--link"
+                  onClick={() => setUserMenuOpen(false)}
+                >
+                  <UserMenuItemContent
+                    glyph={userMenuGlyphForHref("/admin")}
+                    label="Admin"
+                  />
+                </Link>
+              ) : null}
+              {showAdminLink && settingsItems.length > 0 ? (
+                <div
+                  className="app-top-bar__user-dropdown__divider"
+                  role="separator"
+                  aria-hidden
+                />
+              ) : null}
               {settingsItems.map(({ href, label }) => (
                 <Link
                   key={href}

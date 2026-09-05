@@ -5,21 +5,15 @@ import { getWorkspaceContext, isWorkspaceAdmin } from "@/lib/session";
 import { getStripe, stripeConfigured } from "@/lib/billing/stripe";
 import { parsePlanId, parseBillingInterval, stripePriceIdForPlan, type PlanId } from "@/lib/billing/plans";
 import { appUrl } from "@/lib/email/send";
-import { updateWorkspaceIdentity } from "@/lib/workspace";
 import { loadWorkspaceMembers, validateSeatChange } from "@/lib/billing/seats";
 import {
   applyPlatformAdminPlanChange,
   isPlatformAdmin,
 } from "@/lib/billing/platform-admin-billing";
-
-async function applyTeamNameIfNeeded(
-  workspaceId: string,
-  plan: PlanId,
-  teamName?: string,
-) {
-  if (plan !== "team" || !teamName?.trim()) return;
-  await updateWorkspaceIdentity(workspaceId, teamName.trim());
-}
+import {
+  applyTeamOnboardingIfNeeded,
+  teamOnboardingErrorMessage,
+} from "@/lib/team-workspace";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -32,7 +26,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Only owners and admins can change billing." }, { status: 403 });
   }
 
-  let body: { plan?: PlanId; seats?: number; teamName?: string; interval?: string };
+  let body: {
+    plan?: PlanId;
+    seats?: number;
+    teamName?: string;
+    inboxSlug?: string;
+    interval?: string;
+  };
   try {
     body = await req.json();
   } catch {
@@ -44,16 +44,13 @@ export async function POST(req: NextRequest) {
       const result = await applyPlatformAdminPlanChange(ctx, body);
       return NextResponse.json({ ok: true, adminBypass: true, ...result });
     } catch (error) {
-      if (error instanceof Error && error.message === "INVALID_WORKSPACE_NAME") {
+      if (error instanceof Error) {
         return NextResponse.json(
-          { error: "Use at least 2 letters or numbers for the team name." },
+          { error: teamOnboardingErrorMessage(error.message) },
           { status: 400 },
         );
       }
-      return NextResponse.json(
-        { error: error instanceof Error ? error.message : "Could not change plan." },
-        { status: 400 },
-      );
+      throw error;
     }
   }
 
@@ -68,8 +65,13 @@ export async function POST(req: NextRequest) {
   if (plan === "free") {
     return NextResponse.json({ error: "Use cancel to return to Free." }, { status: 400 });
   }
-  if (plan === "team" && !body.teamName?.trim()) {
-    return NextResponse.json({ error: "Enter a team name." }, { status: 400 });
+  if (plan === "team" && ctx.workspace.plan !== "team") {
+    if (!body.teamName?.trim() || !body.inboxSlug?.trim()) {
+      return NextResponse.json(
+        { error: "Enter a team name and shared inbox address." },
+        { status: 400 },
+      );
+    }
   }
   const interval = parseBillingInterval(body.interval);
   const priceId = stripePriceIdForPlan(plan, interval);
@@ -90,11 +92,19 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    await applyTeamNameIfNeeded(ctx.workspace.id, plan, body.teamName);
+    await applyTeamOnboardingIfNeeded(
+      ctx.workspace.id,
+      ctx.workspace.plan as PlanId,
+      plan,
+      {
+        teamName: body.teamName,
+        inboxSlug: body.inboxSlug,
+      },
+    );
   } catch (error) {
-    if (error instanceof Error && error.message === "INVALID_WORKSPACE_NAME") {
+    if (error instanceof Error) {
       return NextResponse.json(
-        { error: "Use at least 2 letters or numbers for the team name." },
+        { error: teamOnboardingErrorMessage(error.message) },
         { status: 400 },
       );
     }

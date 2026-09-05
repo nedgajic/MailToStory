@@ -16,6 +16,30 @@ import type { Digest } from "@/lib/digest-schema";
 import { storyCardExcerpt } from "@/lib/story-card-excerpt";
 import { notifyStoriesSummaryChanged } from "@/lib/stories-summary-events";
 
+function ViewCardsIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <rect x="3" y="3" width="7" height="7" rx="1.5" />
+      <rect x="14" y="3" width="7" height="7" rx="1.5" />
+      <rect x="14" y="14" width="7" height="7" rx="1.5" />
+      <rect x="3" y="14" width="7" height="7" rx="1.5" />
+    </svg>
+  );
+}
+
+function ViewListIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <path d="M8 6h13" />
+      <path d="M8 12h13" />
+      <path d="M8 18h13" />
+      <path d="M3 6h.01" strokeWidth="3" />
+      <path d="M3 12h.01" strokeWidth="3" />
+      <path d="M3 18h.01" strokeWidth="3" />
+    </svg>
+  );
+}
+
 const FORWARDING_APPROVE_HREF = "/settings/email#forwarding";
 
 export type StoryCardData = {
@@ -472,8 +496,12 @@ export function StoriesLibrary({
           onChange={(e) => void onSearch(e.target.value)}
         />
         {libraryView === "active" ? (
-          <>
-            <div className="stories-lib__toggles" role="group" aria-label="Group stories">
+          <div className="stories-lib__toolbar-controls">
+            <div
+              className="stories-lib__toggles stories-lib__toggles--text"
+              role="group"
+              aria-label="Group stories"
+            >
               {(
                 [
                   ["current", "This month"],
@@ -494,23 +522,31 @@ export function StoriesLibrary({
                 </button>
               ))}
             </div>
-            <div className="stories-lib__toggles" role="group" aria-label="View">
+            <div
+              className="stories-lib__toggles stories-lib__toggles--icons"
+              role="group"
+              aria-label="View"
+            >
               <button
                 type="button"
                 className={view === "cards" ? "is-active" : ""}
                 onClick={() => setView("cards")}
+                aria-label="Card view"
+                title="Cards"
               >
-                Cards
+                <ViewCardsIcon />
               </button>
               <button
                 type="button"
                 className={view === "list" ? "is-active" : ""}
                 onClick={() => setView("list")}
+                aria-label="List view"
+                title="List"
               >
-                List
+                <ViewListIcon />
               </button>
             </div>
-          </>
+          </div>
         ) : null}
       </div>
 
@@ -629,7 +665,7 @@ export function StoriesLibrary({
                         key={libraryItemKey(entry)}
                         className="story-card story-card--quarantine"
                       >
-                        <div className="story-card__body story-card__body--disabled">
+                        <div className="story-card__head story-card__head--held">
                           <div className="story-card__title-row">
                             <h3 className="story-card__title">{item.subject}</h3>
                             <Link
@@ -639,6 +675,8 @@ export function StoriesLibrary({
                               Action needed
                             </Link>
                           </div>
+                        </div>
+                        <div className="story-card__body">
                           <div className="story-card__meta-row">
                             <span className="story-card__status story-card__status--held">
                               Held mail
@@ -686,41 +724,45 @@ export function StoriesLibrary({
                       />
                     </label>
                     <Link href={`/stories/${story.id}`} className="story-card__link">
-                      <div className="story-card__title-row">
-                        <h3 className="story-card__title">{story.title}</h3>
-                        {libraryView === "active" && showNewBadge ? (
-                          <span className="story-card__badge story-card__badge--new">
-                            New
-                          </span>
+                      <div className="story-card__head">
+                        <div className="story-card__title-row">
+                          <h3 className="story-card__title">{story.title}</h3>
+                          {libraryView === "active" && showNewBadge ? (
+                            <span className="story-card__badge story-card__badge--new">
+                              New
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                      <div className="story-card__body">
+                        <div className="story-card__meta-row">
+                          {libraryView === "active" ? (
+                            <span
+                              className="story-card__status"
+                              data-status={story.status}
+                            >
+                              {storyStatusLabel(story.status)}
+                            </span>
+                          ) : null}
+                          <p className="story-card__meta">
+                            {libraryView === "deleted" && story.deletedAt
+                              ? `Deleted ${new Date(story.deletedAt).toLocaleDateString()}`
+                              : new Date(story.createdAt).toLocaleDateString()}
+                            {story.subject
+                              ? ` · ${storyCardExcerpt(story.subject, 52)}`
+                              : null}
+                          </p>
+                        </div>
+                        {libraryView === "deleted" && story.purgeAt ? (
+                          <p className="story-card__purge-meta">
+                            {formatPurgeLabel(story.purgeAt)}
+                          </p>
+                        ) : libraryView === "active" && story.resolutionSummary ? (
+                          <p className="story-card__excerpt">
+                            {storyCardExcerpt(story.resolutionSummary)}
+                          </p>
                         ) : null}
                       </div>
-                      <div className="story-card__meta-row">
-                        {libraryView === "active" ? (
-                          <span
-                            className="story-card__status"
-                            data-status={story.status}
-                          >
-                            {storyStatusLabel(story.status)}
-                          </span>
-                        ) : null}
-                        <p className="story-card__meta">
-                          {libraryView === "deleted" && story.deletedAt
-                            ? `Deleted ${new Date(story.deletedAt).toLocaleDateString()}`
-                            : new Date(story.createdAt).toLocaleDateString()}
-                          {story.subject
-                            ? ` · ${storyCardExcerpt(story.subject, 52)}`
-                            : null}
-                        </p>
-                      </div>
-                      {libraryView === "deleted" && story.purgeAt ? (
-                        <p className="story-card__purge-meta">
-                          {formatPurgeLabel(story.purgeAt)}
-                        </p>
-                      ) : libraryView === "active" && story.resolutionSummary ? (
-                        <p className="story-card__excerpt">
-                          {storyCardExcerpt(story.resolutionSummary)}
-                        </p>
-                      ) : null}
                     </Link>
                     {libraryView === "deleted" ? (
                       <div className="story-card__deleted-actions">

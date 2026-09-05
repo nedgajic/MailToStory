@@ -1,35 +1,27 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { PLAN_CARDS, planLabel, type BillingInterval, type PlanId } from "@/lib/billing/plans";
+import {
+  inboundLocalPartCandidates,
+  slugifyInboundBase,
+} from "@/lib/inbound-local-part";
 import type { UpcomingBill } from "@/lib/dashboard-data";
 import { BillingInvoicesPanel, type BillingInvoice } from "@/components/dashboard/billing-invoices-panel";
+import { BillingSubscriptionStats } from "@/components/dashboard/billing-subscription-stats";
 import { PlanPriceBlock } from "@/components/billing/plan-price-block";
 import { SeatChangeForm } from "@/components/team/seat-change-form";
+import { SettingsSection } from "@/components/settings/settings-section";
+import { ConfirmModal } from "@/components/settings/confirm-modal";
 import {
   PricingBillingToggle,
   pricingIntervalFromAnnual,
 } from "@/components/billing/pricing-billing-toggle";
 import "@/app/dashboard-billing.css";
 
-function DetailRow({
-  icon,
-  label,
-  value,
-}: {
-  icon: ReactNode;
-  label: string;
-  value: string;
-}) {
-  return (
-    <li className="dash-billing-card__detail">
-      <span className="dash-billing-card__detail-icon">{icon}</span>
-      <div className="dash-billing-card__detail-body">
-        <span className="dash-billing-card__detail-label">{label}</span>
-        <span className="dash-billing-card__detail-value">{value}</span>
-      </div>
-    </li>
-  );
+function defaultInboxSlug(teamName: string): string {
+  const candidates = inboundLocalPartCandidates(teamName);
+  return candidates[0] ?? slugifyInboundBase(teamName);
 }
 
 function PlanCardsGrid({
@@ -41,6 +33,10 @@ function PlanCardsGrid({
   platformAdminBilling = false,
   teamName,
   setTeamName,
+  inboxSlug,
+  setInboxSlug,
+  setInboxSlugTouched,
+  inboundDomain,
   seats,
   setSeats,
   busy,
@@ -48,6 +44,8 @@ function PlanCardsGrid({
   setAnnual,
   onStartPaidPlan,
   onUpdateTeamSeats,
+  onDowngradeToFree,
+  cancelAtPeriodEnd,
 }: {
   plan: PlanId;
   canBill: boolean;
@@ -57,6 +55,10 @@ function PlanCardsGrid({
   platformAdminBilling?: boolean;
   teamName: string;
   setTeamName: (value: string) => void;
+  inboxSlug: string;
+  setInboxSlug: (value: string) => void;
+  setInboxSlugTouched: (value: boolean) => void;
+  inboundDomain: string;
   seats: number;
   setSeats: (value: number) => void;
   busy: string | null;
@@ -64,9 +66,12 @@ function PlanCardsGrid({
   setAnnual: (annual: boolean) => void;
   onStartPaidPlan: (targetPlan: PlanId, interval: BillingInterval) => void;
   onUpdateTeamSeats: (interval: BillingInterval) => void;
+  onDowngradeToFree: () => void;
+  cancelAtPeriodEnd: boolean;
 }) {
   const interval = pricingIntervalFromAnnual(annual);
   const canChangePlan = stripeReady || platformAdminBilling;
+  const showTeamOnboarding = plan !== "team";
 
   return (
     <>
@@ -76,111 +81,151 @@ function PlanCardsGrid({
         className="dash-billing__billing-toggle-wrap"
         noteClassName="dash-billing__billing-note"
       />
-      <ul className="dash-billing__grid">
-      {PLAN_CARDS.map((card) => {
-        const isCurrent = card.id === plan;
-        const isPro = card.id === "pro";
-        const showUpgrade = canBill && card.id !== "free" && card.id !== plan;
-        const showTeamUpdate = canBill && card.id === "team" && plan === "team";
+      <ul className="dash-billing__grid settings-billing__grid">
+        {PLAN_CARDS.map((card) => {
+          const isCurrent = card.id === plan;
+          const isPro = card.id === "pro";
+          const showUpgrade = canBill && card.id !== "free" && card.id !== plan;
+          const showTeamUpdate = canBill && card.id === "team" && plan === "team";
+          const showDowngrade =
+            canBill && card.id === "free" && plan !== "free" && canChangePlan;
 
-        return (
-          <li
-            key={card.id}
-            className={[
-              "dash-billing__card",
-              `dash-billing__card--${card.id}`,
-              isCurrent ? "dash-billing__card--current" : "",
-              isPro && !isCurrent ? "dash-billing__card--highlight" : "",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-          >
-            {isCurrent ? (
-              <span className="dash-billing__ribbon dash-billing__ribbon--current">
-                Current plan
-              </span>
-            ) : isPro ? (
-              <span className="dash-billing__ribbon">Most popular</span>
-            ) : null}
-
-            <h3 className="dash-billing__card-name">{card.name}</h3>
-
-            <PlanPriceBlock
-              planId={card.id}
-              interval={interval}
-              amountClassName="dash-billing__card-amount"
-              suffixClassName="dash-billing__card-period"
-              noteClassName="dash-billing__card-price-note"
-              blockClassName="dash-billing__card-price-block"
-            />
-
-            <p className="dash-billing__card-blurb">{card.blurb}</p>
-
-            <ul className="dash-billing__features">
-              {card.features.map((feature) => (
-                <li key={feature}>{feature}</li>
-              ))}
-            </ul>
-
-            {card.id === "team" && canBill ? (
-              <>
-                <label className="dash-billing__seats">
-                  <span className="dash-billing__seats-label">Team name</span>
-                  <input
-                    type="text"
-                    value={teamName}
-                    placeholder="Northwind Legal"
-                    onChange={(e) => setTeamName(e.target.value)}
-                    aria-label="Team name"
-                  />
-                </label>
-                <p className="dash-billing__team-hint">
-                  Used for your shared inbox address (e.g. northwind@…).
-                </p>
-                <label className="dash-billing__seats">
-                  <span className="dash-billing__seats-label">Team seats</span>
-                  <input
-                    type="number"
-                    min={Math.max(1, seatsUsed)}
-                    value={seats}
-                    onChange={(e) => setSeats(Number(e.target.value) || 1)}
-                    aria-label="Team seats"
-                  />
-                </label>
-              </>
-            ) : null}
-
-            <div className="dash-billing__card-actions">
-              {showUpgrade ? (
-                <button
-                  type="button"
-                  className="dash-billing__cta dash-billing__cta--primary"
-                  disabled={Boolean(busy) || !canChangePlan}
-                  onClick={() => onStartPaidPlan(card.id, interval)}
-                >
-                  {plan === "free" ? `Start ${card.name}` : `Switch to ${card.name}`}
-                </button>
+          return (
+            <li
+              key={card.id}
+              className={[
+                "dash-billing__card",
+                `dash-billing__card--${card.id}`,
+                isCurrent ? "dash-billing__card--current" : "",
+                isPro && !isCurrent ? "dash-billing__card--highlight" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              {isCurrent ? (
+                <span className="dash-billing__ribbon dash-billing__ribbon--current">
+                  Current plan
+                </span>
+              ) : isPro ? (
+                <span className="dash-billing__ribbon">Most popular</span>
               ) : null}
 
-              {showTeamUpdate ? (
-                <button
-                  type="button"
-                  className="dash-billing__cta dash-billing__cta--secondary"
-                  disabled={Boolean(busy) || seats === seatQuantity}
-                  onClick={() => onUpdateTeamSeats(interval)}
-                >
-                  Update seats
-                </button>
+              <h3 className="dash-billing__card-name">{card.name}</h3>
+
+              <PlanPriceBlock
+                planId={card.id}
+                interval={interval}
+                amountClassName="dash-billing__card-amount"
+                suffixClassName="dash-billing__card-period"
+                noteClassName="dash-billing__card-price-note"
+                blockClassName="dash-billing__card-price-block"
+              />
+
+              <p className="dash-billing__card-blurb">{card.blurb}</p>
+
+              <ul className="dash-billing__features">
+                {card.features.map((feature) => (
+                  <li key={feature}>{feature}</li>
+                ))}
+              </ul>
+
+              {card.id === "team" && canBill ? (
+                <div className="auth-form auth-form--settings settings-billing__team-fields">
+                  {showTeamOnboarding ? (
+                    <>
+                      <label className="auth-form__field">
+                        Team name
+                        <input
+                          type="text"
+                          value={teamName}
+                          placeholder="Northwind Legal"
+                          onChange={(e) => setTeamName(e.target.value)}
+                          aria-label="Team name"
+                        />
+                      </label>
+                      <label className="auth-form__field">
+                        Shared inbox address
+                        <div className="settings-inbox-slug">
+                          <input
+                            type="text"
+                            value={inboxSlug}
+                            placeholder="northwind"
+                            onChange={(e) => {
+                              setInboxSlugTouched(true);
+                              setInboxSlug(e.target.value);
+                            }}
+                            aria-label="Shared inbox address"
+                            autoComplete="off"
+                            spellCheck={false}
+                          />
+                          <span className="settings-inbox-slug__suffix">@{inboundDomain}</span>
+                        </div>
+                      </label>
+                      <p className="dash-muted settings-billing__team-hint">
+                        This address is permanent. You can rename your team later without
+                        changing it.
+                      </p>
+                    </>
+                  ) : null}
+                  <label className="auth-form__field">
+                    Team seats
+                    <input
+                      type="number"
+                      min={Math.max(1, seatsUsed)}
+                      value={seats}
+                      onChange={(e) => setSeats(Number(e.target.value) || 1)}
+                      aria-label="Team seats"
+                    />
+                  </label>
+                </div>
               ) : null}
 
-              {isCurrent && plan === "free" ? (
-                <span className="dash-billing__included">Included with your account</span>
-              ) : null}
-            </div>
-          </li>
-        );
-      })}
-    </ul>
+              <div className="settings-form__footer settings-billing__card-actions">
+                {showUpgrade ? (
+                  <button
+                    type="button"
+                    className="settings-btn settings-btn--primary"
+                    disabled={Boolean(busy) || !canChangePlan}
+                    onClick={() => onStartPaidPlan(card.id, interval)}
+                  >
+                    {plan === "free" ? `Start ${card.name}` : `Switch to ${card.name}`}
+                  </button>
+                ) : null}
+
+                {showTeamUpdate ? (
+                  <button
+                    type="button"
+                    className="settings-btn settings-btn--secondary"
+                    disabled={Boolean(busy) || seats === seatQuantity}
+                    onClick={() => onUpdateTeamSeats(interval)}
+                  >
+                    Update seats
+                  </button>
+                ) : null}
+
+                {showDowngrade ? (
+                  cancelAtPeriodEnd ? (
+                    <span className="dash-muted">Downgrade scheduled for period end</span>
+                  ) : (
+                    <button
+                      type="button"
+                      className="settings-btn settings-btn--secondary"
+                      disabled={Boolean(busy)}
+                      onClick={onDowngradeToFree}
+                    >
+                      Downgrade to Free
+                    </button>
+                  )
+                ) : null}
+
+                {isCurrent && plan === "free" ? (
+                  <span className="dash-muted">Included with your account</span>
+                ) : null}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
     </>
   );
 }
@@ -194,8 +239,8 @@ export function BillingPanel({
   stripeReady,
   platformAdminBilling = false,
   workspaceName,
+  inboundDomain,
   upcoming,
-  billingFlash,
   invoices,
   used,
   limit,
@@ -204,6 +249,7 @@ export function BillingPanel({
   billingInterval = "monthly",
   teamMembers = [],
   teamInvites = [],
+  onRegisterFocusPlans,
 }: {
   plan: PlanId;
   canBill: boolean;
@@ -213,8 +259,9 @@ export function BillingPanel({
   stripeReady: boolean;
   platformAdminBilling?: boolean;
   workspaceName?: string;
+  inboundDomain: string;
   upcoming: UpcomingBill;
-  billingFlash: boolean;
+  billingFlash?: boolean;
   invoices: BillingInvoice[];
   used: number;
   limit: number | null;
@@ -229,19 +276,57 @@ export function BillingPanel({
     createdAt: string;
   }>;
   teamInvites?: Array<{ id: string; email: string }>;
+  onRegisterFocusPlans?: (focus: () => void) => void;
 }) {
   const [seats, setSeats] = useState(Math.max(seatQuantity, seatsUsed, 1));
   const [teamName, setTeamName] = useState(
     plan === "team" ? workspaceName?.replace(/'s workspace$/i, "") ?? "" : "",
   );
+  const [inboxSlug, setInboxSlug] = useState(() =>
+    defaultInboxSlug(
+      plan === "team"
+        ? workspaceName?.replace(/'s workspace$/i, "") ?? ""
+        : workspaceName?.replace(/'s workspace$/i, "") ?? "",
+    ),
+  );
+  const [inboxSlugTouched, setInboxSlugTouched] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showPlanSwitcher, setShowPlanSwitcher] = useState(false);
+  const [downgradeModalOpen, setDowngradeModalOpen] = useState(false);
   const [annual, setAnnual] = useState(false);
+  const planSwitcherRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (plan === "team" || inboxSlugTouched) return;
+    setInboxSlug(defaultInboxSlug(teamName));
+  }, [teamName, plan, inboxSlugTouched]);
 
   const isPaid = plan !== "free";
   const currentCard = PLAN_CARDS.find((c) => c.id === plan);
-  const canChangePlan = stripeReady || platformAdminBilling;
+  const changePlanLabel = plan === "team" ? "Change plan or seats" : "Change plan";
+
+  function openPlanSwitcher() {
+    setShowPlanSwitcher(true);
+    requestAnimationFrame(() => {
+      planSwitcherRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+  }
+
+  const focusPlans = useCallback(() => {
+    if (isPaid && canBill && !cancelAtPeriodEnd) {
+      openPlanSwitcher();
+      return;
+    }
+    document.getElementById("billing-plans")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }, [canBill, cancelAtPeriodEnd, isPaid]);
+
+  useEffect(() => {
+    onRegisterFocusPlans?.(focusPlans);
+  }, [focusPlans, onRegisterFocusPlans]);
 
   async function post(url: string, body?: unknown) {
     setError(null);
@@ -268,9 +353,15 @@ export function BillingPanel({
   }
 
   function startPaidPlan(targetPlan: PlanId, interval: BillingInterval) {
-    if (targetPlan === "team" && !teamName.trim()) {
-      setError("Enter a team name — it becomes your shared inbox address.");
-      return;
+    if (targetPlan === "team" && plan !== "team") {
+      if (!teamName.trim()) {
+        setError("Enter a team name.");
+        return;
+      }
+      if (!inboxSlug.trim()) {
+        setError("Enter a shared inbox address.");
+        return;
+      }
     }
     if (targetPlan === "pro" && plan === "team" && seatsUsed > 1) {
       setError(
@@ -284,77 +375,36 @@ export function BillingPanel({
         plan: targetPlan,
         interval,
         seats: targetPlan === "team" ? seats : 1,
-        ...(targetPlan === "team" ? { teamName: teamName.trim() } : {}),
+        ...(targetPlan === "team" && plan !== "team"
+          ? { teamName: teamName.trim(), inboxSlug: inboxSlug.trim() }
+          : {}),
       },
     );
   }
 
-  const detailRows: Array<{ key: string; icon: ReactNode; label: string; value: string }> =
-    [];
-
-  if (isPaid && upcoming.dateLabel && upcoming.amountLabel && !upcoming.canceling) {
-    detailRows.push({
-      key: "renewal",
-      label: "Next bill",
-      value: `${upcoming.dateLabel} · ${upcoming.amountLabel}`,
-      icon: (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
-          <path d="M21 12a9 9 0 1 1-9-9c2.5 0 4.7 1 6.3 2.7M21 3v6h-6" />
-        </svg>
-      ),
-    });
-  } else if (isPaid && upcoming.canceling && upcoming.dateLabel) {
-    detailRows.push({
-      key: "access",
-      label: "Access until",
-      value: upcoming.dateLabel,
-      icon: (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
-          <rect x="3" y="4" width="18" height="18" rx="2" />
-          <path d="M16 2v4M8 2v4M3 10h18" />
-        </svg>
-      ),
-    });
-  } else if (!isPaid) {
-    detailRows.push({
-      key: "free",
-      label: "Billing",
-      value: upcoming.label,
-      icon: (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
-          <rect x="2" y="5" width="20" height="14" rx="2" />
-          <path d="M2 10h20" />
-        </svg>
-      ),
-    });
+  function downgradeToFree() {
+    setDowngradeModalOpen(true);
   }
 
-  if (plan === "team") {
-    detailRows.push({
-      key: "seats",
-      label: "Seats",
-      value: `${seatsUsed} of ${seatQuantity} in use`,
-      icon: (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
-          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-        </svg>
-      ),
-    });
+  function confirmDowngradeToFree() {
+    setDowngradeModalOpen(false);
+    void post("/api/stripe/cancel", { resume: false });
   }
 
-  if (limit != null) {
-    detailRows.push({
-      key: "usage",
-      label: "Credits this month",
-      value: `${usedCreditsLabel ?? used} of ${limitCreditsLabel ?? limit}`,
-      icon: (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
-          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-        </svg>
-      ),
-    });
-  }
+  const downgradeImmediate = platformAdminBilling && !stripeReady;
+  const downgradeDescription = downgradeImmediate
+    ? "Paid billing ends immediately for this workspace. You will move to the Free plan right away."
+    : "Your subscription ends at the close of this billing period and you will not be charged again. You keep your current plan until then.";
+
+  const nextBill =
+    isPaid && upcoming.dateLabel && upcoming.amountLabel && !upcoming.canceling
+      ? { label: "Next bill", value: `${upcoming.dateLabel} · ${upcoming.amountLabel}` }
+      : null;
+
+  const accessUntil =
+    isPaid && upcoming.canceling && upcoming.dateLabel
+      ? { label: "Access until", value: upcoming.dateLabel }
+      : null;
 
   const planPicker = (
     <PlanCardsGrid
@@ -366,6 +416,10 @@ export function BillingPanel({
       platformAdminBilling={platformAdminBilling}
       teamName={teamName}
       setTeamName={setTeamName}
+      inboxSlug={inboxSlug}
+      setInboxSlug={setInboxSlug}
+      setInboxSlugTouched={setInboxSlugTouched}
+      inboundDomain={inboundDomain}
       seats={seats}
       setSeats={setSeats}
       busy={busy}
@@ -375,75 +429,56 @@ export function BillingPanel({
       onUpdateTeamSeats={(interval) =>
         void post("/api/stripe/change-plan", { plan: "team", interval, seats })
       }
+      onDowngradeToFree={downgradeToFree}
+      cancelAtPeriodEnd={cancelAtPeriodEnd}
     />
   );
 
   return (
-    <div className="dash-billing-settings">
-      {billingFlash ? (
-        <div className="dash-billing-banner dash-billing-banner--success" role="status">
-          Billing updated successfully.
-        </div>
-      ) : null}
-
+    <>
       {platformAdminBilling && canBill ? (
-        <div className="dash-billing-banner dash-billing-banner--dev" role="status">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 16v-4M12 8h.01" />
-          </svg>
-          <div>
-            <p className="dash-billing-banner__title">Platform admin mode</p>
-            <p className="dash-billing-banner__text">
-              Plan and seat changes apply instantly here — no Stripe checkout or card
-              required.
-            </p>
-          </div>
-        </div>
+        <SettingsSection title="Platform admin">
+          <p className="dash-muted">
+            Plan and seat changes apply instantly here — no Stripe checkout or card
+            required.
+          </p>
+        </SettingsSection>
       ) : !stripeReady && canBill ? (
-        <div className="dash-billing-banner dash-billing-banner--dev" role="status">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 16v-4M12 8h.01" />
-          </svg>
-          <div>
-            <p className="dash-billing-banner__title">Checkout paused</p>
-            <p className="dash-billing-banner__text">
-              Stripe keys are not set in this environment. Plan changes will work once
-              billing is configured.
-            </p>
-          </div>
-        </div>
+        <SettingsSection title="Checkout paused">
+          <p className="dash-muted">
+            Stripe keys are not set in this environment. Plan changes will work once
+            billing is configured.
+          </p>
+        </SettingsSection>
       ) : null}
 
       {!canBill ? (
-        <p className="dash-billing__notice">
-          Only workspace owners and admins can change billing.
-        </p>
+        <SettingsSection title="Billing access">
+          <p className="dash-muted">
+            Only workspace owners and admins can change billing.
+          </p>
+        </SettingsSection>
       ) : null}
 
-      {error ? (
-        <p className="dash-billing-card__error" role="alert">
-          {error}
-        </p>
-      ) : null}
+      {error ? <p className="auth-form__error settings-billing__error">{error}</p> : null}
 
       {!isPaid ? (
-        <section className="dash-billing-picker-section dash-billing-picker-section--primary">
+        <SettingsSection title="Plans" id="billing-plans">
           {planPicker}
-          <p className="dash-billing__fineprint">
+          <p className="dash-muted settings-billing__fineprint">
             Paid plan changes apply immediately with prorated charges or credits. You can
             downgrade to Free at any time — your stories stay until you delete them.
           </p>
-        </section>
+        </SettingsSection>
       ) : (
         <>
-          <article className={`dash-billing-card dash-billing-card--selected dash-billing-card--${plan}`}>
-            <div className="dash-billing-card__top">
-              <div className="dash-billing-card__plan-block">
-                <p className="dash-billing-card__eyebrow">Current plan</p>
-                <h2 className="dash-billing-card__plan">{currentCard?.name ?? planLabel(plan)}</h2>
-                <p className="dash-billing-card__lede">{currentCard?.blurb}</p>
+          <SettingsSection title="Subscription">
+            <div className="settings-billing__plan-head">
+              <div>
+                <p className="dash-muted settings-billing__plan-label">Current plan</p>
+                <p className="settings-billing__plan-name">
+                  {currentCard?.name ?? planLabel(plan)}
+                </p>
               </div>
               <span
                 className={
@@ -456,75 +491,66 @@ export function BillingPanel({
               </span>
             </div>
 
-            {detailRows.length > 0 ? (
-              <ul className="dash-billing-card__details">
-                {detailRows.map((row) => (
-                  <DetailRow
-                    key={row.key}
-                    icon={row.icon}
-                    label={row.label}
-                    value={row.value}
-                  />
-                ))}
-              </ul>
+            {currentCard?.blurb ? (
+              <p className="dash-muted">{currentCard.blurb}</p>
             ) : null}
 
+            <BillingSubscriptionStats
+              nextBillLabel={nextBill?.label}
+              nextBillValue={nextBill?.value}
+              accessUntilLabel={accessUntil?.label}
+              accessUntilValue={accessUntil?.value}
+              creditsUsedLabel={usedCreditsLabel ?? String(used)}
+              creditsLimitLabel={limitCreditsLabel ?? String(limit ?? 0)}
+              used={used}
+              limit={limit}
+              seatsUsed={seatsUsed}
+              seatQuantity={seatQuantity}
+              showSeats={plan === "team"}
+            />
+
             {cancelAtPeriodEnd ? (
-              <p className="dash-billing-card__warn">
-                {upcoming.label}
-              </p>
+              <p className="auth-form__error">{upcoming.label}</p>
             ) : null}
 
             {canBill ? (
-              <div className="dash-billing-card__actions">
+              <div className="settings-form__footer settings-billing__actions">
                 {stripeReady ? (
                   <button
                     type="button"
-                    className="dash-billing__cta dash-billing__cta--primary dash-billing-card__btn"
+                    className="settings-btn settings-btn--primary"
                     disabled={Boolean(busy)}
                     onClick={() => void post("/api/stripe/portal")}
                   >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
-                      <rect x="2" y="5" width="20" height="14" rx="2" />
-                      <path d="M2 10h20M6 15h4" />
-                    </svg>
-                    <span>{busy === "/api/stripe/portal" ? "Opening…" : "Manage subscription"}</span>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="dash-billing-card__btn-ext" aria-hidden>
-                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3" />
-                    </svg>
+                    {busy === "/api/stripe/portal" ? "Opening…" : "Manage subscription"}
                   </button>
                 ) : null}
 
-                <div className="dash-billing-card__secondary-actions">
-                  {cancelAtPeriodEnd ? (
-                    <button
-                      type="button"
-                      className="dash-billing__cta dash-billing__cta--secondary"
-                      disabled={Boolean(busy)}
-                      onClick={() => void post("/api/stripe/cancel", { resume: true })}
-                    >
-                      Resume subscription
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      className="dash-billing__cta dash-billing__cta--ghost"
-                      disabled={Boolean(busy)}
-                      onClick={() => void post("/api/stripe/cancel", { resume: false })}
-                    >
-                      {platformAdminBilling && !stripeReady
-                        ? "Switch to Free"
-                        : "Cancel at period end"}
-                    </button>
-                  )}
-                </div>
+                {cancelAtPeriodEnd ? (
+                  <button
+                    type="button"
+                    className="settings-btn settings-btn--secondary"
+                    disabled={Boolean(busy)}
+                    onClick={() => void post("/api/stripe/cancel", { resume: true })}
+                  >
+                    Resume subscription
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="settings-btn settings-btn--secondary"
+                    disabled={Boolean(busy)}
+                    onClick={openPlanSwitcher}
+                  >
+                    {changePlanLabel}
+                  </button>
+                )}
               </div>
             ) : null}
-          </article>
+          </SettingsSection>
 
           {canBill && plan === "team" ? (
             <SeatChangeForm
-              compact
               seatQuantity={seatQuantity}
               seatsUsed={seatsUsed}
               interval={billingInterval}
@@ -535,43 +561,42 @@ export function BillingPanel({
             />
           ) : null}
 
-          {canBill ? (
-            <div className="dash-billing-switch-wrap">
-              {!showPlanSwitcher ? (
-                <button
-                  type="button"
-                  className="dash-billing-switch-trigger"
-                  onClick={() => setShowPlanSwitcher(true)}
-                >
-                  Change plan or seats
-                </button>
-              ) : (
-                <section className="dash-billing-picker-section">
-                  <div className="dash-billing-picker-section__head">
-                    <div>
-                      <h2 className="dash-billing-picker-section__title">Change plan</h2>
-                      <p className="dash-billing-picker-section__intro">
-                        Plan and seat changes apply immediately. Stripe prorates
-                        charges or credits on your next invoice.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      className="dash-billing-switch-trigger dash-billing-switch-trigger--ghost"
-                      onClick={() => setShowPlanSwitcher(false)}
-                    >
-                      Hide
-                    </button>
-                  </div>
-                  {planPicker}
-                </section>
-              )}
+          {canBill && showPlanSwitcher ? (
+            <div ref={planSwitcherRef}>
+              <SettingsSection title={changePlanLabel}>
+                <p className="dash-muted">
+                  Switching between Pro and Team applies immediately with prorated charges
+                  or credits. If you choose Downgrade to Free, your subscription ends at
+                  the close of this billing period and you will not be charged again.
+                </p>
+                {planPicker}
+                <div className="settings-form__footer settings-form__footer--start">
+                  <button
+                    type="button"
+                    className="settings-btn settings-btn--ghost"
+                    onClick={() => setShowPlanSwitcher(false)}
+                  >
+                    Hide plan options
+                  </button>
+                </div>
+              </SettingsSection>
             </div>
           ) : null}
         </>
       )}
 
       <BillingInvoicesPanel invoices={invoices} stripeReady={stripeReady} />
-    </div>
+
+      <ConfirmModal
+        open={downgradeModalOpen}
+        title="Downgrade to Free"
+        description={downgradeDescription}
+        confirmLabel="Downgrade to Free"
+        confirmTone="danger"
+        busy={busy === "/api/stripe/cancel"}
+        onConfirm={confirmDowngradeToFree}
+        onCancel={() => setDowngradeModalOpen(false)}
+      />
+    </>
   );
 }

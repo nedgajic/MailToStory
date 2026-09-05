@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSession } from "next-auth/react";
 import { BrandLogo } from "@/components/brand-logo";
 import { AppUserMenu } from "@/components/app-user-menu";
 import { BRAND_NAME, BRAND_LOGO_TEXT } from "@/lib/brand";
@@ -14,13 +13,9 @@ import {
 import type { PlanId } from "@/lib/billing/plans";
 import "@/app/marketing-home.css";
 
-const APP_NAV: readonly {
-  href: string;
-  label: string;
-  featured?: boolean;
-}[] = [
+const APP_NAV: readonly { href: string; label: string }[] = [
   { href: "/dashboard", label: "Overview" },
-  { href: "/stories", label: "Stories", featured: true },
+  { href: "/stories", label: "Stories" },
 ];
 
 function isNavActive(pathname: string, href: string): boolean {
@@ -47,14 +42,11 @@ export function AppTopBar({
 }: AppTopBarProps) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
-  const { data: session } = useSession();
   const storiesNavBadgeCount = useStoriesNavBadgeCount(showNav);
 
   useEffect(() => {
     setMenuOpen(false);
   }, [pathname]);
-
-  const showAdminLink = session?.user?.isAdmin === true;
 
   const userMenu = (
     <AppUserMenu
@@ -65,9 +57,8 @@ export function AppTopBar({
   );
 
   if (showNav) {
-    function navClass(href: string, featured?: boolean) {
+    function navClass(href: string) {
       const classes = ["mkt-nav__btn"];
-      if (featured) classes.push("mkt-nav__btn--featured");
       if (isNavActive(pathname, href)) classes.push("mkt-nav__btn--active");
       return classes.join(" ");
     }
@@ -89,20 +80,14 @@ export function AppTopBar({
           </Link>
 
           <nav className="mkt-nav sn-site-header__nav-pill" aria-label="App">
-            {APP_NAV.map(({ href, label, featured }) => (
-              <Link key={href} href={href} className={navClass(href, featured)}>
+            {APP_NAV.map(({ href, label }) => (
+              <Link key={href} href={href} className={navClass(href)}>
                 {label}
                 {href === "/stories" ? (
                   <StoriesNavBadge count={storiesNavBadgeCount} />
                 ) : null}
               </Link>
             ))}
-
-            {showAdminLink ? (
-              <Link href="/admin" className={navClass("/admin")}>
-                Admin
-              </Link>
-            ) : null}
           </nav>
 
           <div className="mkt-header__cta app-top-bar__shell-end app-top-bar__shell-user app-top-bar__shell-user--desktop">
@@ -136,11 +121,11 @@ export function AppTopBar({
         {menuOpen ? (
           <div className="mkt-container">
             <div className="mkt-mobile-nav">
-              {APP_NAV.map(({ href, label, featured }) => (
+              {APP_NAV.map(({ href, label }) => (
                 <Link
                   key={`mobile-${href}`}
                   href={href}
-                  className={`${navClass(href, featured)} mkt-nav__btn--mobile`}
+                  className={`${navClass(href)} mkt-nav__btn--mobile`}
                   onClick={() => setMenuOpen(false)}
                 >
                   {label}
@@ -149,19 +134,6 @@ export function AppTopBar({
                   ) : null}
                 </Link>
               ))}
-              {showAdminLink ? (
-                <Link
-                  href="/admin"
-                  className={
-                    (isNavActive(pathname, "/admin")
-                      ? "mkt-nav__btn mkt-nav__btn--active"
-                      : "mkt-nav__btn") + " mkt-nav__btn--mobile"
-                  }
-                  onClick={() => setMenuOpen(false)}
-                >
-                  Admin
-                </Link>
-              ) : null}
             </div>
           </div>
         ) : null}

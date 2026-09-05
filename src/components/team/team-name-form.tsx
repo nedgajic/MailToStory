@@ -16,7 +16,6 @@ export function TeamNameForm({
 }) {
   const { showFeedback } = useSettingsFeedback();
   const [teamName, setTeamName] = useState(initialName);
-  const [inboundAddr, setInboundAddr] = useState(inbound);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,16 +39,12 @@ export function TeamNameForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ teamName }),
       });
-      const data = (await res.json()) as {
-        error?: string;
-        inbound?: string;
-      };
+      const data = (await res.json()) as { error?: string };
       if (!res.ok) {
         setError(data.error || "Could not save team name.");
         return;
       }
-      if (data.inbound) setInboundAddr(data.inbound);
-      showFeedback("Team name and inbox address updated.");
+      showFeedback("Team name updated.");
     } finally {
       setBusy(false);
     }
@@ -57,9 +52,13 @@ export function TeamNameForm({
 
   return (
     <SettingsSection title="Team name & inbox" className="team-name-form">
-      <p className="dash-muted">
-        Your team name becomes the shared forwarding address everyone uses.
-      </p>
+      <div className="team-name-form__inbound">
+        <p className="dash-inbound__eyebrow">Shared inbox</p>
+        <CopyAddress address={inbound} prominent />
+        <p className="dash-muted team-name-form__inbound-note">
+          Your shared inbox address stays the same when you rename your team.
+        </p>
+      </div>
       <form className="auth-form auth-form--settings" onSubmit={(e) => void save(e)}>
         <label className="auth-form__field">
           Team name
@@ -80,10 +79,6 @@ export function TeamNameForm({
           </button>
         </div>
       </form>
-      <div className="team-name-form__inbound">
-        <p className="dash-inbound__eyebrow">Shared inbox</p>
-        <CopyAddress address={inboundAddr} prominent />
-      </div>
     </SettingsSection>
   );
 }

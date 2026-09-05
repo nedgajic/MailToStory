@@ -247,29 +247,30 @@ export function ForwardingSettingsPanel({
             ))}
           </ul>
         ) : (
-          <p className="dash-muted">No extra forwarding addresses yet.</p>
+          <p className="dash-muted dash-forwarding__empty">No extra forwarding addresses yet.</p>
         )}
 
         {canManage ? (
           <form
-            className="auth-form auth-form--settings dash-forwarding__add"
+            className="auth-form auth-form--settings dash-forwarding__add-form"
             onSubmit={(e) => void addAddress(e)}
           >
-            <label className="auth-form__field">
-              <span className="sr-only">Email address</span>
-              <input
-                type="email"
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-                placeholder="you@example.com"
-                disabled={busy}
-                required
-              />
-            </label>
-            <div className="settings-form__footer">
+            <div className="dash-forwarding__add-row">
+              <label className="auth-form__field">
+                Email address
+                <input
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  disabled={busy}
+                  required
+                  autoComplete="email"
+                />
+              </label>
               <button
                 type="submit"
-                className="settings-btn settings-btn--primary"
+                className="settings-btn settings-btn--primary dash-forwarding__add-btn"
                 disabled={busy}
               >
                 Add &amp; send confirmation

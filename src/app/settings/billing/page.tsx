@@ -8,9 +8,11 @@ import { getDashboardData } from "@/lib/dashboard-data";
 import { isPlatformAdmin } from "@/lib/billing/platform-admin-billing";
 import prisma from "@/lib/prisma";
 import { SettingsPageShell } from "@/components/settings/settings-page-shell";
-import { BillingPanel } from "@/components/dashboard/billing-panel";
+import { SettingsSection } from "@/components/settings/settings-section";
+import { BillingFlashNotifier } from "@/components/settings/billing-flash-notifier";
+import { BillingSettingsContent } from "@/components/settings/billing-settings-content";
 import { BillingPastDueBanner } from "@/components/dashboard/billing-past-due-banner";
-import { GenerationLimitBanner } from "@/components/dashboard/generation-limit-banner";
+import { inboundDomain } from "@/lib/inbound-domain";
 import "@/app/dashboard-billing.css";
 import { BRAND_NAME } from "@/lib/brand";
 
@@ -69,22 +71,17 @@ export default async function BillingSettingsPage({
       description={description}
       canManageTeam={isWorkspaceAdmin(ctx.role)}
       plan={plan}
-      wide
-      billingBackground
     >
+      <BillingFlashNotifier show={billingFlash} />
       {data.billingPastDue ? (
-        <BillingPastDueBanner canBill={data.canBill} />
+        <SettingsSection title="Payment issue">
+          <BillingPastDueBanner canBill={data.canBill} />
+        </SettingsSection>
       ) : null}
-      <GenerationLimitBanner
-        used={data.used}
-        limit={data.limit}
-        usedLabel={data.usedCreditsLabel}
-        limitLabel={data.limitCreditsLabel}
-      />
-
-      <BillingPanel
+      <BillingSettingsContent
         plan={plan}
         workspaceName={ctx.workspace.name}
+        inboundDomain={inboundDomain()}
         canBill={data.canBill}
         seatQuantity={ctx.workspace.seatQuantity}
         seatsUsed={data.seatsUsed}
@@ -92,7 +89,6 @@ export default async function BillingSettingsPage({
         stripeReady={data.stripeReady}
         platformAdminBilling={isPlatformAdmin(session.user.email)}
         upcoming={data.upcoming}
-        billingFlash={billingFlash}
         invoices={data.invoices}
         used={data.used}
         limit={data.limit}

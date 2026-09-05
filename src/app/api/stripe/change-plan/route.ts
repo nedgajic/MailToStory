@@ -15,20 +15,14 @@ import {
   loadWorkspaceMembers,
   validateSeatChange,
 } from "@/lib/billing/seats";
-import { updateWorkspaceIdentity } from "@/lib/workspace";
 import {
   applyPlatformAdminPlanChange,
   isPlatformAdmin,
 } from "@/lib/billing/platform-admin-billing";
-
-async function applyTeamNameIfNeeded(
-  workspaceId: string,
-  plan: PlanId,
-  teamName?: string,
-) {
-  if (plan !== "team" || !teamName?.trim()) return;
-  await updateWorkspaceIdentity(workspaceId, teamName.trim());
-}
+import {
+  applyTeamOnboardingIfNeeded,
+  teamOnboardingErrorMessage,
+} from "@/lib/team-workspace";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -45,6 +39,7 @@ export async function POST(req: Request) {
     plan?: PlanId;
     seats?: number;
     teamName?: string;
+    inboxSlug?: string;
     interval?: string;
     removeMemberIds?: string[];
     revokeInviteIds?: string[];
@@ -55,15 +50,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
+  const currentPlan = ctx.workspace.plan as PlanId;
+
   if (isPlatformAdmin(session.user.email)) {
     try {
       const result = await applyPlatformAdminPlanChange(ctx, body);
       return NextResponse.json({ ok: true, adminBypass: true, ...result });
     } catch (error) {
-      return NextResponse.json(
-        { error: error instanceof Error ? error.message : "Could not change plan." },
-        { status: 400 },
-      );
+      if (error instanceof Error) {
+        return NextResponse.json(
+          { error: teamOnboardingErrorMessage(error.message) },
+          { status: 400 },
+        );
+      }
+      throw error;
     }
   }
 
@@ -75,8 +75,13 @@ export async function POST(req: Request) {
   if (plan === "free") {
     return NextResponse.json({ error: "Cancel the subscription to return to Free." }, { status: 400 });
   }
-  if (plan === "team" && ctx.workspace.plan !== "team" && !body.teamName?.trim()) {
-    return NextResponse.json({ error: "Enter a team name." }, { status: 400 });
+  if (plan === "team" && currentPlan !== "team") {
+    if (!body.teamName?.trim() || !body.inboxSlug?.trim()) {
+      return NextResponse.json(
+        { error: "Enter a team name and shared inbox address." },
+        { status: 400 },
+      );
+    }
   }
   const interval = parseBillingInterval(body.interval);
   const priceId = stripePriceIdForPlan(plan, interval);
@@ -104,18 +109,19 @@ export async function POST(req: Request) {
         revokeInviteIds: validation.revokeInviteIds,
       });
     }
-    if (body.teamName?.trim()) {
-      try {
-        await applyTeamNameIfNeeded(ctx.workspace.id, plan, body.teamName);
-      } catch (error) {
-        if (error instanceof Error && error.message === "INVALID_WORKSPACE_NAME") {
-          return NextResponse.json(
-            { error: "Use at least 2 letters or numbers for the team name." },
-            { status: 400 },
-          );
-        }
-        throw error;
+    try {
+      await applyTeamOnboardingIfNeeded(ctx.workspace.id, currentPlan, plan, {
+        teamName: body.teamName,
+        inboxSlug: body.inboxSlug,
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        return NextResponse.json(
+          { error: teamOnboardingErrorMessage(error.message) },
+          { status: 400 },
+        );
       }
+      throw error;
     }
   } else if (plan === "pro") {
     const validation = validateSeatChange({

@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/auth";
 import { getWorkspaceContext, isWorkspaceAdmin } from "@/lib/session";
-import { updateWorkspaceIdentity, inboundAddress } from "@/lib/workspace";
+import {
+  inboundAddress,
+  teamWorkspaceErrorMessage,
+  updateWorkspaceName,
+} from "@/lib/workspace";
 
 export async function PATCH(req: Request) {
   const session = await getServerSession(authOptions);
@@ -34,7 +38,7 @@ export async function PATCH(req: Request) {
   }
 
   try {
-    const updated = await updateWorkspaceIdentity(ctx.workspace.id, teamName);
+    const updated = await updateWorkspaceName(ctx.workspace.id, teamName);
     return NextResponse.json({
       ok: true,
       name: updated.name,
@@ -42,9 +46,9 @@ export async function PATCH(req: Request) {
       inboundLocalPart: updated.inboundLocalPart,
     });
   } catch (error) {
-    if (error instanceof Error && error.message === "INVALID_WORKSPACE_NAME") {
+    if (error instanceof Error) {
       return NextResponse.json(
-        { error: "Use at least 2 letters or numbers for the team name." },
+        { error: teamWorkspaceErrorMessage(error.message) },
         { status: 400 },
       );
     }

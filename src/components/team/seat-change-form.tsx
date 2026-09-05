@@ -32,7 +32,6 @@ export function SeatChangeForm({
   platformAdminBilling = false,
   members,
   invites,
-  compact = false,
   onSuccess,
 }: {
   seatQuantity: number;
@@ -42,7 +41,6 @@ export function SeatChangeForm({
   platformAdminBilling?: boolean;
   members: Member[];
   invites: Invite[];
-  compact?: boolean;
   onSuccess?: () => void;
 }) {
   const { showFeedback } = useSettingsFeedback();
@@ -135,7 +133,7 @@ export function SeatChangeForm({
 
   const form = (
     <form
-      className={compact ? "seat-change seat-change--compact" : "seat-change auth-form auth-form--settings"}
+      className="seat-change auth-form auth-form--settings"
       onSubmit={(e) => void submit(e)}
     >
       <p className="dash-muted">
@@ -242,8 +240,6 @@ export function SeatChangeForm({
       </div>
     </form>
   );
-
-  if (compact) return form;
 
   return <SettingsSection title="Seats & billing">{form}</SettingsSection>;
 }

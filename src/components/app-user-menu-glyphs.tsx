@@ -67,7 +67,19 @@ export function UserMenuLogOutGlyph() {
   );
 }
 
+export function UserMenuAdminGlyph() {
+  return (
+    <MenuGlyphIcon>
+      <path d="M12 3l7 4v10l-7 4-7-4V7l7-4z" />
+      <path d="M12 12v8" />
+      <path d="M12 12L5 8" />
+      <path d="M12 12l7-4" />
+    </MenuGlyphIcon>
+  );
+}
+
 export function userMenuGlyphForHref(href: string) {
+  if (href === "/admin") return <UserMenuAdminGlyph />;
   if (href === "/settings/team") return <UserMenuTeamGlyph />;
   return <UserMenuSettingsGlyph />;
 }

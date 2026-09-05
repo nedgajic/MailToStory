@@ -1,7 +1,7 @@
 import { stripTrackingNoiseFromProse } from "@/lib/stripTrackingNoiseFromProse";
 
 /** One-line preview text for story library cards. */
-export function storyCardExcerpt(text: string, maxLength = 96): string {
+export function storyCardExcerpt(text: string, maxLength = 192): string {
   const cleaned = stripTrackingNoiseFromProse(text).replace(/\s+/g, " ").trim();
   if (!cleaned) return "";
   if (cleaned.length <= maxLength) return cleaned;
