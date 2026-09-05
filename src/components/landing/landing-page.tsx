@@ -7,43 +7,7 @@ import { MarketingFaq } from "@/components/landing/marketing-faq";
 import { MarketingHomeFooter } from "@/components/landing/marketing-home-footer";
 import { AuthModalTrigger } from "@/components/auth/auth-modal-trigger";
 import { BRAND_PRIVACY_PATH } from "@/lib/brand";
-import { googleAuthEnabled } from "@/lib/google-auth-enabled";
 import "@/app/marketing-home.css";
-
-const features = [
-  {
-    title: "Story view",
-    description:
-      "Nested quotes and signatures disappear. What remains reads like a short article you can follow — and actually enjoy.",
-    tag: "Enjoy",
-    accent: "see",
-    glyph: "◈",
-  },
-  {
-    title: "Timeline",
-    description:
-      "See every turn at a glance when you want the facts fast — dates, speakers, and one-click jumps to the original.",
-    tag: "Trace",
-    accent: "speak",
-    glyph: "◎",
-  },
-  {
-    title: "Open actions",
-    description:
-      "Decisions, deadlines, and follow-ups surface in a dedicated list so nothing hides in paragraph twelve.",
-    tag: "Act",
-    accent: "connect",
-    glyph: "◆",
-  },
-  {
-    title: "Export anywhere",
-    description:
-      "Copy as Markdown, download PDF or Word, and share a polished summary your team will want to read.",
-    tag: "Share",
-    accent: "see",
-    glyph: "↗",
-  },
-];
 
 const steps = [
   {
@@ -113,8 +77,6 @@ function StepScene({ scene }: { scene: (typeof steps)[number]["scene"] }) {
 }
 
 export function LandingPage() {
-  const google = googleAuthEnabled();
-
   return (
     <div className="mkt">
       <MarketingHeader />
@@ -137,7 +99,7 @@ export function LandingPage() {
                 get a clear, flowing narrative — who said what, in order — plus a timeline
                 and open actions. Reading long mail becomes surprisingly pleasant.
               </p>
-              <MarketingHeroCta googleEnabled={google} />
+              <MarketingHeroCta />
               <p className="mkt-hero__note">
                 We never connect to your inbox · You choose what to forward
               </p>
@@ -147,34 +109,6 @@ export function LandingPage() {
                 <li>No inbox OAuth required</li>
               </ul>
             </div>
-          </div>
-        </section>
-
-        <section className="mkt-section mkt-section--features mkt-wave-bottom mkt-wave-overlap" id="features">
-          <div className="mkt-container">
-            <div className="mkt-section__head">
-              <p className="mkt-eyebrow mkt-eyebrow--pill">What you get</p>
-              <h2 className="mkt-h2">A better way through every long thread</h2>
-              <p className="mkt-lede">
-                One forward becomes a recap you can skim, savor, share, and act on —
-                without wading through nested quotes and signatures.
-              </p>
-            </div>
-            <ul className="mkt-feature-grid">
-              {features.map((feature) => (
-                <li
-                  key={feature.title}
-                  className={`mkt-feature-card mkt-feature-card--${feature.accent}`}
-                >
-                  <span className="mkt-feature-card__glyph" aria-hidden="true">
-                    {feature.glyph}
-                  </span>
-                  <span className="mkt-feature-card__tag">{feature.tag}</span>
-                  <h3>{feature.title}</h3>
-                  <p>{feature.description}</p>
-                </li>
-              ))}
-            </ul>
           </div>
         </section>
 
@@ -231,7 +165,7 @@ export function LandingPage() {
           </div>
         </section>
 
-        <section className="mkt-section mkt-section--cta mkt-wave-bottom mkt-wave-overlap">
+        <section className="mkt-section mkt-section--cta mkt-wave-overlap">
           <div className="mkt-container">
             <div className="mkt-cta-band">
               <h2 className="mkt-h2">Ready to enjoy your next thread?</h2>

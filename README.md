@@ -69,7 +69,7 @@ npm run doctor
    - `NEXTAUTH_SECRET` – `openssl rand -base64 32`
    - `GEMINI_API_KEY` – Google AI Studio key
    - Optional `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` – identity-only Google sign-in (no Gmail scopes)
-   - Optional Postmark + Stripe keys — see `.env.example` and **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**
+   - Optional Postmark + Stripe keys — see `.env.example`, **[docs/LAUNCH.md](docs/LAUNCH.md)** (accounts, DNS, Stripe/Gemini/Postmark), and **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** (VPS)
 
    If you enable Google sign-in, OAuth redirect URI:
 
@@ -120,7 +120,7 @@ Prioritized backlog and tiers: **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)**.
 
 ### Deploy (Hostinger VPS — shared with dt-wellness)
 
-Pre-configured for the same VPS (`31.97.77.179`). See **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**.
+Pre-configured for the same VPS (`31.97.77.179`). Server steps: **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**. Accounts and API keys: **[docs/LAUNCH.md](docs/LAUNCH.md)**.
 
 ```bash
 npm run deploy:bootstrap   # one-time: verify remote dir + print DB/nginx hints

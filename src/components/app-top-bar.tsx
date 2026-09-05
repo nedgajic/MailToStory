@@ -15,10 +15,14 @@ import {
 import type { PlanId } from "@/lib/billing/plans";
 import "@/app/marketing-home.css";
 
-const APP_NAV = [
+const APP_NAV: readonly {
+  href: string;
+  label: string;
+  featured?: boolean;
+}[] = [
   { href: "/dashboard", label: "Overview" },
   { href: "/stories", label: "Stories", featured: true },
-] as const;
+];
 
 const SETTINGS_NAV = [
   { href: "/settings/profile", label: "Profile" },

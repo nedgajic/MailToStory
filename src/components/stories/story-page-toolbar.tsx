@@ -77,7 +77,7 @@ export function StoryPageToolbar({
     let raf = 0;
 
     const syncStickyOffset = () => {
-      const storyPage = toolbar.closest(".story-page");
+      const storyPage = toolbar.closest<HTMLElement>(".story-page");
       if (!storyPage) return;
 
       const { bottom } = toolbar.getBoundingClientRect();

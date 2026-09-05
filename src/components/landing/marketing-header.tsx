@@ -14,7 +14,7 @@ import {
 import "@/app/marketing-home.css";
 
 const NAV_ITEMS = [
-  { id: "features", label: "Features" },
+  { id: "demo", label: "Demo" },
   { id: "how-it-works", label: "How it works" },
   { id: "pricing", label: "Pricing" },
   { id: "faq", label: "FAQ" },

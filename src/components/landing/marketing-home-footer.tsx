@@ -42,7 +42,7 @@ export function MarketingHomeFooter({
           <h3 className="mkt-footer__heading">Product</h3>
           <ul className="mkt-footer__links">
             <li>
-              <a href={`${hashPrefix}#features`}>Features</a>
+              <a href={`${hashPrefix}#demo`}>Demo</a>
             </li>
             <li>
               <a href={`${hashPrefix}#how-it-works`}>How it works</a>

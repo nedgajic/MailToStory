@@ -39,20 +39,7 @@ function speakerPanelPdf(
   emailForHue: string | null,
   participants: Digest["participants"],
   colorMap: Map<string, number>,
-): {
-  backgroundColor: string;
-  borderLeftColor?: string;
-  borderLeftWidth?: number;
-  borderRightColor?: string;
-  borderRightWidth?: number;
-  borderWidth?: number;
-  borderColor?: string;
-  paddingLeft: number;
-  paddingVertical: number;
-  paddingRight: number;
-  marginBottom: number;
-  borderRadius: number;
-} | null {
+) {
   const idx = speakerPanelIndex(speaker, emailForHue, participants, colorMap);
   if (idx == null) return null;
 

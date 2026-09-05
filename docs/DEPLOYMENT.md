@@ -2,6 +2,8 @@
 
 Same VPS as **dt-wellness** (`31.97.77.179`, `/var/www/dt-wellness`). MailToStory lives in **`/var/www/mailtostory`** on its own port so PM2 apps do not clash.
 
+**Going live?** Stripe, Gemini, Postmark, Google OAuth, and DNS are a separate checklist: **[LAUNCH.md](LAUNCH.md)**.
+
 ## Port map (same VPS)
 
 | App | PM2 name | Port |

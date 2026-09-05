@@ -16,7 +16,7 @@ export const metadata = { title: `Stories — ${BRAND_NAME}` };
 export default async function StoriesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ deleted?: string }>;
+  searchParams: Promise<{ deleted?: string; view?: string }>;
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login");

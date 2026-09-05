@@ -75,8 +75,9 @@ export function MarketingStoryDemo() {
             One thread. Six ways to read it.
           </h2>
           <p className="mkt-lede">
-            Forward messy replies, then open your story. Try the toolbar — switch
-            between three themes and day or night mode to find the look you like.
+            Forward messy replies, then open your story — recap, timeline, and
+            actions. Try the toolbar to switch themes or day/night, and export as
+            Markdown, PDF, or Word.
           </p>
         </div>
 
@@ -116,7 +117,14 @@ export function MarketingStoryDemo() {
           <div className="mkt-demo__panel mkt-demo__panel--story">
             <div className="mkt-demo__panel-head">
               <span className="mkt-demo__panel-label">Generated story preview</span>
-              <span className="mkt-demo__panel-note">Try theme &amp; day/night</span>
+              <span className="mkt-demo__panel-note mkt-demo__panel-note--play">
+                <span className="mkt-demo__play-hint-text">
+                  Try switching theme &amp; day/night
+                </span>
+                <span className="mkt-demo__play-hint-arrow" aria-hidden="true">
+                  ↓
+                </span>
+              </span>
             </div>
             <MarketingInteractiveStoryPreview digest={MARKETING_SAMPLE_DIGEST} />
           </div>

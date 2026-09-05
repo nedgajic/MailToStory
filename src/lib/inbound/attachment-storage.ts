@@ -63,7 +63,7 @@ function getS3Client(): S3Client {
 export function uploadRoot(): string {
   const configured = process.env.INBOUND_UPLOAD_DIR?.trim();
   if (configured) return configured;
-  return path.join(process.cwd(), "uploads");
+  return path.join(/*turbopackIgnore: true*/ process.cwd(), "uploads");
 }
 
 function objectKey(input: {
@@ -121,9 +121,16 @@ export async function writeAttachment(input: {
     return { storagePath: key, storageBackend: "r2" };
   }
 
-  const dir = path.join(uploadRoot(), input.workspaceId, input.conversationId);
+  const dir = path.join(
+    /*turbopackIgnore: true*/ uploadRoot(),
+    input.workspaceId,
+    input.conversationId,
+  );
   await mkdir(dir, { recursive: true });
-  const storagePath = path.join(dir, `${input.attachmentId}-${input.filename.replace(/[/\\]/g, "_")}`);
+  const storagePath = path.join(
+    /*turbopackIgnore: true*/ dir,
+    `${input.attachmentId}-${input.filename.replace(/[/\\]/g, "_")}`,
+  );
   await writeFile(storagePath, input.buffer);
   return { storagePath, storageBackend: "local" };
 }
@@ -141,7 +148,7 @@ export async function readAttachmentBuffer(input: {
     );
     return streamToBuffer(response.Body as Readable | undefined);
   }
-  return readFile(input.storagePath);
+  return readFile(/*turbopackIgnore: true*/ input.storagePath);
 }
 
 export async function deleteAttachmentFile(input: {
@@ -159,7 +166,7 @@ export async function deleteAttachmentFile(input: {
       );
       return;
     }
-    await unlink(input.storagePath);
+    await unlink(/*turbopackIgnore: true*/ input.storagePath);
   } catch {
     /* already gone */
   }

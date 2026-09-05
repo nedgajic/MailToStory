@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { BRAND_ICON_PATH, BRAND_NAME, BRAND_OG_PATH, BRAND_URL } from "@/lib/brand";
+import { BRAND_NAME, BRAND_OG_PATH, BRAND_URL } from "@/lib/brand";
 import { fontVariableClassNames } from "@/lib/fonts";
 import { googleAuthEnabled } from "@/lib/google-auth-enabled";
 import "./theme-tokens.css";
@@ -36,10 +36,6 @@ export const metadata: Metadata = {
     description:
       "Forward email threads to a private address and get flowing stories, timelines, and action lists — a unique, enjoyable way through long mail.",
     images: [BRAND_OG_PATH],
-  },
-  icons: {
-    icon: [{ url: BRAND_ICON_PATH, type: "image/png" }],
-    apple: [{ url: "/apple-touch-icon.png", type: "image/png" }],
   },
 };
 

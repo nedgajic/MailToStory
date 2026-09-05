@@ -13,7 +13,14 @@ export type ExportBorderRadius =
 
 export function pdfBorderRadius(
   radius: ExportBorderRadius,
-): Record<string, number> {
+):
+  | { borderRadius: number }
+  | {
+      borderTopLeftRadius: number;
+      borderTopRightRadius: number;
+      borderBottomRightRadius: number;
+      borderBottomLeftRadius: number;
+    } {
   if (typeof radius === "number") {
     return { borderRadius: radius };
   }

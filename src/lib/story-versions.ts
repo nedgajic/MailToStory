@@ -121,6 +121,10 @@ export async function activateStoryVersion(
     throw new Error("VERSION_NOT_FOUND");
   }
 
+  const messageIdsInOrder = Array.isArray(version.messageIdsInOrder)
+    ? version.messageIdsInOrder.filter((x): x is string => typeof x === "string")
+    : [];
+
   await prisma.story.update({
     where: { id: storyId },
     data: {
@@ -129,19 +133,15 @@ export async function activateStoryVersion(
       status: version.status,
       resolutionSummary: version.resolutionSummary,
       searchText: version.searchText,
-      digest: version.digest,
-      messageIdsInOrder: version.messageIdsInOrder,
+      digest: JSON.parse(JSON.stringify(parsed.data)),
+      messageIdsInOrder: JSON.parse(JSON.stringify(messageIdsInOrder)),
       storyLength: version.storyLength,
     },
   });
 
-  const ids = Array.isArray(version.messageIdsInOrder)
-    ? version.messageIdsInOrder.filter((x): x is string => typeof x === "string")
-    : [];
-
   return {
     digest: parsed.data,
-    messageIdsInOrder: ids,
+    messageIdsInOrder,
     storyLength: parseStoryLength(version.storyLength),
     title: version.title,
   };

@@ -71,7 +71,7 @@ export function MarketingMobileNavAuth() {
   );
 }
 
-export function MarketingHeroCta({ googleEnabled }: { googleEnabled: boolean }) {
+export function MarketingHeroCta() {
   const { status } = useSession();
   const mounted = useMounted();
   const signedIn = mounted && status === "authenticated";
@@ -95,11 +95,13 @@ export function MarketingHeroCta({ googleEnabled }: { googleEnabled: boolean }) 
       <AuthModalTrigger mode="signup" className="mkt-btn mkt-btn--hero mkt-btn--lg">
         Get started free
       </AuthModalTrigger>
-      {googleEnabled ? (
-        <AuthModalTrigger mode="login" className="mkt-btn mkt-btn--outline-light mkt-btn--lg">
-          Sign in with Google
-        </AuthModalTrigger>
-      ) : null}
+      <button
+        type="button"
+        className="mkt-btn mkt-btn--outline-light mkt-btn--lg"
+        onClick={scrollToDemo}
+      >
+        See demo
+      </button>
     </div>
   );
 }
