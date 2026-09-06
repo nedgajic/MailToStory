@@ -49,7 +49,13 @@ export function useCookieConsent(): CookieConsentContextValue {
   return ctx;
 }
 
-export function CookieConsentProvider({ children }: { children: ReactNode }) {
+export function CookieConsentProvider({
+  children,
+  gaMeasurementId,
+}: {
+  children: ReactNode;
+  gaMeasurementId?: string;
+}) {
   const pathname = usePathname();
   const [consent, setConsentState] = useState<CookieConsent>(() =>
     getCookieConsent(),
@@ -124,7 +130,10 @@ export function CookieConsentProvider({ children }: { children: ReactNode }) {
   return (
     <CookieConsentContext.Provider value={value}>
       {children}
-      <GoogleAnalytics analyticsEnabled={consent.analytics} />
+      <GoogleAnalytics
+        measurementId={gaMeasurementId}
+        analyticsEnabled={consent.analytics}
+      />
       {showBanner ? (
         <CookieConsentBanner
           onAcceptAll={acceptAll}

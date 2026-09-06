@@ -8,15 +8,19 @@ import { AppToastProvider } from "@/components/ui/app-toast";
 export function Providers({
   children,
   googleEnabled = false,
+  gaMeasurementId,
 }: {
   children: React.ReactNode;
   googleEnabled?: boolean;
+  gaMeasurementId?: string;
 }) {
   return (
     <SessionProvider>
       <AuthModalProvider googleEnabled={googleEnabled}>
         <AppToastProvider>
-          <CookieConsentProvider>{children}</CookieConsentProvider>
+          <CookieConsentProvider gaMeasurementId={gaMeasurementId}>
+            {children}
+          </CookieConsentProvider>
         </AppToastProvider>
       </AuthModalProvider>
     </SessionProvider>

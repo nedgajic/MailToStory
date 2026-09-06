@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { BRAND_NAME, BRAND_OG_PATH, BRAND_URL } from "@/lib/brand";
+import { getGaMeasurementId } from "@/lib/ga-measurement-id";
 import { fontVariableClassNames } from "@/lib/fonts";
 import { googleAuthEnabled } from "@/lib/google-auth-enabled";
 import "./theme-tokens.css";
@@ -44,10 +45,17 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const gaMeasurementId = getGaMeasurementId();
+
   return (
     <html lang="en" className={fontVariableClassNames}>
       <body>
-        <Providers googleEnabled={googleAuthEnabled()}>{children}</Providers>
+        <Providers
+          googleEnabled={googleAuthEnabled()}
+          gaMeasurementId={gaMeasurementId}
+        >
+          {children}
+        </Providers>
       </body>
     </html>
   );
