@@ -1,4 +1,4 @@
-# Google OAuth verification checklist (MailToStory)
+# Google OAuth verification checklist (Mail To Story)
 
 Use this after deploying the privacy and terms pages to production.
 
@@ -35,7 +35,7 @@ The privacy link on the homepage footer and in the app account menu must match t
 https://mailtostory.com
 ```
 
-(Optional for local dev on the same client: `http://localhost:3000`)
+(Optional for local dev on the same client: `http://localhost:3001`)
 
 **Authorized redirect URIs**
 
@@ -43,7 +43,7 @@ https://mailtostory.com
 https://mailtostory.com/api/auth/callback/google
 ```
 
-(Optional for local dev: `http://localhost:3000/api/auth/callback/google`)
+(Optional for local dev: `http://localhost:3001/api/auth/callback/google`)
 
 ## Authorized domains
 
@@ -73,14 +73,14 @@ In **APIs & Services → Library**, enable:
 
 On the OAuth consent screen, add and justify:
 
-| Scope | Why MailToStory needs it |
+| Scope | Why Mail To Story needs it |
 |-------|--------------------------|
 | `openid`, `email`, `profile` | Sign-in and account display |
 | `https://www.googleapis.com/auth/gmail.readonly` | List inbox threads and read messages the user opens to generate summaries |
 
 **Justification text (example for submission):**
 
-> MailToStory is a reading tool that turns long Gmail threads into structured stories, timelines, and action lists. Users sign in with Google and explicitly open threads they want summarized. We request gmail.readonly only—no send, modify, or delete. Email content is fetched on demand, sent to Google Gemini for on-request summarization, and shown to the signed-in user. Raw message bodies are not stored in our database; we cache generated summaries and OAuth tokens needed to maintain the session.
+> Mail To Story is a reading tool that turns long Gmail threads into structured stories, timelines, and action lists. Users sign in with Google and explicitly open threads they want summarized. We request gmail.readonly only—no send, modify, or delete. Email content is fetched on demand, sent to Google Gemini for on-request summarization, and shown to the signed-in user. Raw message bodies are not stored in our database; we cache generated summaries and OAuth tokens needed to maintain the session.
 
 ## Demo video (required for verification)
 
@@ -140,6 +140,6 @@ Use `nedix2018@gmail.com` (matches OAuth consent screen user support email).
 
 - Privacy policy URL on consent screen ≠ link on homepage
 - Privacy policy does not mention Gmail data use or Limited Use
-- Homepage is only a login page (MailToStory homepage describes the product — OK)
+- Homepage is only a login page (Mail To Story homepage describes the product — OK)
 - Domain not verified in Search Console
 - Demo video missing OAuth grant step or app functionality

@@ -8,27 +8,36 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  accounts      Account[]
-  sessions      Session[]
-  threadDigests ThreadDigest[]
+  id                 String    @id @default(cuid())
+  name               String?
+  email              String?   @unique
+  emailVerified      DateTime?
+  image              String?
+  passwordHash       String?
+  credentialsChangedAt DateTime?
+  twoFactorEnabled   Boolean   @default(false)
+  twoFactorSecret    String?
+  twoFactorConfirmedAt DateTime?
+  twoFactorBackupCodes String? @db.Text
+  activeWorkspaceId  String?
+  lastSeenAt         DateTime?
+  accounts           Account[]
+  sessions           Session[]
+  memberships        WorkspaceMember[]
+  storyViews         StoryView[]
 }
 
 model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
+  id                        String  @id @default(cuid())
+  userId                    String
+  type                      String
+  provider                  String
+  providerAccountId         String
+  refresh_token             String? @db.Text
+  access_token              String? @db.Text
+  expires_at                Int?
+  token_type                String?
+  scope                     String?
   id_token                  String? @db.Text
   session_state             String?
   refresh_token_expires_in  Int?
@@ -54,17 +63,260 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-model ThreadDigest {
-  id                 String   @id @default(cuid())
-  userId             String
-  threadId           String
-  digest             Json
-  messageIdsInOrder  Json
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+model Workspace {
+  id                    String    @id @default(cuid())
+  name                  String
+  plan                  String    @default("free")
+  inboundLocalPart      String    @unique
+  seatQuantity          Int       @default(1)
+  stripeCustomerId      String?
+  stripeSubscriptionId  String?
+  stripePriceId         String?
+  cancelAtPeriodEnd     Boolean   @default(false)
+  billingPastDue        Boolean   @default(false)
+  currentPeriodEnd      DateTime?
+  currentPeriodStart    DateTime?
+  defaultStoryLength    String    @default("normal")
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  members       WorkspaceMember[]
+  invites       WorkspaceInvite[]
+  conversations Conversation[]
+  forwardingAddresses ForwardingAddress[]
+  quarantinedInbound QuarantinedInbound[]
 
-  @@unique([userId, threadId])
+  @@index([stripeCustomerId])
+  @@index([stripeSubscriptionId])
+}
+
+model WorkspaceMember {
+  id                String   @id @default(cuid())
+  workspaceId       String
+  userId            String
+  role              String
+  status            String   @default("active")
+  notifyStoryReady  Boolean  @default(true)
+  createdAt         DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
   @@index([userId])
+}
+
+model WorkspaceInvite {
+  id          String   @id @default(cuid())
+  workspaceId String
+  email       String
+  role        String   @default("member")
+  token       String   @unique
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, email])
+}
+
+model Conversation {
+  id             String   @id @default(cuid())
+  workspaceId    String
+  subject        String   @default("(no subject)")
+  snippet        String   @default("")
+  lastMessageAt  DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  workspace    Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  messages     ConversationMessage[]
+  attachments  ConversationAttachment[]
+  story        Story?
+
+  @@index([workspaceId, lastMessageAt])
+}
+
+model ConversationMessage {
+  id                 String   @id @default(cuid())
+  conversationId     String
+  sequence           Int
+  fromName           String   @default("")
+  fromEmail          String   @default("")
+  toAddresses        String   @default("")
+  subject            String   @default("")
+  date               DateTime
+  textBody           String   @db.Text
+  htmlBody           String?  @db.Text
+  headersJson        Json?
+  postmarkMessageId  String?  @unique
+  inReplyTo          String?
+  createdAt          DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, sequence])
+}
+
+model ConversationAttachment {
+  id             String @id @default(cuid())
+  conversationId String
+  messageId      String
+  filename       String
+  mimeType       String
+  size           Int
+  storagePath    String
+  storageBackend String   @default("local")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, messageId])
+}
+
+model Story {
+  id                String    @id @default(cuid())
+  conversationId    String    @unique
+  workspaceId       String
+  title             String
+  subject           String    @default("")
+  status            String
+  resolutionSummary String    @db.Text
+  searchText        String    @db.Text
+  digest            Json
+  messageIdsInOrder Json
+  sourceMessages    Json      @default("[]")
+  storyLength       String    @default("normal")
+  activeVersionId   String?   @unique
+  deletedAt         DateTime?
+  purgeAt           DateTime?
+  deletedById       String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  conversation  Conversation   @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  activeVersion StoryVersion?  @relation("ActiveStoryVersion", fields: [activeVersionId], references: [id], onDelete: SetNull)
+  versions      StoryVersion[] @relation("StoryVersions")
+  views         StoryView[]
+
+  @@index([workspaceId, createdAt])
+  @@index([workspaceId, deletedAt])
+  @@index([purgeAt])
+}
+
+model StoryVersion {
+  id                String   @id @default(cuid())
+  storyId           String
+  versionNumber     Int
+  title             String
+  status            String
+  resolutionSummary String   @db.Text
+  searchText        String   @db.Text
+  digest            Json
+  messageIdsInOrder Json
+  sourceMessages    Json     @default("[]")
+  storyLength       String   @default("normal")
+  creditCost        Int      @default(10)
+  createdAt         DateTime @default(now())
+
+  story     Story  @relation("StoryVersions", fields: [storyId], references: [id], onDelete: Cascade)
+  activeFor Story? @relation("ActiveStoryVersion")
+
+  @@unique([storyId, versionNumber])
+  @@index([storyId, createdAt])
+}
+
+model StoryAccessToken {
+  id        String   @id @default(cuid())
+  storyId   String
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([storyId, userId])
+  @@index([expiresAt])
+}
+
+model StoryView {
+  id       String   @id @default(cuid())
+  userId   String
+  storyId  String
+  viewedAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, storyId])
+  @@index([userId])
+}
+
+model StoryGenerationLog {
+  id             String   @id @default(cuid())
+  workspaceId    String
+  conversationId String
+  storyLength    String   @default("normal")
+  creditCost     Int      @default(10)
+  createdAt      DateTime @default(now())
+
+  @@index([workspaceId, createdAt])
+  @@index([conversationId, createdAt])
+}
+
+model ForwardingAddress {
+  id          String    @id @default(cuid())
+  workspaceId String
+  email       String
+  verifiedAt  DateTime?
+  addedById   String?
+  createdAt   DateTime  @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, email])
+  @@index([workspaceId])
+}
+
+model QuarantinedInbound {
+  id                String    @id @default(cuid())
+  workspaceId       String
+  fromEmail         String
+  fromName          String    @default("")
+  subject           String    @default("")
+  snippet           String    @default("")
+  textBody          String    @db.Text
+  htmlBody          String?   @db.Text
+  toAddresses       String    @default("")
+  messageDate       DateTime?
+  attachmentCount   Int       @default(0)
+  postmarkMessageId String?   @unique
+  notifiedAt        DateTime?
+  expiresAt         DateTime
+  createdAt         DateTime  @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, fromEmail])
+  @@index([expiresAt])
+}
+
+model AuthRateLimit {
+  key       String   @id
+  hitsJson  String   @default("[]")
+  updatedAt DateTime @updatedAt
+}
+
+model GdprRequest {
+  id          String    @id @default(cuid())
+  email       String
+  type        String
+  tokenHash   String    @unique
+  status      String    @default("pending")
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+  confirmedAt DateTime?
+  completedAt DateTime?
+
+  @@index([email, type])
+  @@index([expiresAt])
+  @@index([status])
 }

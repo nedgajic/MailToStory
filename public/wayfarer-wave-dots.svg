@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 48" preserveAspectRatio="none">
+  <!-- Dotted seam tracing organic ocean wave edge -->
+  <path
+    fill="none"
+    stroke="#000"
+    stroke-width="2"
+    stroke-dasharray="0.01 9"
+    stroke-linecap="round"
+    d="M0,23 C60,16 120,37 165,27 C230,8 300,41 355,26 C420,11 485,36 540,29 C610,6 675,43 725,24 C790,14 845,38 895,27 C965,5 1040,44 1095,28 C1155,13 1220,41 1260,26 C1310,7 1382,39 1440,23"
+  />
+</svg>

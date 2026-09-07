@@ -1,4 +1,4 @@
-// PM2 config for MailToStory (Next.js production)
+// PM2 config for Mail To Story (Next.js production)
 // Runs on the same Hostinger VPS as dt-wellness — default port 3010.
 const fs = require("fs");
 const path = require("path");

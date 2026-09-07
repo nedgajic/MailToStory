@@ -1,74 +1,118 @@
-import { authOptions } from "@/auth";
-import { getThreadFull } from "@/lib/gmail";
-import {
-  extractBody,
-  extractHtmlBody,
-  stripQuotedReplies,
-} from "@/lib/preprocessThread";
-import { sanitizeEmailHtml, takeInitialEmailHtml } from "@/lib/sanitizeEmailHtml";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { NextResponse } from "next/server";
+import { authOptions } from "@/auth";
+import { getWorkspaceContext } from "@/lib/session";
+import prisma from "@/lib/prisma";
+import { sanitizeEmailHtml } from "@/lib/sanitizeEmailHtml";
+import {
+  findThreadSourceMessage,
+  legacyTurnSourcesFromMessages,
+  parseSrcTurnIndex,
+  parseThreadSourceMessages,
+} from "@/lib/thread-source-messages";
 
-function header(
-  headers:
-    | { name?: string | null; value?: string | null }[]
-    | undefined
-    | null,
-  name: string,
-): string {
-  return (
-    headers?.find((h) => h.name?.toLowerCase() === name.toLowerCase())
-      ?.value ?? ""
-  );
+function sourceToResponse(source: {
+  id: string;
+  from: string;
+  date: string;
+  subject: string;
+  text: string;
+}) {
+  return NextResponse.json({
+    id: source.id,
+    subject: source.subject,
+    from: source.from,
+    date: source.date,
+    html: null,
+    body: source.text,
+  });
 }
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const ctx = await getWorkspaceContext(session.user.id);
+  if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { searchParams } = new URL(req.url);
-  const threadId = searchParams.get("threadId");
-  const messageId = searchParams.get("messageId");
-
-  if (!threadId?.trim() || !messageId?.trim()) {
-    return NextResponse.json(
-      { error: "threadId and messageId are required" },
-      { status: 400 },
-    );
+  const threadId = req.nextUrl.searchParams.get("threadId");
+  const messageId = req.nextUrl.searchParams.get("messageId");
+  if (!threadId || !messageId) {
+    return NextResponse.json({ error: "Missing params" }, { status: 400 });
   }
 
-  try {
-    const thread = await getThreadFull(session.user.id, threadId);
-    const message = (thread.messages ?? []).find((m) => m.id === messageId);
+  const story = await prisma.story.findFirst({
+    where: {
+      conversationId: threadId,
+      workspaceId: ctx.workspace.id,
+    },
+    select: { sourceMessages: true, messageIdsInOrder: true },
+  });
 
-    if (!message?.payload) {
-      return NextResponse.json(
-        { error: "Message not found in thread" },
-        { status: 404 },
-      );
-    }
+  const storedSources = parseThreadSourceMessages(story?.sourceMessages);
+  const storedHit = findThreadSourceMessage(storedSources, messageId);
+  if (storedHit) {
+    return sourceToResponse(storedHit);
+  }
 
-    const headers = message.payload.headers ?? [];
-
-    const rawHtml = extractHtmlBody(message.payload);
-    const initialHtml = rawHtml ? takeInitialEmailHtml(rawHtml) : "";
-    const bodyHtml =
-      initialHtml.trim().length > 0 ? sanitizeEmailHtml(initialHtml) : null;
-
-    const bodyRaw = extractBody(message.payload);
-
-    return NextResponse.json({
-      from: header(headers, "From"),
-      date: header(headers, "Date"),
-      subject: header(headers, "Subject"),
-      body: stripQuotedReplies(bodyRaw),
-      bodyHtml,
+  const turnIndex = parseSrcTurnIndex(messageId);
+  if (turnIndex != null) {
+    const messages = await prisma.conversationMessage.findMany({
+      where: {
+        conversationId: threadId,
+        conversation: { workspaceId: ctx.workspace.id },
+      },
+      orderBy: { sequence: "asc" },
     });
-  } catch (e) {
-    const message = e instanceof Error ? e.message : "Failed to load message";
-    console.error("thread-message error:", e);
-    return NextResponse.json({ error: message }, { status: 502 });
+    const legacySources = legacyTurnSourcesFromMessages(messages);
+    const legacyHit = legacySources[turnIndex - 1];
+    if (legacyHit) {
+      return sourceToResponse(legacyHit);
+    }
   }
+
+  const messageIdsInOrder = Array.isArray(story?.messageIdsInOrder)
+    ? story.messageIdsInOrder.filter((x): x is string => typeof x === "string")
+    : [];
+  const mappedIndex = messageIdsInOrder.indexOf(messageId);
+  if (mappedIndex >= 0 && storedSources[mappedIndex]) {
+    return sourceToResponse(storedSources[mappedIndex]);
+  }
+
+  const message = await prisma.conversationMessage.findFirst({
+    where: {
+      id: messageId,
+      conversation: { id: threadId, workspaceId: ctx.workspace.id },
+    },
+  });
+  if (!message) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  if (mappedIndex >= 0) {
+    const allMessages = await prisma.conversationMessage.findMany({
+      where: {
+        conversationId: threadId,
+        conversation: { workspaceId: ctx.workspace.id },
+      },
+      orderBy: { sequence: "asc" },
+    });
+    const legacySources = legacyTurnSourcesFromMessages(allMessages);
+    const legacyHit = legacySources[mappedIndex];
+    if (legacyHit) {
+      return sourceToResponse(legacyHit);
+    }
+  }
+
+  return NextResponse.json({
+    id: message.id,
+    subject: message.subject,
+    from: message.fromName
+      ? `${message.fromName} <${message.fromEmail}>`
+      : message.fromEmail,
+    date: message.date.toISOString(),
+    html: message.htmlBody ? sanitizeEmailHtml(message.htmlBody) : null,
+    body: message.textBody,
+  });
 }

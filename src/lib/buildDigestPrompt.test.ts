@@ -26,4 +26,19 @@ describe("buildDigestPrompt", () => {
     expect(prompt).toContain("file.pdf");
     expect(prompt).toContain("BODY");
   });
+
+  it("includes length-specific rules for concise and elaborate", () => {
+    const meta: ThreadMetadata = {
+      subject: "Budget",
+      participants: [{ name: "Ada", email: "ada@example.com" }],
+      firstDate: "Mon, 1 Jan 2024",
+      lastDate: "Tue, 2 Jan 2024",
+      messageCount: 3,
+    };
+    const concise = buildDigestPrompt("BODY", [], meta, "concise");
+    const elaborate = buildDigestPrompt("BODY", [], meta, "elaborate");
+    expect(concise).toContain("STORY LENGTH (Concise)");
+    expect(elaborate).toContain("STORY LENGTH (Elaborate)");
+    expect(elaborate).toContain("6–8 sentences");
+  });
 });

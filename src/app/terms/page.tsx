@@ -2,14 +2,19 @@ import type { Metadata } from "next";
 import { LegalDocument } from "@/components/landing/legal-document";
 import { MarketingShell } from "@/components/landing/marketing-shell";
 import {
+  BRAND_LEGAL_ADDRESS,
+  BRAND_LEGAL_ENTITY_OFFICIAL,
   BRAND_NAME,
-  BRAND_PRIVACY_URL,
+  BRAND_PRIVACY_PATH,
+  BRAND_REFUNDS_PATH,
   BRAND_SUPPORT_EMAIL,
+  BRAND_TERMS_PATH,
   BRAND_TERMS_URL,
   BRAND_URL,
+  BRAND_VAT_REGISTERED,
 } from "@/lib/brand";
 
-const EFFECTIVE_DATE = "July 13, 2026";
+const EFFECTIVE_DATE = "August 28, 2026";
 
 export const metadata: Metadata = {
   title: `Terms of Service — ${BRAND_NAME}`,
@@ -24,16 +29,18 @@ export default function TermsPage() {
         <p>
           These Terms of Service (&quot;Terms&quot;) govern your access to and
           use of {BRAND_NAME} at <a href={BRAND_URL}>{BRAND_URL}</a> (the
-          &quot;Service&quot;). By using the Service, you agree to these Terms
-          and our <a href={BRAND_PRIVACY_URL}>Privacy Policy</a>.
+          &quot;Service&quot;). The Service is operated by{" "}
+          <strong>{BRAND_LEGAL_ENTITY_OFFICIAL}</strong>, {BRAND_LEGAL_ADDRESS}{" "}
+          (&quot;we&quot;, &quot;us&quot;). By using the Service, you agree to
+          these Terms and our <a href={BRAND_PRIVACY_PATH}>Privacy Policy</a>.
         </p>
 
         <h2>1. The Service</h2>
         <p>
-          {BRAND_NAME} helps you read long Gmail threads by generating
-          structured summaries—stories, timelines, and action lists—from
-          conversations you choose. The Service requires signing in with a Google
-          account and granting read-only Gmail access.
+          {BRAND_NAME} helps you read long email threads by generating
+          structured summaries from conversations you forward to a private
+          address. You sign up with email or optional Google sign-in. We never
+          require access to your inbox.
         </p>
         <p>
           {BRAND_NAME} is an independent tool and is not affiliated with,
@@ -42,25 +49,39 @@ export default function TermsPage() {
 
         <h2>2. Eligibility</h2>
         <p>
-          You must be old enough to use Gmail and enter a binding agreement in
+          You must be old enough to enter a binding agreement in
           your jurisdiction. You are responsible for ensuring your use complies
           with applicable laws and any policies that apply to your email
           content.
         </p>
 
-        <h2>3. Your Google account</h2>
+        <h2>3. Your account</h2>
         <p>
-          You connect the Service to your Google account via OAuth. You are
-          responsible for maintaining the security of your Google credentials and
-          for activity under your account. You may revoke access at any time in{" "}
-          <a
-            href="https://myaccount.google.com/permissions"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            Google Account permissions
-          </a>
-          .
+          You are responsible for your password and for activity under your
+          account. You may delete stories or your entire account in the
+          dashboard. Deleted stories stay in Recently deleted for 30 days before
+          permanent removal unless you delete them permanently sooner. Paid
+          plans are billed by Stripe; cancel anytime. Account deletion cancels a
+          subscription immediately and removes your data without a recovery
+          period.
+        </p>
+        <p>
+          Prices are shown in USD.{" "}
+          {BRAND_VAT_REGISTERED
+            ? "Applicable VAT is shown at checkout."
+            : "We are not registered for VAT in Slovenia, so no VAT is charged on subscriptions."}{" "}
+          See our <a href={BRAND_REFUNDS_PATH}>Refunds &amp; Withdrawal</a>{" "}
+          policy for consumer withdrawal rights.
+        </p>
+
+        <h3>Fair use</h3>
+        <p>
+          The Free plan includes five new stories per calendar month. Pro and
+          Team plans include a fair-use allowance of 500 stories per month (500
+          per seat on Team). If you reach your monthly limit, we continue to
+          store forwarded mail but pause automatic story generation until the
+          next calendar month or until you upgrade. Hourly and daily rate limits
+          may also apply to protect the Service.
         </p>
 
         <h2>4. Acceptable use</h2>
@@ -68,7 +89,7 @@ export default function TermsPage() {
         <ul>
           <li>Use the Service to violate any law or third-party rights.</li>
           <li>
-            Attempt to access Gmail data you are not authorized to view, or
+            Attempt to access mail you are not authorized to view, or
             bypass security or rate limits.
           </li>
           <li>
@@ -86,7 +107,7 @@ export default function TermsPage() {
           Summaries are produced by automated systems (including Google Gemini)
           and may contain errors, omissions, or paraphrasing. They are provided
           for convenience only. <strong>Always verify important details</strong>{" "}
-          against the original Gmail messages before making decisions or sharing
+          against the original messages before making decisions or sharing
           summaries externally.
         </p>
 
@@ -125,8 +146,8 @@ export default function TermsPage() {
 
         <h2>10. Termination</h2>
         <p>
-          You may stop using the Service at any time by signing out and revoking
-          Google access. We may suspend or terminate access if you violate these
+          You may stop using the Service at any time by deleting your account or
+          signing out. We may suspend or terminate access if you violate these
           Terms or if required for security or legal reasons.
         </p>
 

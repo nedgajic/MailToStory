@@ -11,7 +11,7 @@ NC='\033[0m'
 APP_DIR="${1:-/var/www/mailtostory}"
 PM2_APP_NAME="${2:-mailtostory}"
 
-echo -e "${GREEN}MailToStory post-deploy${NC}"
+echo -e "${GREEN}Mail To Story post-deploy${NC}"
 echo "Directory: $APP_DIR"
 echo ""
 

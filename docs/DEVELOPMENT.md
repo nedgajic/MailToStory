@@ -1,4 +1,4 @@
-# MailToStory — development plan
+# Mail To Story — development plan
 
 This is a living backlog: **done** reflects the current repo; **next** is ordered by impact vs. effort.
 

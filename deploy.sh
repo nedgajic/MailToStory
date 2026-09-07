@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Deploy MailToStory to Hostinger VPS via rsync + remote build.
+# Deploy Mail To Story to Hostinger VPS via rsync + remote build.
 #
 # Usage:
 #   ./deploy.sh                 # sync, build on server, reload PM2
@@ -76,7 +76,7 @@ if [ "$DRY_RUN" = 1 ]; then
   echo -e "${YELLOW}DRY RUN — no files uploaded, no remote build${NC}"
 fi
 
-echo -e "${GREEN}Deploying MailToStory to Hostinger${NC}"
+echo -e "${GREEN}Deploying Mail To Story to Hostinger${NC}"
 echo "Host: $HOST"
 echo "User: $USER"
 echo "Remote: $REMOTE_DIR"

@@ -1,13 +1,13 @@
-# MailToStory
+# Mail To Story
 
-Next.js app at [mailtostory.com](https://mailtostory.com): sign in with Google (read-only Gmail), pick a thread, get an LLM-generated **story** (narrative, timeline, actions) in a reader-style UI.
+Next.js app at [mailtostory.com](https://mailtostory.com): sign up, get a private inbound address, **forward** a thread from Gmail/Outlook/Apple Mail, and read an LLM-generated **story** (narrative, timeline, actions). There is no Gmail API access.
 
 ## Prerequisites
 
 - **Node 20.9+** (check with `node -v`; use [nodejs.org](https://nodejs.org/) or `nvm install 20`)
 - **Postgres:** either **Docker** (included—see below) or a hosted database
-- [Google Cloud](https://console.cloud.google.com/) project with **Gmail API** enabled and **OAuth consent** configured
 - [Gemini API](https://ai.google.dev/) key
+- Optional: Postmark (inbound + transactional email), Stripe (paid plans), Google OAuth (identity-only sign-in)
 
 ## Setup (minimum you must do yourself)
 
@@ -65,22 +65,23 @@ npm run doctor
    Fill in / adjust:
 
    - `DATABASE_URL` – use the Docker URL above, or your hosted DB URL
-   - `NEXTAUTH_URL` – e.g. `http://localhost:3000` (production: `https://mailtostory.com`)
+   - `NEXTAUTH_URL` – `http://localhost:3001` for local dev (production: `https://mailtostory.com`)
    - `NEXTAUTH_SECRET` – `openssl rand -base64 32`
-   - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` – OAuth *Web application* client
    - `GEMINI_API_KEY` – Google AI Studio key
+   - Optional `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` – identity-only Google sign-in (no Gmail scopes)
+   - Optional Postmark + Stripe keys — see `.env.example`, **[docs/LAUNCH.md](docs/LAUNCH.md)** (accounts, DNS, Stripe/Gemini/Postmark), and **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** (VPS)
 
-   OAuth redirect URI (Google Cloud Console):
+   If you enable Google sign-in, OAuth redirect URI:
 
-   - Local: `http://localhost:3000/api/auth/callback/google`
+   - Local: `http://localhost:3001/api/auth/callback/google`
    - Production: `https://mailtostory.com/api/auth/callback/google`
-
-   Scopes are requested automatically (`gmail.readonly`, email, profile, openid).
 
 4. **Database schema**
 
+   Migrations run automatically when you start the dev server (`npm run dev`) and after `git pull` when `prisma/` changed. First-time setup (or manual):
+
    ```bash
-   npx prisma migrate deploy
+   npm run db:migrate
    ```
 
 5. **Run**
@@ -89,25 +90,26 @@ npm run doctor
    npm run dev
    ```
 
-   Open [http://localhost:3000](http://localhost:3000), sign in, open **Threads**, then open a thread.
+   Open [http://localhost:3001](http://localhost:3001), create an account, then open **Dashboard** for your inbound address.
 
 ## What only you can provide (secrets and cloud)
 
 Nobody else can create these for you on your machine:
 
 - Postgres **connection string** (`DATABASE_URL`)
-- Google Cloud **OAuth Client ID / Secret** and **Gmail API** enabled
 - **`NEXTAUTH_SECRET`** (random; e.g. `openssl rand -base64 32`)
 - **Gemini API key**
+- Optional: Google **OAuth Client ID / Secret** (identity only), Postmark tokens, Stripe keys
 
-Everything else is either in the repo or one command away (`npm install`, `npx prisma migrate deploy`, `npm run dev`).
+Everything else is either in the repo or one command away (`npm install`, `npm run dev` — migrations apply automatically).
 
 ## Scripts
 
-| Command           | Purpose                |
-| ----------------- | ---------------------- |
-| `npm run doctor`  | Node version + quick file checks |
-| `npm run dev`     | Dev server             |
+| Command              | Purpose                |
+| -------------------- | ---------------------- |
+| `npm run doctor`     | Node version + quick file checks |
+| `npm run db:migrate` | Apply pending Prisma migrations |
+| `npm run dev`        | Apply migrations, then dev server on http://localhost:3001 |
 | `npm run build`   | Production build       |
 | `npm run test`    | Vitest (unit tests)    |
 | `npm run lint`    | ESLint                 |
@@ -118,7 +120,7 @@ Prioritized backlog and tiers: **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)**.
 
 ### Deploy (Hostinger VPS — shared with dt-wellness)
 
-Pre-configured for the same VPS (`31.97.77.179`). See **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**.
+Pre-configured for the same VPS (`31.97.77.179`). Server steps: **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**. Accounts and API keys: **[docs/LAUNCH.md](docs/LAUNCH.md)**.
 
 ```bash
 npm run deploy:bootstrap   # one-time: verify remote dir + print DB/nginx hints
@@ -126,14 +128,15 @@ npm run deploy:dry-run
 npm run deploy
 ```
 
-MailToStory runs on **port 3010** (`mailtostory` PM2 app). dt-wellness (5173), Strapi (1337), and Medusa (9000) are unchanged.
+Mail To Story runs on **port 3010** (`mailtostory` PM2 app). dt-wellness (5173), Strapi (1337), and Medusa (9000) are unchanged.
 
 ## Architecture (short)
 
-- **Auth:** [NextAuth.js](https://next-auth.js.org/) (database sessions) + Prisma + Google provider; refresh token stored for Gmail access.
-- **Gmail:** `googleapis` — list threads and load full thread for story generation.
+- **Auth:** [NextAuth.js](https://next-auth.js.org/) JWT sessions + Prisma; email/password plus optional Google identity.
+- **Inbound:** Postmark webhook stores forwarded mail; Gemini generates a story from that copy.
 - **LLM:** Gemini — tries each API key (`GEMINI_API_KEY`, optional `GEMINI_API_KEY_FALLBACKS`), then similar Flash models per key (default **gemini-2.5-flash** → **gemini-2.5-flash-lite** → **gemini-2.0-flash-lite**) because free-tier quota is **per model** and **per project**. Override with `GEMINI_MODEL` / `GEMINI_MODEL_FALLBACKS`, or enable billing for higher limits ([rate limits](https://ai.google.dev/gemini-api/docs/rate-limits)).
+- **Billing:** Stripe Checkout, Customer Portal, invoices, and seat quantity for Team.
 
 ## Privacy note
 
-Story text is produced on demand and returned to your browser. This MVP does not persist email bodies in the app database—only auth/session/account tokens as required by NextAuth.
+Forwarded mail and generated stories are stored until you delete them. Deleted stories stay in Recently deleted for 30 days before permanent removal. We never connect to your inbox. See the in-app [Privacy Policy](https://mailtostory.com/privacy).

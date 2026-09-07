@@ -1,5 +1,14 @@
 import type { Digest, NarrativeBlock } from "@/lib/digest-schema";
 import { extractUrlsFromText, stripUrlsFromText } from "@/lib/extractUrlsFromText";
+import {
+  buildParticipantColorMap,
+  participantColorIndex,
+  speakerColorKey,
+} from "@/lib/participantColors";
+import { SPEAKER_PALETTE_SIZE } from "@/lib/storySpeakerPalettes";
+import type { ParticipantLite } from "@/lib/speakerAvatar";
+import { resolveSpeakerToEmail } from "@/lib/speakerAvatar";
+import type { StoryColorMode, StoryDisplayTheme } from "@/lib/story-reading-theme";
 import { stripTrackingNoiseFromProse } from "@/lib/stripTrackingNoiseFromProse";
 
 export const DIGEST_STATUS_LABEL: Record<Digest["status"], string> = {
@@ -68,10 +77,36 @@ export function formatExportMeta(digest: Digest, generatedAt = new Date()): stri
   return `${formatStoryMeta(digest)} · ${generated}`;
 }
 
+export function firstTurnParticipantKeyFromDigest(
+  digest: Digest,
+): string | null {
+  const first = proseBlocksForExport(digest.narrative)[0];
+  if (!first?.speaker?.trim()) return null;
+  const email = resolveSpeakerToEmail(first.speaker.trim(), digest.participants);
+  return speakerColorKey(first.speaker, email);
+}
+
+export function buildDigestParticipantColorMap(
+  digest: Digest,
+  theme: StoryDisplayTheme,
+  colorMode: StoryColorMode,
+): Map<string, number> {
+  return buildParticipantColorMap(digest.participants, {
+    theme,
+    colorMode,
+    firstTurnParticipantKey: firstTurnParticipantKeyFromDigest(digest),
+  });
+}
+
 export function speakerPanelIndex(
-  speaker: string | undefined,
+  speaker: string | null | undefined,
   email: string | null,
+  participants?: ParticipantLite[],
+  colorMap?: Map<string, number>,
 ): number | null {
+  if (participants && participants.length > 0) {
+    return participantColorIndex(participants, speaker, email, colorMap);
+  }
   const who = speaker?.trim();
   if (!who) return null;
   const key = (email || who).trim();
@@ -79,11 +114,13 @@ export function speakerPanelIndex(
   for (let i = 0; i < key.length; i++) {
     h = (h * 33 + key.charCodeAt(i)) | 0;
   }
-  return Math.abs(h) % 5;
+  return Math.abs(h) % SPEAKER_PALETTE_SIZE;
 }
 
+export { buildParticipantColorMap, participantColorIndex };
+
 export function formatSpeakerLabel(
-  speaker: string | undefined,
+  speaker: string | null | undefined,
   messageIndex: number | null | undefined,
 ): string {
   const who = speaker?.trim();

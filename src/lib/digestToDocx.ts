@@ -12,10 +12,8 @@ import {
   WidthType,
 } from "docx";
 import type { Digest } from "@/lib/digest-schema";
-import { BRAND_EXPORT_ATTRIBUTION, BRAND_NAME, BRAND_URL } from "@/lib/brand";
+import { BRAND_EXPORT_ATTRIBUTION, BRAND_EXPORT_FOOTER, BRAND_NAME } from "@/lib/brand";
 import {
-  DIGEST_EXPORT_MONO,
-  DIGEST_EXPORT_SERIF,
   DIGEST_STATUS_LABEL,
   DIGEST_STATUS_STYLE,
   formatActionItem,
@@ -23,158 +21,204 @@ import {
   formatSpeakerLabel,
   formatStoryMeta,
   formatTimelineMeta,
+  buildDigestParticipantColorMap,
   proseBlocksForExport,
   proseExportParts,
   speakerPanelIndex,
 } from "@/lib/digestExportContent";
-import { DIGEST_EXPORT_THEME as T } from "@/lib/digestExportTheme";
+import {
+  getDigestExportTheme,
+  type DigestExportThemeConfig,
+} from "@/lib/digestExportTheme";
+import type { StoryColorMode, StoryDisplayTheme } from "@/lib/story-reading-theme";
 import { displayUrlLabel } from "@/lib/extractUrlsFromText";
 import { stripTrackingNoiseFromProse } from "@/lib/stripTrackingNoiseFromProse";
 import { resolveSpeakerToEmail } from "@/lib/speakerAvatar";
 
-function monoRun(
-  text: string,
-  opts: {
-    size?: number;
-    bold?: boolean;
-    color?: string;
-    italics?: boolean;
-    caps?: boolean;
-    spacing?: number;
-  } = {},
-): TextRun {
-  return new TextRun({
-    text,
-    font: DIGEST_EXPORT_MONO,
-    size: opts.size ?? 16,
-    bold: opts.bold,
-    italics: opts.italics,
-    color: opts.color ?? T.proseSoft.replace("#", ""),
-    allCaps: opts.caps,
-    characterSpacing: opts.spacing,
-  });
+function hex(color: string): string {
+  return color.replace("#", "");
 }
 
-function serifRun(
-  text: string,
-  opts: {
-    size?: number;
-    bold?: boolean;
-    color?: string;
-    italics?: boolean;
-  } = {},
-): TextRun {
-  return new TextRun({
-    text,
-    font: DIGEST_EXPORT_SERIF,
-    size: opts.size ?? 22,
-    bold: opts.bold,
-    italics: opts.italics,
-    color: opts.color ?? T.prose.replace("#", ""),
-  });
+function borderStyle(theme: DigestExportThemeConfig) {
+  return theme.recapBorderStyle === "dashed"
+    ? BorderStyle.DASHED
+    : BorderStyle.SINGLE;
 }
 
-function sectionTitle(text: string): Paragraph {
-  return new Paragraph({
-    spacing: { before: 260, after: 160 },
-    border: {
-      bottom: {
-        style: BorderStyle.SINGLE,
-        size: 6,
-        color: T.border.replace("#", ""),
-        space: 1,
+function createDocxBuilders(
+  theme: DigestExportThemeConfig,
+  colorMap: Map<string, number>,
+) {
+  function monoRun(
+    text: string,
+    opts: {
+      size?: number;
+      bold?: boolean;
+      color?: string;
+      italics?: boolean;
+      caps?: boolean;
+      spacing?: number;
+    } = {},
+  ): TextRun {
+    return new TextRun({
+      text,
+      font: theme.monoFont,
+      size: opts.size ?? 16,
+      bold: opts.bold,
+      italics: opts.italics,
+      color: opts.color ?? hex(theme.proseSoft),
+      allCaps: opts.caps ?? theme.speakerCaps,
+      characterSpacing: opts.spacing ?? theme.speakerLetterSpacing * 10,
+    });
+  }
+
+  function serifRun(
+    text: string,
+    opts: {
+      size?: number;
+      bold?: boolean;
+      color?: string;
+      italics?: boolean;
+      caps?: boolean;
+    } = {},
+  ): TextRun {
+    return new TextRun({
+      text,
+      font: theme.serifFont,
+      size: opts.size ?? Math.round(theme.proseSize * 2),
+      bold: opts.bold,
+      italics: opts.italics ?? theme.titleItalic,
+      allCaps: opts.caps ?? false,
+      color: opts.color ?? hex(theme.prose),
+    });
+  }
+
+  function sectionTitle(text: string): Paragraph {
+    return new Paragraph({
+      spacing: { before: 260, after: 160 },
+      border: {
+        bottom: {
+          style: borderStyle(theme),
+          size: 6,
+          color: hex(theme.border),
+          space: 1,
+        },
       },
-    },
-    children: [
-      monoRun(text, {
-        size: 13,
-        caps: true,
-        spacing: 28,
-        color: T.muted.replace("#", ""),
-      }),
-    ],
-  });
+      children: [
+        monoRun(text, {
+          size: 13,
+          caps: true,
+          spacing: theme.sectionLetterSpacing * 10,
+          color: hex(theme.muted),
+        }),
+      ],
+    });
+  }
+
+  function speakerPanelTable(
+    digest: Digest,
+    speaker: string | undefined,
+    children: Paragraph[],
+  ): Table {
+    const email = speaker?.trim()
+      ? resolveSpeakerToEmail(speaker.trim(), digest.participants)
+      : null;
+    const idx = speakerPanelIndex(speaker, email, digest.participants, colorMap);
+    const fill =
+      idx != null ? hex(theme.speakerBg[idx]) : hex(theme.pageBg);
+    const accent =
+      idx != null ? hex(theme.speakerAccent[idx]) : hex(theme.border);
+    const useRight =
+      theme.panelUseRightAccent && idx != null && idx % 2 === 1;
+    const edgeStyle = borderStyle(theme);
+
+    const accentCell = new TableCell({
+      width: { size: 1.5, type: WidthType.PERCENTAGE },
+      shading: { type: ShadingType.CLEAR, fill: accent },
+      borders: {
+        top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+        bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+        left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+        right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+      },
+      children: [new Paragraph({ text: "" })],
+    });
+
+    const contentCell = new TableCell({
+      width: { size: 98.5, type: WidthType.PERCENTAGE },
+      shading: { type: ShadingType.CLEAR, fill },
+      margins: { top: 120, bottom: 120, left: 160, right: 160 },
+      borders: {
+        top: { style: edgeStyle, size: 4, color: hex(theme.border) },
+        bottom: { style: edgeStyle, size: 4, color: hex(theme.border) },
+        right: { style: edgeStyle, size: 4, color: hex(theme.border) },
+        left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+      },
+      children,
+    });
+
+    if (theme.panelBorderLeftWidth === 0) {
+      return new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: [
+          new TableRow({
+            children: [contentCell],
+          }),
+        ],
+      });
+    }
+
+    return new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [
+        new TableRow({
+          children: useRight ? [contentCell, accentCell] : [accentCell, contentCell],
+        }),
+      ],
+    });
+  }
+
+  return { monoRun, serifRun, sectionTitle, speakerPanelTable };
 }
 
 function spacer(): Paragraph {
   return new Paragraph({ text: "" });
 }
 
-function speakerPanelTable(
+export async function digestToDocxBuffer(
   digest: Digest,
-  speaker: string | undefined,
-  children: Paragraph[],
-): Table {
-  const email = speaker?.trim()
-    ? resolveSpeakerToEmail(speaker.trim(), digest.participants)
-    : null;
-  const idx = speakerPanelIndex(speaker, email);
-  const fill =
-    idx != null ? T.speakerBg[idx].replace("#", "") : T.pageBg.replace("#", "");
-  const accent =
-    idx != null ? T.speakerAccent[idx].replace("#", "") : T.border.replace("#", "");
-
-  return new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
-    rows: [
-      new TableRow({
-        children: [
-          new TableCell({
-            width: { size: 1.5, type: WidthType.PERCENTAGE },
-            shading: { type: ShadingType.CLEAR, fill: accent },
-            borders: {
-              top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-              bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-              left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-              right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-            },
-            children: [new Paragraph({ text: "" })],
-          }),
-          new TableCell({
-            width: { size: 98.5, type: WidthType.PERCENTAGE },
-            shading: { type: ShadingType.CLEAR, fill },
-            margins: { top: 120, bottom: 120, left: 160, right: 160 },
-            borders: {
-              top: { style: BorderStyle.SINGLE, size: 4, color: T.border.replace("#", "") },
-              bottom: { style: BorderStyle.SINGLE, size: 4, color: T.border.replace("#", "") },
-              right: { style: BorderStyle.SINGLE, size: 4, color: T.border.replace("#", "") },
-              left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
-            },
-            children,
-          }),
-        ],
-      }),
-    ],
-  });
-}
-
-export async function digestToDocxBuffer(digest: Digest): Promise<Buffer> {
+  displayTheme: StoryDisplayTheme = "dossier",
+  colorMode: StoryColorMode = "light",
+): Promise<Buffer> {
+  const theme = getDigestExportTheme(displayTheme, colorMode);
+  const participantColorMap = buildDigestParticipantColorMap(
+    digest,
+    displayTheme,
+    colorMode,
+  );
+  const { monoRun, serifRun, sectionTitle, speakerPanelTable } =
+    createDocxBuilders(theme, participantColorMap);
   const parts: Array<Paragraph | Table> = [];
   const statusStyle = DIGEST_STATUS_STYLE[digest.status];
+  const edgeStyle = borderStyle(theme);
 
   parts.push(
     new Paragraph({
       spacing: { after: 100 },
       children: [
-        monoRun("Thread story", {
-          size: 12,
-          caps: true,
-          spacing: 30,
-          color: T.titleSub.replace("#", ""),
+        serifRun(digest.title, {
+          size: Math.round(theme.titleSize * 2),
+          color: hex(theme.title),
+          italics: theme.titleItalic,
+          caps: theme.titleUppercase,
         }),
       ],
     }),
   );
   parts.push(
     new Paragraph({
-      spacing: { after: 100 },
-      children: [serifRun(digest.title, { size: 44, color: T.title.replace("#", "") })],
-    }),
-  );
-  parts.push(
-    new Paragraph({
       spacing: { after: 280 },
-      children: [monoRun(formatStoryMeta(digest), { size: 14, color: T.muted.replace("#", "") })],
+      children: [monoRun(formatStoryMeta(digest), { size: 14, color: hex(theme.muted) })],
     }),
   );
 
@@ -186,7 +230,7 @@ export async function digestToDocxBuffer(digest: Digest): Promise<Buffer> {
           children: [
             new TableCell({
               width: { size: 1.2, type: WidthType.PERCENTAGE },
-              shading: { type: ShadingType.CLEAR, fill: T.recapRuleStrong.replace("#", "") },
+              shading: { type: ShadingType.CLEAR, fill: hex(theme.recapRuleStrong) },
               borders: {
                 top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
                 bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
@@ -197,13 +241,13 @@ export async function digestToDocxBuffer(digest: Digest): Promise<Buffer> {
             }),
             new TableCell({
               width: { size: 98.8, type: WidthType.PERCENTAGE },
-              shading: { type: ShadingType.CLEAR, fill: T.recapTint.replace("#", "") },
+              shading: { type: ShadingType.CLEAR, fill: hex(theme.recapTint) },
               margins: { top: 140, bottom: 140, left: 180, right: 120 },
               borders: {
                 top: {
-                  style: BorderStyle.SINGLE,
+                  style: edgeStyle,
                   size: 6,
-                  color: T.recapRule.replace("#", ""),
+                  color: hex(theme.recapRule),
                 },
                 bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
                 left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
@@ -217,13 +261,13 @@ export async function digestToDocxBuffer(digest: Digest): Promise<Buffer> {
                       size: 12,
                       bold: true,
                       caps: true,
-                      spacing: 24,
-                      color: T.copyFg.replace("#", ""),
+                      spacing: theme.sectionLetterSpacing * 10,
+                      color: hex(theme.copyFg),
                     }),
                     new TextRun({ text: "  " }),
                     new TextRun({
                       text: DIGEST_STATUS_LABEL[digest.status],
-                      font: DIGEST_EXPORT_MONO,
+                      font: theme.monoFont,
                       size: 12,
                       bold: true,
                       color: statusStyle.labelColor,
@@ -235,8 +279,9 @@ export async function digestToDocxBuffer(digest: Digest): Promise<Buffer> {
                 new Paragraph({
                   children: [
                     serifRun(stripTrackingNoiseFromProse(digest.resolution_summary), {
-                      size: 24,
-                      color: T.recapSummary.replace("#", ""),
+                      size: Math.round(theme.recapSize * 2),
+                      color: hex(theme.recapSummary),
+                      italics: theme.recapItalic,
                     }),
                   ],
                 }),
@@ -253,6 +298,15 @@ export async function digestToDocxBuffer(digest: Digest): Promise<Buffer> {
 
   for (const block of proseBlocksForExport(digest.narrative)) {
     const speaker = formatSpeakerLabel(block.speaker, block.message_index);
+    const email = block.speaker?.trim()
+      ? resolveSpeakerToEmail(block.speaker.trim(), digest.participants)
+      : null;
+    const colorIdx = speakerPanelIndex(
+      block.speaker,
+      email,
+      digest.participants,
+      participantColorMap,
+    );
     const { body, urls } = proseExportParts(block.content);
     const turnParts: Paragraph[] = [];
 
@@ -260,7 +314,16 @@ export async function digestToDocxBuffer(digest: Digest): Promise<Buffer> {
       turnParts.push(
         new Paragraph({
           spacing: { after: 80 },
-          children: [monoRun(speaker, { size: 14, bold: true })],
+          children: [
+            monoRun(speaker, {
+              size: 14,
+              bold: true,
+              color:
+                colorIdx != null
+                  ? hex(theme.speakerAccent[colorIdx])
+                  : undefined,
+            }),
+          ],
         }),
       );
     }
@@ -269,7 +332,12 @@ export async function digestToDocxBuffer(digest: Digest): Promise<Buffer> {
       new Paragraph({
         spacing: { after: urls.length > 0 ? 80 : 0 },
         alignment: AlignmentType.JUSTIFIED,
-        children: [serifRun(body, { size: 23 })],
+        children: [
+          serifRun(body, {
+            size: Math.round(theme.proseSize * 2),
+            italics: theme.titleItalic && displayTheme === "moonletter",
+          }),
+        ],
       }),
     );
 
@@ -277,20 +345,20 @@ export async function digestToDocxBuffer(digest: Digest): Promise<Buffer> {
       turnParts.push(
         new Paragraph({
           spacing: { after: 60 },
-          shading: { type: ShadingType.CLEAR, fill: T.surface2.replace("#", "") },
+          shading: { type: ShadingType.CLEAR, fill: hex(theme.surface2) },
           border: {
-            top: { style: BorderStyle.SINGLE, size: 4, color: T.border.replace("#", "") },
-            bottom: { style: BorderStyle.SINGLE, size: 4, color: T.border.replace("#", "") },
-            left: { style: BorderStyle.SINGLE, size: 4, color: T.border.replace("#", "") },
-            right: { style: BorderStyle.SINGLE, size: 4, color: T.border.replace("#", "") },
+            top: { style: edgeStyle, size: 4, color: hex(theme.border) },
+            bottom: { style: edgeStyle, size: 4, color: hex(theme.border) },
+            left: { style: edgeStyle, size: 4, color: hex(theme.border) },
+            right: { style: edgeStyle, size: 4, color: hex(theme.border) },
           },
           children: [
             monoRun("Links", {
               size: 11,
               bold: true,
               caps: true,
-              spacing: 18,
-              color: T.proseSofter.replace("#", ""),
+              spacing: theme.sectionLetterSpacing * 10,
+              color: hex(theme.proseSofter),
             }),
           ],
         }),
@@ -302,7 +370,7 @@ export async function digestToDocxBuffer(digest: Digest): Promise<Buffer> {
             children: [
               monoRun(`↗ ${displayUrlLabel(href)}`, {
                 size: 14,
-                color: T.copyFg.replace("#", ""),
+                color: hex(theme.copyFg),
               }),
             ],
           }),
@@ -322,7 +390,12 @@ export async function digestToDocxBuffer(digest: Digest): Promise<Buffer> {
   if (digest.timeline.length === 0) {
     parts.push(
       new Paragraph({
-        children: [serifRun("No timeline entries.", { italics: true, color: T.proseFaint.replace("#", "") })],
+        children: [
+          serifRun("No timeline entries.", {
+            italics: true,
+            color: hex(theme.proseFaint),
+          }),
+        ],
       }),
     );
   } else {
@@ -332,15 +405,18 @@ export async function digestToDocxBuffer(digest: Digest): Promise<Buffer> {
           spacing: { before: 80, after: 40 },
           border: {
             left: {
-              style: BorderStyle.SINGLE,
+              style: edgeStyle,
               size: 8,
-              color: T.timelineLine.replace("#", ""),
+              color: hex(theme.timelineLine),
               space: 4,
             },
           },
           indent: { left: 220 },
           children: [
-            monoRun(formatTimelineMeta(event), { size: 14, color: T.proseSofter.replace("#", "") }),
+            monoRun(formatTimelineMeta(event), {
+              size: 14,
+              color: hex(theme.proseSofter),
+            }),
             new TextRun({ text: "", break: 1 }),
             serifRun(event.summary, { size: 21 }),
           ],
@@ -353,7 +429,9 @@ export async function digestToDocxBuffer(digest: Digest): Promise<Buffer> {
   if (digest.action_items.length === 0) {
     parts.push(
       new Paragraph({
-        children: [serifRun("None.", { italics: true, color: T.proseFaint.replace("#", "") })],
+        children: [
+          serifRun("None.", { italics: true, color: hex(theme.proseFaint) }),
+        ],
       }),
     );
   } else {
@@ -382,12 +460,7 @@ export async function digestToDocxBuffer(digest: Digest): Promise<Buffer> {
   parts.push(
     new Paragraph({
       alignment: AlignmentType.CENTER,
-      children: [
-        monoRun(
-          `${BRAND_NAME} · ${BRAND_URL.replace("https://", "")} · On-demand generation · Email remains in Google`,
-          { size: 13, color: T.proseFaint.replace("#", "") },
-        ),
-      ],
+      children: [monoRun(BRAND_EXPORT_FOOTER, { size: 13, color: hex(theme.proseFaint) })],
     }),
   );
   parts.push(
@@ -396,7 +469,7 @@ export async function digestToDocxBuffer(digest: Digest): Promise<Buffer> {
       children: [
         serifRun(BRAND_EXPORT_ATTRIBUTION, {
           italics: true,
-          color: T.proseFaint.replace("#", ""),
+          color: hex(theme.proseFaint),
           size: 16,
         }),
       ],

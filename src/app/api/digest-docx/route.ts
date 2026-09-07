@@ -2,8 +2,16 @@ import { authOptions } from "@/auth";
 import { digestPdfBaseFilename } from "@/lib/digestPdfFilename";
 import { digestSchema } from "@/lib/digest-schema";
 import { digestToDocxBuffer } from "@/lib/digestToDocx";
+import { parseStoryColorModeInput, parseStoryDisplayThemeInput } from "@/lib/story-display-theme-schema";
 import { getServerSession } from "next-auth/next";
 import { NextResponse } from "next/server";
+import { z } from "zod";
+
+const bodySchema = z.object({
+  digest: digestSchema,
+  displayTheme: z.enum(["dossier", "moonletter", "wayfarer"]).optional(),
+  colorMode: z.enum(["light", "dark"]).optional(),
+});
 
 export const runtime = "nodejs";
 
@@ -20,20 +28,21 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const raw =
-    typeof body === "object" &&
-    body !== null &&
-    "digest" in body &&
-    (body as { digest: unknown }).digest;
-
-  const parsed = digestSchema.safeParse(raw);
+  const parsed = bodySchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid digest payload" }, { status: 400 });
   }
 
+  const displayTheme = parseStoryDisplayThemeInput(parsed.data.displayTheme);
+  const colorMode = parseStoryColorModeInput(parsed.data.colorMode);
+
   try {
-    const buffer = await digestToDocxBuffer(parsed.data);
-    const base = digestPdfBaseFilename(parsed.data.title);
+    const buffer = await digestToDocxBuffer(
+      parsed.data.digest,
+      displayTheme,
+      colorMode,
+    );
+    const base = digestPdfBaseFilename(parsed.data.digest.title);
     const filename = `${base}.docx`;
 
     return new NextResponse(new Uint8Array(buffer), {

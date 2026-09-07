@@ -6,14 +6,13 @@ import { useState } from "react";
 type GoogleSignInButtonProps = {
   className?: string;
   children: React.ReactNode;
-  /** Clear stale Google tokens before OAuth (fixes invalid_grant). */
-  reconnect?: boolean;
+  callbackUrl?: string;
 };
 
 export function GoogleSignInButton({
   className,
   children,
-  reconnect = false,
+  callbackUrl = "/dashboard",
 }: GoogleSignInButtonProps) {
   const [busy, setBusy] = useState(false);
 
@@ -26,10 +25,7 @@ export function GoogleSignInButton({
         setBusy(true);
         void (async () => {
           try {
-            if (reconnect) {
-              await fetch("/api/auth/reconnect-google", { method: "POST" });
-            }
-            await signIn("google", { callbackUrl: "/threads" });
+            await signIn("google", { callbackUrl });
           } finally {
             setBusy(false);
           }

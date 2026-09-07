@@ -1,0 +1,22 @@
+#!/bin/sh
+# After branch checkout: apply Prisma migrations when schema files changed.
+
+prev=$1
+next=$2
+flag=$3
+
+# Skip file checkout (flag includes 1)
+case "$flag" in
+  *1*) exit 0 ;;
+esac
+
+if [ "$prev" = "$next" ]; then
+  exit 0
+fi
+
+changed=$(git diff --name-only "$prev" "$next" 2>/dev/null | grep -E '^prisma/' || true)
+
+if [ -n "$changed" ]; then
+  echo "[mailtostory] Prisma files changed on checkout — running migrations…"
+  node scripts/ensure-migrations.mjs
+fi

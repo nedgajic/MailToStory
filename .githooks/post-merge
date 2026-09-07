@@ -1,0 +1,11 @@
+#!/bin/sh
+# After git pull / merge: apply Prisma migrations when schema files changed.
+
+set -e
+
+changed=$(git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD 2>/dev/null | grep -E '^prisma/' || true)
+
+if [ -n "$changed" ]; then
+  echo "[mailtostory] Prisma files changed — running migrations…"
+  node scripts/ensure-migrations.mjs
+fi

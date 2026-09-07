@@ -1,104 +1,142 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import { signOut, useSession } from "next-auth/react";
-import { BRAND_NAME, BRAND_ICON_PATH, BRAND_PRIVACY_URL, BRAND_TERMS_URL } from "@/lib/brand";
-import { createPortal } from "react-dom";
+import { usePathname } from "next/navigation";
+import { BrandLogo } from "@/components/brand-logo";
+import { AppUserMenu } from "@/components/app-user-menu";
+import { BRAND_NAME, BRAND_LOGO_TEXT } from "@/lib/brand";
+import { useEffect, useState, type ReactNode } from "react";
 import {
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+  StoriesNavBadge,
+  useStoriesNavBadgeCount,
+} from "@/components/stories/stories-nav-badge";
+import { MobileAppNavSection } from "@/components/mobile-app-nav-section";
+import { MobileNavPanel } from "@/components/mobile-nav-panel";
+import type { PlanId } from "@/lib/billing/plans";
+import "@/app/marketing-home.css";
 
-function getInitials(name: string) {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
+const APP_NAV: readonly { href: string; label: string }[] = [
+  { href: "/dashboard", label: "Overview" },
+  { href: "/stories", label: "Stories" },
+];
+
+function isNavActive(pathname: string, href: string): boolean {
+  if (href === "/dashboard") return pathname === "/dashboard";
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 export type AppTopBarProps = {
-  /** Left / center cluster (e.g. Back link + export actions). Omit on inbox for profile-only bar. */
   startSlot?: ReactNode;
-  /** Match content width to the page shell. */
-  contentMaxWidth?: "digest" | "inbox";
+  contentMaxWidth?: "digest" | "inbox" | "app";
+  showNav?: boolean;
+  canManageTeam?: boolean;
+  plan?: PlanId;
+  billingLabel?: string | null;
 };
 
-export function AppTopBar({ startSlot, contentMaxWidth = "digest" }: AppTopBarProps) {
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [userDropdownPos, setUserDropdownPos] = useState<{ top: number; right: number } | null>(
-    null,
-  );
-  const userMenuRef = useRef<HTMLDivElement>(null);
-  const userDropdownRef = useRef<HTMLDivElement>(null);
-  const { data: session, status: sessionStatus } = useSession();
-
-  useLayoutEffect(() => {
-    if (!userMenuOpen) {
-      setUserDropdownPos(null);
-      return;
-    }
-    const menuRoot = userMenuRef.current;
-    if (!menuRoot || !menuRoot.querySelector(".app-top-bar__user-trigger")) return;
-
-    function updatePosition() {
-      const root = userMenuRef.current;
-      if (!root) return;
-      const btn = root.querySelector<HTMLButtonElement>(".app-top-bar__user-trigger");
-      if (!btn) return;
-      const r = btn.getBoundingClientRect();
-      setUserDropdownPos({
-        top: r.bottom + 6,
-        right: window.innerWidth - r.right,
-      });
-    }
-
-    updatePosition();
-    window.addEventListener("scroll", updatePosition, true);
-    window.addEventListener("resize", updatePosition);
-    return () => {
-      window.removeEventListener("scroll", updatePosition, true);
-      window.removeEventListener("resize", updatePosition);
-    };
-  }, [userMenuOpen]);
+export function AppTopBar({
+  startSlot,
+  contentMaxWidth = "digest",
+  showNav = false,
+  canManageTeam = false,
+  plan = "free",
+  billingLabel = null,
+}: AppTopBarProps) {
+  const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const storiesNavBadgeCount = useStoriesNavBadgeCount(showNav);
 
   useEffect(() => {
-    if (!userMenuOpen) return;
-    function onDocMouseDown(e: MouseEvent) {
-      const t = e.target as Node;
-      if (userMenuRef.current?.contains(t)) return;
-      if (userDropdownRef.current?.contains(t)) return;
-      setUserMenuOpen(false);
-    }
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") setUserMenuOpen(false);
-    }
-    document.addEventListener("mousedown", onDocMouseDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", onDocMouseDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [userMenuOpen]);
+    setMenuOpen(false);
+  }, [pathname]);
 
-  const accountUser = session?.user;
-  const accountLabel =
-    accountUser?.name?.trim() ||
-    accountUser?.email?.split("@")[0]?.trim() ||
-    "Account";
-  const accountInitials = getInitials(
-    accountUser?.name?.trim() || accountUser?.email || "?",
+  const userMenu = (
+    <AppUserMenu
+      triggerClassName="app-top-bar__user-trigger--shell"
+      canManageTeam={canManageTeam}
+      plan={plan}
+    />
   );
+
+  if (showNav) {
+    function navClass(href: string) {
+      const classes = ["mkt-nav__btn"];
+      if (isNavActive(pathname, href)) classes.push("mkt-nav__btn--active");
+      return classes.join(" ");
+    }
+
+    return (
+      <header
+        className="mkt-header mkt-header--scrolled sn-site-header app-top-bar app-top-bar--shell"
+        role="banner"
+      >
+        <div className="mkt-container mkt-header__inner">
+          <Link href="/" className="mkt-logo" aria-label={`${BRAND_NAME} home`}>
+            <BrandLogo
+              width={56}
+              height={56}
+              className="mkt-logo__img"
+              priority
+            />
+            <span className="mkt-logo__word">{BRAND_LOGO_TEXT}</span>
+          </Link>
+
+          <nav className="mkt-nav sn-site-header__nav-pill" aria-label="App">
+            {APP_NAV.map(({ href, label }) => (
+              <Link key={href} href={href} className={navClass(href)}>
+                {label}
+                {href === "/stories" ? (
+                  <StoriesNavBadge count={storiesNavBadgeCount} />
+                ) : null}
+              </Link>
+            ))}
+          </nav>
+
+          <div className="mkt-header__cta app-top-bar__shell-end app-top-bar__shell-user app-top-bar__shell-user--desktop">
+            {userMenu}
+          </div>
+
+          <div className="mkt-header__end app-top-bar__shell-mobile-end">
+            <button
+              type="button"
+              className="mkt-header__menu-btn"
+              aria-label={menuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen((open) => !open)}
+            >
+              {menuOpen ? (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                  <path d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              )}
+            </button>
+            <div className="app-top-bar__shell-user app-top-bar__shell-user--mobile">
+              {userMenu}
+            </div>
+          </div>
+        </div>
+
+        <MobileNavPanel
+          open={menuOpen}
+          onClose={() => setMenuOpen(false)}
+          label="App"
+        >
+          <MobileAppNavSection onNavigate={() => setMenuOpen(false)} />
+        </MobileNavPanel>
+      </header>
+    );
+  }
 
   const innerMods =
     contentMaxWidth === "inbox"
       ? "app-top-bar__inner app-top-bar__inner--inbox"
-      : "app-top-bar__inner app-top-bar__inner--digest";
+      : contentMaxWidth === "app"
+        ? "app-top-bar__inner app-top-bar__inner--app"
+        : "app-top-bar__inner app-top-bar__inner--digest";
 
   const headerClass =
     contentMaxWidth === "inbox"
@@ -116,77 +154,13 @@ export function AppTopBar({ startSlot, contentMaxWidth = "digest" }: AppTopBarPr
             ) : null}
           </div>
           <div className="app-top-bar__end">
-            <div className="app-top-bar__user-menu" ref={userMenuRef}>
-              <button
-                type="button"
-                className="app-top-bar__user-trigger"
-                aria-label={`Account menu for ${accountLabel}`}
-                aria-haspopup="menu"
-                aria-expanded={userMenuOpen}
-                disabled={sessionStatus === "loading"}
-                onClick={() => setUserMenuOpen((o) => !o)}
-              >
-                {accountUser?.image ? (
-                  <img
-                    src={accountUser.image}
-                    alt=""
-                    width={32}
-                    height={32}
-                    className="app-top-bar__user-img"
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  <span className="app-top-bar__user-initials" aria-hidden>
-                    {sessionStatus === "loading" ? "…" : accountInitials}
-                  </span>
-                )}
-              </button>
-            </div>
+            {billingLabel ? (
+              <p className="app-top-bar__bill">{billingLabel}</p>
+            ) : null}
+            {userMenu}
           </div>
         </div>
       </div>
-      {userMenuOpen && userDropdownPos && typeof document !== "undefined"
-        ? createPortal(
-            <div
-              ref={userDropdownRef}
-              className="app-top-bar__user-dropdown app-top-bar__user-dropdown--fixed"
-              style={{
-                top: userDropdownPos.top,
-                right: userDropdownPos.right,
-              }}
-              role="menu"
-            >
-              <a
-                href={BRAND_PRIVACY_URL}
-                role="menuitem"
-                className="app-top-bar__user-item app-top-bar__user-item--link"
-                onClick={() => setUserMenuOpen(false)}
-              >
-                Privacy Policy
-              </a>
-              <a
-                href={BRAND_TERMS_URL}
-                role="menuitem"
-                className="app-top-bar__user-item app-top-bar__user-item--link"
-                onClick={() => setUserMenuOpen(false)}
-              >
-                Terms of Service
-              </a>
-              <button
-                type="button"
-                role="menuitem"
-                className="app-top-bar__user-item"
-                onClick={() => {
-                  setUserMenuOpen(false);
-                  void signOut({ callbackUrl: "/" });
-                }}
-              >
-                Log out
-              </button>
-            </div>,
-            document.body,
-          )
-        : null}
     </header>
   );
 }
@@ -194,16 +168,14 @@ export function AppTopBar({ startSlot, contentMaxWidth = "digest" }: AppTopBarPr
 /** Brand mark + title for the logged-in app shell. */
 export function AppTopBarBrand() {
   return (
-    <Link href="/threads" className="app-top-bar__brand">
-      <Image
-        src={BRAND_ICON_PATH}
-        alt=""
+    <Link href="/" className="app-top-bar__brand">
+      <BrandLogo
         width={28}
         height={28}
         className="app-top-bar__brand-icon"
         priority
       />
-      <span className="app-top-bar__brand-text">{BRAND_NAME}</span>
+      <span className="app-top-bar__brand-text">{BRAND_LOGO_TEXT}</span>
     </Link>
   );
 }
@@ -211,7 +183,7 @@ export function AppTopBarBrand() {
 /** Convenience: Back link styled for the top bar. */
 export function AppTopBarBackLink() {
   return (
-    <Link href="/threads" className="app-top-bar__back">
+    <Link href="/dashboard" className="app-top-bar__back">
       Back
     </Link>
   );
