@@ -106,9 +106,17 @@ export function AppUserMenu({
       const btn = root.querySelector<HTMLButtonElement>(".app-top-bar__user-trigger");
       if (!btn) return;
       const r = btn.getBoundingClientRect();
+      const viewportPad = 8;
+      const dropdownWidth = Math.min(260, window.innerWidth - viewportPad * 2);
+      let right = window.innerWidth - r.right;
+      const leftEdge = r.right - dropdownWidth;
+      if (leftEdge < viewportPad) {
+        right = window.innerWidth - viewportPad - dropdownWidth;
+      }
+      right = Math.max(viewportPad, right);
       setUserDropdownPos({
         top: r.bottom + 6,
-        right: window.innerWidth - r.right,
+        right,
       });
     }
 
@@ -207,6 +215,19 @@ export function AppUserMenu({
               }}
               role="menu"
             >
+              <div className="app-top-bar__user-dropdown__header">
+                <p className="app-top-bar__user-dropdown__name">{accountLabel}</p>
+                {accountUser?.email ? (
+                  <p className="app-top-bar__user-dropdown__email">
+                    {accountUser.email}
+                  </p>
+                ) : null}
+              </div>
+              <div
+                className="app-top-bar__user-dropdown__divider"
+                role="separator"
+                aria-hidden
+              />
               {showAdminLink ? (
                 <Link
                   href="/admin"
@@ -267,7 +288,7 @@ export function AppUserMenu({
               <button
                 type="button"
                 role="menuitem"
-                className="app-top-bar__user-item"
+                className="app-top-bar__user-item app-top-bar__user-item--danger"
                 onClick={() => {
                   setUserMenuOpen(false);
                   void signOut({ callbackUrl: "/" });

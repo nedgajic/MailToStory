@@ -11,6 +11,12 @@ import {
   MarketingHeaderAuth,
   MarketingMobileNavAuth,
 } from "@/components/landing/marketing-auth-cta";
+import { MobileAppNavSection } from "@/components/mobile-app-nav-section";
+import {
+  MobileNavItem,
+  MobileNavPanel,
+  MobileNavSection,
+} from "@/components/mobile-nav-panel";
 import "@/app/marketing-home.css";
 
 const NAV_ITEMS = [
@@ -129,34 +135,36 @@ export function MarketingHeader() {
         </div>
       </div>
 
-      {menuOpen ? (
-        <div className="mkt-container">
-          <div className="mkt-mobile-nav">
-            {NAV_ITEMS.map(({ id, label }) =>
-              onHome ? (
-                <button
-                  key={`mobile-${id}`}
-                  type="button"
-                  className="mkt-nav__btn mkt-nav__btn--mobile"
-                  onClick={() => go(id)}
-                >
-                  {label}
-                </button>
-              ) : (
-                <Link
-                  key={`mobile-${id}`}
-                  href={`/#${id}`}
-                  className="mkt-nav__btn mkt-nav__btn--mobile"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  {label}
-                </Link>
-              ),
-            )}
-            <MarketingMobileNavAuth />
-          </div>
-        </div>
-      ) : null}
+      <MobileNavPanel
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        label="Primary"
+        footer={signedIn ? undefined : <MarketingMobileNavAuth />}
+      >
+        <MobileNavSection label="Navigate">
+          {NAV_ITEMS.map(({ id, label }) =>
+            onHome ? (
+              <MobileNavItem
+                key={`mobile-${id}`}
+                onClick={() => go(id)}
+              >
+                {label}
+              </MobileNavItem>
+            ) : (
+              <MobileNavItem
+                key={`mobile-${id}`}
+                href={`/#${id}`}
+                onClick={() => setMenuOpen(false)}
+              >
+                {label}
+              </MobileNavItem>
+            ),
+          )}
+        </MobileNavSection>
+        {signedIn ? (
+          <MobileAppNavSection onNavigate={() => setMenuOpen(false)} />
+        ) : null}
+      </MobileNavPanel>
     </header>
   );
 }

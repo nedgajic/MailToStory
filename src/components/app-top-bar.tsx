@@ -10,6 +10,8 @@ import {
   StoriesNavBadge,
   useStoriesNavBadgeCount,
 } from "@/components/stories/stories-nav-badge";
+import { MobileAppNavSection } from "@/components/mobile-app-nav-section";
+import { MobileNavPanel } from "@/components/mobile-nav-panel";
 import type { PlanId } from "@/lib/billing/plans";
 import "@/app/marketing-home.css";
 
@@ -118,25 +120,13 @@ export function AppTopBar({
           </div>
         </div>
 
-        {menuOpen ? (
-          <div className="mkt-container">
-            <div className="mkt-mobile-nav">
-              {APP_NAV.map(({ href, label }) => (
-                <Link
-                  key={`mobile-${href}`}
-                  href={href}
-                  className={`${navClass(href)} mkt-nav__btn--mobile`}
-                  onClick={() => setMenuOpen(false)}
-                >
-                  {label}
-                  {href === "/stories" ? (
-                    <StoriesNavBadge count={storiesNavBadgeCount} />
-                  ) : null}
-                </Link>
-              ))}
-            </div>
-          </div>
-        ) : null}
+        <MobileNavPanel
+          open={menuOpen}
+          onClose={() => setMenuOpen(false)}
+          label="App"
+        >
+          <MobileAppNavSection onNavigate={() => setMenuOpen(false)} />
+        </MobileNavPanel>
       </header>
     );
   }

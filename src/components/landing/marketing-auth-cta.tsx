@@ -49,18 +49,10 @@ export function MarketingMobileNavAuth() {
   const mounted = useMounted();
   const signedIn = mounted && status === "authenticated";
 
-  if (signedIn) {
-    return (
-      <div className="mkt-header__auth">
-        <Link href="/dashboard" className="mkt-btn mkt-btn--cta">
-          Dashboard
-        </Link>
-      </div>
-    );
-  }
+  if (signedIn) return null;
 
   return (
-    <div className="mkt-header__auth">
+    <div className="mkt-mobile-nav__auth">
       <AuthModalTrigger mode="login" className="mkt-btn mkt-btn--ghost">
         Sign in
       </AuthModalTrigger>
